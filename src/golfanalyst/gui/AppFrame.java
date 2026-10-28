@@ -42,7 +42,9 @@ public final class AppFrame extends JFrame
     public AppFrame(DataStore store, Path helpDir, String startNote)
     {
         super(Theme.VERSION_TEXT);
-        setContentPane(new AppPanel(store, helpDir, startNote));
+        AppPanel panel = new AppPanel(store, helpDir, startNote);
+        setContentPane(panel);
+        setTitle(panel.windowTitle());
         Image icon = Theme.image("Home.png");
         if (icon != null)
         {

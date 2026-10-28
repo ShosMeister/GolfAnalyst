@@ -7,9 +7,12 @@ import java.awt.CardLayout;
 import java.awt.Font;
 import java.awt.Frame;
 import java.awt.Window;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.function.ToIntFunction;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -34,10 +37,15 @@ import javax.swing.SwingUtilities;
  | If problems were found while loading the data files, the footer says     |
  | how many and a click on it lists them with their line numbers.           |
  |                                                                          |
+ | When the program is running on the sample data, the window title and     |
+ | the start-up footer say so, and before anything is saved it asks         |
+ | whether to make the golfer's own data folder first (readyToSave).        |
+ |                                                                          |
  | Public Methods:                                                          |
  | navigate(pageName)  - shows a page                                       |
+ | windowTitle()       - the text for the window's title bar                |
  | the Shell methods   - store, setStatus, refreshTitle, goHome, newRound,  |
- |                       browseRounds                                       |
+ |                       browseRounds, newCourse, readyToSave               |
  +--------------------------------------------------------------------------+
  */
 @SuppressWarnings({"serial", "this-escape"})
@@ -46,6 +54,8 @@ public final class AppPanel extends JPanel implements Shell
 
     public static final String HOME = "home";
     public static final String ROUND = "round";
+    public static final String COURSE = "course";
+    static final String SAMPLE_QUESTION = "This is the sample data. Create your own data folder first?";
 
     private final transient DataStore store;
     private final transient Path helpDir;
@@ -55,7 +65,9 @@ public final class AppPanel extends JPanel implements Shell
     private final JPanel center = new JPanel(cards);
     private final transient Map<String, Page> pages = new LinkedHashMap<>();
     private final RoundPage roundPage;
+    private final CoursePage coursePage;
     private String current = HOME;
+    private transient ToIntFunction<String> asker = question -> askOnScreen(question);
 
     /*
      +--------------------------------------------------------------------------+
@@ -80,10 +92,13 @@ public final class AppPanel extends JPanel implements Shell
         this.helpDir = helpDir;
         HomePage homePage = new HomePage(this);
         roundPage = new RoundPage(this);
+        coursePage = new CoursePage(this);
         pages.put(HOME, homePage);
         pages.put(ROUND, roundPage);
+        pages.put(COURSE, coursePage);
         center.add(homePage, HOME);
         center.add(roundPage, ROUND);
+        center.add(coursePage, COURSE);
         add(header, BorderLayout.NORTH);
         add(center, BorderLayout.CENTER);
         add(footer, BorderLayout.SOUTH);
@@ -104,13 +119,24 @@ public final class AppPanel extends JPanel implements Shell
      */
     private String startStatus(String note)
     {
+        String sample = store.isSampleData() ? "This is the sample data, not your own.  " : "";
         long problems = store.dataset().problems().size();
         if (problems > 0)
         {
-            return problems + " problem(s) found in the data files - click here to see them.";
+            return sample + problems + " problem(s) found in the data files - click here to see them.";
         }
         String loaded = store.dataset().rounds().size() + " rounds loaded.";
-        return note.isEmpty() ? "Ready.  " + loaded : note + "  " + loaded;
+        return sample + (note.isEmpty() ? "Ready.  " + loaded : note + "  " + loaded);
+    }
+
+    /*
+     * windowTitle(): the text for the window's title bar: the program and version, and SAMPLE DATA when that is what is open.
+     * Passed in:  nothing
+     * Passed out: for example "Golf Analyst v4.10 - SAMPLE DATA"
+     */
+    public String windowTitle()
+    {
+        return Theme.VERSION_TEXT + (store.isSampleData() ? " - SAMPLE DATA" : "");
     }
 
     /*
@@ -122,7 +148,7 @@ public final class AppPanel extends JPanel implements Shell
      | and puts its title in the header. The Home button is switched off on     |
      | the Home page.                                                           |
      |                                                                          |
-     | Passed in:  pageName - HOME or ROUND                                     |
+     | Passed in:  pageName - HOME, ROUND or COURSE                             |
      | Passed out: nothing                                                      |
      +--------------------------------------------------------------------------+
      */
@@ -245,6 +271,89 @@ public final class AppPanel extends JPanel implements Shell
     }
 
     /*
+     * newCourse(): shows the New Course page, empty.
+     */
+    @Override
+    public void newCourse()
+    {
+        coursePage.showNew();
+        navigate(COURSE);
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | readyToSave()                                                            |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | On the golfer's own data, says yes at once. On the sample data it        |
+     | asks SAMPLE_QUESTION:                                                    |
+     |   Yes    - makes an empty data folder next to sample-data (header rows   |
+     |            only, nothing copied, nothing written over), says to close    |
+     |            and reopen the program, and saves nothing;                    |
+     |   No     - saves into the sample data;                                   |
+     |   Cancel - saves nothing.                                                |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: true to go ahead and save                                    |
+     +--------------------------------------------------------------------------+
+     */
+    @Override
+    public boolean readyToSave()
+    {
+        if (!store.isSampleData())
+        {
+            return true;
+        }
+        int answer = asker.applyAsInt(SAMPLE_QUESTION);
+        if (answer == JOptionPane.NO_OPTION)
+        {
+            return true;
+        }
+        if (answer != JOptionPane.YES_OPTION)
+        {
+            return false;
+        }
+        Path folder = store.dataFolderBeside();
+        if (Files.isDirectory(folder))
+        {
+            setStatus("There is already a data folder at " + folder + ". Close Golf Analyst and open it again to use it.");
+            return false;
+        }
+        try
+        {
+            DataStore.createEmptyFolder(folder);
+            setStatus("Your own data folder was made at " + folder + ". Close Golf Analyst and open it again to use it.");
+        }
+        catch (IOException failure)
+        {
+            setStatus("The data folder could not be made: " + failure.getMessage());
+        }
+        return false;
+    }
+
+    /*
+     * askOnScreen(question): asks a Yes / No / Cancel question in a small window over this one.
+     * Passed in:  question - the words to ask
+     * Passed out: JOptionPane.YES_OPTION, NO_OPTION or CANCEL_OPTION (closing the window counts as Cancel)
+     */
+    private int askOnScreen(String question)
+    {
+        int answer = JOptionPane.showConfirmDialog(this, question, "Golf Analyst", JOptionPane.YES_NO_CANCEL_OPTION,
+                JOptionPane.QUESTION_MESSAGE);
+        return answer == JOptionPane.CLOSED_OPTION ? JOptionPane.CANCEL_OPTION : answer;
+    }
+
+    /*
+     * setAsker(newAsker): replaces the on-screen question with an answer given by code (for the self-test, which has no screen).
+     * Passed in:  newAsker - takes the question and gives a JOptionPane answer
+     * Passed out: nothing
+     */
+    void setAsker(ToIntFunction<String> newAsker)
+    {
+        asker = newAsker;
+    }
+
+    /*
      * header(): the header bar (for tests).
      */
     HeaderBar header()
@@ -258,5 +367,21 @@ public final class AppPanel extends JPanel implements Shell
     FooterBar footer()
     {
         return footer;
+    }
+
+    /*
+     * roundPage(): the round page (for tests).
+     */
+    RoundPage roundPage()
+    {
+        return roundPage;
+    }
+
+    /*
+     * coursePage(): the New Course page (for tests).
+     */
+    CoursePage coursePage()
+    {
+        return coursePage;
     }
 }

@@ -14,11 +14,11 @@ rem ======================================================================
 setlocal
 cd /d "%~dp0"
 
-call jdk.bat
+call "%~dp0jdk.bat"
 if errorlevel 1 exit /b 1
 
 if not exist out\golfanalyst\Main.class (
-  call build.bat
+  call "%~dp0build.bat"
   if errorlevel 1 exit /b 1
 )
 

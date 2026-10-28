@@ -9,6 +9,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 
@@ -24,7 +25,13 @@ import java.util.Properties;
  | files. It knows nothing about windows, so it can be tested without       |
  | one.                                                                     |
  |                                                                          |
- | Also keeps the golfer's name in settings.txt in the data folder.         |
+ | Also keeps the golfer's name in settings.txt in the data folder, and     |
+ | knows whether it is showing the sample data rather than the golfer's     |
+ | own.                                                                     |
+ |                                                                          |
+ | Constants:                                                               |
+ | DATA_FOLDER   - the name of the golfer's own data folder ("data")        |
+ | SAMPLE_FOLDER - the name of the sample data folder ("sample-data")       |
  |                                                                          |
  | Public Methods:                                                          |
  | reload()                  - reads the files again and recalculates       |
@@ -32,13 +39,21 @@ import java.util.Properties;
  | teeMap()                  - course/tees keyed by id                      |
  | nextRoundId()             - an unused round id                           |
  | addRound(round)           - adds a round to rounds.tsv and reloads       |
+ | nextTeeId()               - an unused tee id                             |
+ | teesForCourse(name, zip)  - the tees a course already has                |
+ | addTees(tees)             - adds tees to courses.tsv and reloads         |
  | project(draft)            - the handicap line a round would get          |
  | golferName(), setGolferName(name)                                        |
+ | isSampleData()            - whether this is the sample data folder       |
+ | dataFolderBeside()        - where the golfer's own data folder goes      |
+ | createEmptyFolder(dir)    - makes a data folder with header rows only    |
  +--------------------------------------------------------------------------+
  */
 public final class DataStore
 {
 
+    public static final String DATA_FOLDER = "data";
+    public static final String SAMPLE_FOLDER = "sample-data";
     private static final String SETTINGS_FILE = "settings.txt";
     private static final String GOLFER_KEY = "golfer";
     private final Path dir;
@@ -168,6 +183,78 @@ public final class DataStore
     }
 
     /*
+     * nextTeeId(): an id no course/tee uses yet, one more than the highest.
+     * Passed in:  nothing
+     * Passed out: the new id (1 if there are no tees)
+     */
+    public int nextTeeId()
+    {
+        int highest = 0;
+        for (Tee tee : dataset.tees())
+        {
+            highest = Math.max(highest, tee.id());
+        }
+        return highest + 1;
+    }
+
+    /*
+     * sameName(text): a course name made easy to compare: no extra spaces, no capitals.
+     * Passed in:  text - the name
+     * Passed out: for example "sample links" for "  Sample   LINKS "
+     */
+    private static String sameName(String text)
+    {
+        return text.trim().replaceAll("\\s+", " ").toLowerCase(Locale.ROOT);
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | teesForCourse(name, zip)                                                 |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Finds the tees a course already has. The name matches whatever the       |
+     | capitals and extra spaces, and the zip must be the same, so two          |
+     | courses with the same name in different towns are kept apart.            |
+     |                                                                          |
+     | Passed in:  name - the course name                                       |
+     |             zip  - the 5-digit zip                                       |
+     | Passed out: the tees, in file order (empty if the course is new)         |
+     +--------------------------------------------------------------------------+
+     */
+    public List<Tee> teesForCourse(String name, String zip)
+    {
+        List<Tee> found = new ArrayList<>();
+        String wanted = sameName(name);
+        for (Tee tee : dataset.tees())
+        {
+            if (sameName(tee.courseName()).equals(wanted) && tee.zip().trim().equals(zip.trim()))
+            {
+                found.add(tee);
+            }
+        }
+        return found;
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | addTees(tees)                                                            |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Adds tees to courses.tsv (see CourseWriter, which refuses a line that    |
+     | would not load) and then reloads and recalculates everything.            |
+     |                                                                          |
+     | Passed in:  tees - the new tees, with ids from nextTeeId() upwards       |
+     | Passed out: nothing (throws IOException if a tee is refused or the       |
+     |             file cannot be written)                                      |
+     +--------------------------------------------------------------------------+
+     */
+    public void addTees(List<Tee> tees) throws IOException
+    {
+        CourseWriter.append(dir.resolve(DataLoader.COURSES_FILE), tees);
+        reload();
+    }
+
+    /*
      +--------------------------------------------------------------------------+
      | project(draft)                                                           |
      +--------------------------------------------------------------------------+
@@ -233,6 +320,55 @@ public final class DataStore
         try (Writer writer = Files.newBufferedWriter(dir.resolve(SETTINGS_FILE), StandardCharsets.UTF_8))
         {
             settings.store(writer, "Golf Analyst settings");
+        }
+    }
+
+    /*
+     * isSampleData(): whether this store is reading the sample data folder (it is named sample-data) rather than the golfer's own.
+     * Passed in:  nothing
+     * Passed out: true for the sample data
+     */
+    public boolean isSampleData()
+    {
+        Path name = dir.toAbsolutePath().normalize().getFileName();
+        return name != null && name.toString().equalsIgnoreCase(SAMPLE_FOLDER);
+    }
+
+    /*
+     * dataFolderBeside(): where the golfer's own data folder belongs: a folder named data next to this one.
+     * Passed in:  nothing
+     * Passed out: the path (it may not exist yet)
+     */
+    public Path dataFolderBeside()
+    {
+        return dir.toAbsolutePath().normalize().resolveSibling(DATA_FOLDER);
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | createEmptyFolder(folder)                                                |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Makes a data folder holding courses.tsv and rounds.tsv with just their   |
+     | header rows. Nothing is copied into it. A file that is already there is  |
+     | never written over.                                                      |
+     |                                                                          |
+     | Passed in:  folder - the folder to create                                |
+     | Passed out: nothing (throws IOException if it cannot be made)            |
+     +--------------------------------------------------------------------------+
+     */
+    public static void createEmptyFolder(Path folder) throws IOException
+    {
+        Files.createDirectories(folder);
+        Path courses = folder.resolve(DataLoader.COURSES_FILE);
+        if (!Files.exists(courses))
+        {
+            Files.writeString(courses, CourseWriter.STANDARD_HEADER + "\n", StandardCharsets.UTF_8);
+        }
+        Path rounds = folder.resolve(DataLoader.ROUNDS_FILE);
+        if (!Files.exists(rounds))
+        {
+            Files.writeString(rounds, RoundWriter.STANDARD_HEADER + "\n", StandardCharsets.UTF_8);
         }
     }
 }

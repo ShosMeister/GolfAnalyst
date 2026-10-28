@@ -34,6 +34,11 @@ import javax.swing.JTextField;
  |   a bad entry that turns Save off, a complete round that turns it on     |
  | - Save adds a line to rounds.tsv that loads back identically             |
  | - Front-nine entry, and browsing saved rounds with the arrows            |
+ | - New Course: every typing rule, the names rule, finding a course        |
+ |   already there, each check on Save, the cursor order, adding tees to    |
+ |   a course and saving a new nine-hole course                             |
+ | - The sample-data safeguard: title, footer, and Yes / No / Cancel for    |
+ |   both a course and a round                                              |
  |                                                                          |
  | How to run:                                                              |
  |   java -cp out golfanalyst.gui.App --selftest                            |
@@ -130,6 +135,26 @@ public final class GuiSelfTest
         {
             windowCalls++;
             lastPage = "browse";
+        }
+
+        /*
+         * newCourse(): remembers that New Course was asked for.
+         */
+        @Override
+        public void newCourse()
+        {
+            windowCalls++;
+            lastPage = "course";
+        }
+
+        /*
+         * readyToSave(): always yes; the sample-data question is tested on the real AppPanel.
+         */
+        @Override
+        public boolean readyToSave()
+        {
+            windowCalls++;
+            return true;
         }
     }
 
@@ -297,6 +322,7 @@ public final class GuiSelfTest
         // its pages are not registered yet, and a call then fails (this was a real start-up crash)
         HomePage home = new HomePage(shell);
         RoundPage page = new RoundPage(shell);
+        CoursePage coursePage = new CoursePage(shell);
         check("building the pages makes no calls to the window", shell.windowCalls == 0);
 
         // Home
@@ -478,7 +504,7 @@ public final class GuiSelfTest
 
         // Wording: a score belongs to a hole; rounds are what the handicap counts
         for (String file : new String[] {"home-info.txt", "home-help.txt", "round-new-info.txt", "round-new-help.txt",
-                "round-view-info.txt", "round-view-help.txt"})
+                "round-view-info.txt", "round-view-help.txt", "course-info.txt", "course-help.txt"})
         {
             String helpText = Files.readString(Path.of("help", file));
             check(file + " does not call a round a score", !helpText.contains("Scores Used") && !helpText.contains("20 scores")
@@ -554,7 +580,7 @@ public final class GuiSelfTest
         check("while entering, the round help files are the entry ones", page.helpKey().equals("round-new"));
         page.showLatest();
         check("while looking, the round help files are the viewing ones", page.helpKey().equals("round-view"));
-        for (String key : new String[] {"home", "round-new", "round-view"})
+        for (String key : new String[] {"home", "round-new", "round-view", "course"})
         {
             for (String kind : new String[] {"info", "help"})
             {
@@ -624,11 +650,18 @@ public final class GuiSelfTest
         check("Close goes back to Home", panel.header().title().equals("Golf Analyst Stats Home"));
         ((WoodButton) findByText(panel, "Stats Board")).doClick();
         check("an unbuilt button says so", panel.footer().status().contains("not built yet"));
-        for (Path file : (Iterable<Path>) Files.list(windowTemp)::iterator)
-        {
-            Files.deleteIfExists(file);
-        }
-        Files.deleteIfExists(windowTemp);
+        ((WoodButton) findByText(panel, "New Course")).doClick();
+        check("New Course shows the course page", panel.header().title().equals("New Course"));
+        check("the course page asks for the name and zip first", panel.footer().status().contains("5-digit zip"));
+        panel.coursePage().cancelButton.doClick();
+        check("Cancel on the course page goes back to Home", panel.header().title().equals("Golf Analyst Stats Home"));
+        check("your own data: the window title does not say sample", !panel.windowTitle().contains("SAMPLE"));
+        check("your own data: saving does not ask the sample question", panel.readyToSave());
+        deleteFolder(windowTemp);
+
+        checkCourseTyping();
+        checkCoursePage(coursePage, store, shell, temp);
+        checkSampleSafeguard();
 
         List<Path> leftovers = new ArrayList<>();
         try (Stream<Path> files = Files.list(temp))
@@ -640,5 +673,390 @@ public final class GuiSelfTest
             Files.deleteIfExists(file);
         }
         Files.deleteIfExists(temp);
+    }
+
+    /*
+     * deleteFolder(folder): deletes a temporary test folder and everything in it.
+     * Passed in:  folder - the folder
+     * Passed out: nothing (throws IOException if something cannot be deleted)
+     */
+    private static void deleteFolder(Path folder) throws IOException
+    {
+        List<Path> paths = new ArrayList<>();
+        try (Stream<Path> walk = Files.walk(folder))
+        {
+            walk.forEach(paths::add);
+        }
+        for (int lp = paths.size() - 1; lp >= 0; lp--)
+        {
+            Files.deleteIfExists(paths.get(lp));
+        }
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | typeKeys(kind, nine, keys, advances)                                     |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Types keys one at a time into a box with the New Course typing rules,    |
+     | as the user would, and counts how often the cursor would move on.        |
+     |                                                                          |
+     | Passed in:  kind     - which kind of box                                 |
+     |             nine     - true for a nine-hole course                       |
+     |             keys     - the keys, in order                                |
+     |             advances - one-element array that receives the move count    |
+     | Passed out: what the box holds afterwards                                |
+     +--------------------------------------------------------------------------+
+     */
+    private static String typeKeys(CoursePage.BoxFilter.Kind kind, boolean nine, String keys, int[] advances)
+    {
+        advances[0] = 0;
+        javax.swing.text.PlainDocument doc = new javax.swing.text.PlainDocument();
+        doc.setDocumentFilter(new CoursePage.BoxFilter(kind, () -> nine, () -> false, () -> advances[0]++));
+        try
+        {
+            for (char key : keys.toCharArray())
+            {
+                doc.insertString(doc.getLength(), String.valueOf(key), null);
+            }
+            return doc.getText(0, doc.getLength());
+        }
+        catch (javax.swing.text.BadLocationException unexpected)
+        {
+            return "error: " + unexpected.getMessage();
+        }
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | checkCourseTyping()                                                      |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | The New Course typing rules, box by box: par 3-6, stroke index (a lone   |
+     | 1 waits, then 0-8), slope (two digits from 5-9, three from 1, nothing    |
+     | above 155), rating (moves on after the digit after the point), yardage,  |
+     | zip and state; and the name tidying rule.                                |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing                                                      |
+     +--------------------------------------------------------------------------+
+     */
+    private static void checkCourseTyping()
+    {
+        CoursePage.BoxFilter.Kind par = CoursePage.BoxFilter.Kind.PAR;
+        CoursePage.BoxFilter.Kind index = CoursePage.BoxFilter.Kind.STROKE_INDEX;
+        CoursePage.BoxFilter.Kind slope = CoursePage.BoxFilter.Kind.SLOPE;
+        CoursePage.BoxFilter.Kind rating = CoursePage.BoxFilter.Kind.RATING;
+        int[] moves = new int[1];
+
+        check("par: 7, 2 and letters cannot be typed", typeKeys(par, false, "72x", moves).isEmpty() && moves[0] == 0);
+        check("par: 4 is kept and moves on", typeKeys(par, false, "4", moves).equals("4") && moves[0] == 1);
+        check("par: a digit typed into a full box starts it over", typeKeys(par, false, "45", moves).equals("5") && moves[0] == 2);
+
+        check("stroke index: a lone 1 waits", typeKeys(index, false, "1", moves).equals("1") && moves[0] == 0);
+        check("stroke index: 1 then 2 makes 12 and moves on", typeKeys(index, false, "12", moves).equals("12") && moves[0] == 1);
+        check("stroke index: 1 then 8 makes 18", typeKeys(index, false, "18", moves).equals("18") && moves[0] == 1);
+        check("stroke index: after a 1, a 9 is refused (nothing above 18)", typeKeys(index, false, "19", moves).equals("1") && moves[0] == 0);
+        check("stroke index: 2 moves on at once", typeKeys(index, false, "2", moves).equals("2") && moves[0] == 1);
+        check("stroke index: 9 moves on at once", typeKeys(index, false, "9", moves).equals("9") && moves[0] == 1);
+        check("stroke index: cannot start with 0", typeKeys(index, false, "0", moves).isEmpty());
+        check("stroke index on a nine-hole course: 1 moves on at once", typeKeys(index, true, "1", moves).equals("1") && moves[0] == 1);
+
+        check("slope: 0, 2, 3 and 4 cannot start it", typeKeys(slope, false, "0", moves).isEmpty() && typeKeys(slope, false, "2", moves).isEmpty()
+                && typeKeys(slope, false, "3", moves).isEmpty() && typeKeys(slope, false, "4", moves).isEmpty());
+        check("slope: 5 then 4 is refused (below 55)", typeKeys(slope, false, "54", moves).equals("5") && moves[0] == 0);
+        check("slope: 55 moves on after two digits", typeKeys(slope, false, "55", moves).equals("55") && moves[0] == 1);
+        check("slope: 99 moves on after two digits", typeKeys(slope, false, "99", moves).equals("99") && moves[0] == 1);
+        check("slope: 1 and 12 wait", typeKeys(slope, false, "12", moves).equals("12") && moves[0] == 0);
+        check("slope: 123 moves on after three digits", typeKeys(slope, false, "123", moves).equals("123") && moves[0] == 1);
+        check("slope: 155 is the highest", typeKeys(slope, false, "155", moves).equals("155") && moves[0] == 1);
+        check("slope: 156 is refused", typeKeys(slope, false, "156", moves).equals("15") && moves[0] == 0);
+        check("slope: 16 is refused", typeKeys(slope, false, "16", moves).equals("1"));
+
+        check("rating: 72 waits for the point", typeKeys(rating, false, "72", moves).equals("72") && moves[0] == 0);
+        check("rating: moves on after the digit after the point", typeKeys(rating, false, "72.3", moves).equals("72.3") && moves[0] == 1);
+        check("rating: a third digit before the point is refused", typeKeys(rating, false, "723", moves).equals("72"));
+        check("rating: a nine-hole rating like 34.6", typeKeys(rating, false, "34.6", moves).equals("34.6") && moves[0] == 1);
+
+        check("yardage: four digits move on", typeKeys(CoursePage.BoxFilter.Kind.YARDAGE, false, "6450", moves).equals("6450") && moves[0] == 1);
+        check("yardage: cannot start with 0", typeKeys(CoursePage.BoxFilter.Kind.YARDAGE, false, "0", moves).isEmpty());
+        check("zip: five digits move on", typeKeys(CoursePage.BoxFilter.Kind.ZIP, false, "29100", moves).equals("29100") && moves[0] == 1);
+        check("zip: letters are refused", typeKeys(CoursePage.BoxFilter.Kind.ZIP, false, "a", moves).isEmpty());
+        check("state: two letters become capitals and move on", typeKeys(CoursePage.BoxFilter.Kind.STATE, false, "sc", moves).equals("SC") && moves[0] == 1);
+        check("state: digits are refused", typeKeys(CoursePage.BoxFilter.Kind.STATE, false, "1", moves).isEmpty());
+
+        check("names: extra spaces are removed", CoursePage.tidyName("  Sample    Links ").equals("Sample Links"));
+        check("names: all lower case gets capitals", CoursePage.tidyName("oak hollow").equals("Oak Hollow"));
+        check("names: all upper case gets capitals", CoursePage.tidyName("PINE TOWN").equals("Pine Town"));
+        check("names: TPC in a mixed name survives", CoursePage.tidyName("TPC Sawgrass").equals("TPC Sawgrass"));
+        check("names: McDonough survives", CoursePage.tidyName("McDonough").equals("McDonough"));
+        check("names: a hyphenated name gets both capitals", CoursePage.tidyName("winston-salem").equals("Winston-Salem"));
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | fillTee(page, tee, name, rating, slope, pars, index)                     |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Types one tee into the New Course screen.                                |
+     |                                                                          |
+     | Passed in:  page   - the screen                                          |
+     |             tee    - which tee, 0 to 3                                   |
+     |             name, rating, slope - its top boxes                          |
+     |             pars, index - one value per hole of the course               |
+     | Passed out: nothing                                                      |
+     +--------------------------------------------------------------------------+
+     */
+    private static void fillTee(CoursePage page, int tee, String name, String rating, String slope, int[] pars, int[] index)
+    {
+        page.teeNameFields[tee].setText(name);
+        page.ratingFields[tee].setText(rating);
+        page.slopeFields[tee].setText(slope);
+        for (int hole = 0; hole < pars.length; hole++)
+        {
+            page.parFields[tee][hole].setText(Integer.toString(pars[hole]));
+            page.indexFields[tee][hole].setText(Integer.toString(index[hole]));
+        }
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | checkCoursePage(page, store, shell, temp)                                |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | The New Course screen on a copy of the sample data: the course step,     |
+     | finding a course already there, the checks on Save and their messages,   |
+     | the total par, the cursor order, adding tees to an existing course       |
+     | (with one skipped) and saving a new nine-hole course.                    |
+     |                                                                          |
+     | Passed in:  page  - a New Course screen built on the test shell          |
+     |             store - the test data store, shell - the test shell          |
+     |             temp  - the temporary data folder                            |
+     | Passed out: nothing (throws IOException if the data cannot be read)      |
+     +--------------------------------------------------------------------------+
+     */
+    private static void checkCoursePage(CoursePage page, DataStore store, TestShell shell, Path temp) throws IOException
+    {
+        int[] pars = {4, 3, 5, 4, 4, 3, 5, 4, 4, 4, 3, 5, 4, 4, 3, 5, 4, 4};
+        int[] index = new int[18];
+        int[] reversed = new int[18];
+        for (int hole = 0; hole < 18; hole++)
+        {
+            index[hole] = hole + 1;
+            reversed[hole] = 18 - hole;
+        }
+
+        page.showNew();
+        check("New Course names the tees Ladies, Beginner, Intermediate and Expert",
+                page.teeNameFields[0].getText().equals("Ladies") && page.teeNameFields[3].getText().equals("Expert"));
+        check("New Course starts with the title New Course", page.title().equals("New Course") && page.helpKey().equals("course"));
+        check("the tees stay greyed until the course and zip are in", !page.ratingFields[0].isEnabled());
+        check("a greyed box has the grey face", page.ratingFields[0].getBackground().equals(Theme.FIELD_FACE));
+        check("the footer asks for the course and zip first", shell.status.contains("5-digit zip"));
+
+        // A course already in the program, typed with other capitals and spaces
+        page.courseField.setText("sample   LINKS");
+        page.zipField.setText("29000");
+        check("a course already there is found whatever the capitals", page.cityField.getText().equals("Anytown")
+                && page.stateField.getText().equals("SC"));
+        check("its city and state are locked", !page.cityField.isEditable() && !page.stateField.isEditable());
+        check("the footer lists the tees it has", shell.status.contains("White, Blue"));
+        check("with the course and zip in, the tees open", page.ratingFields[0].isEnabled()
+                && page.ratingFields[0].getBackground().equals(java.awt.Color.WHITE));
+        check("the cursor skips the locked city and state", page.componentAfter(page.zipField) == page.teeNameFields[0]);
+
+        fillTee(page, 0, "white", "69.0", "120", pars, index);
+        check("the total par is worked out as you type", page.parTotalBoxes[0].getText().equals("72"));
+        page.saveButton.doClick();
+        check("a tee name already on the course is refused, ignoring capitals", shell.status.contains("already a tee called White"));
+        check("the box with the mistake turns pink", page.teeNameFields[0].getBackground().equals(Theme.FIELD_ERROR));
+        page.teeNameFields[0].setText("Gold");
+        check("typing clears the pink mark", !page.teeNameFields[0].getBackground().equals(Theme.FIELD_ERROR));
+
+        fillTee(page, 1, "GOLD", "71.0", "125", pars, reversed);
+        page.saveButton.doClick();
+        check("two new tees with the same name are refused", shell.status.contains("already a tee called Gold"));
+        page.teeNameFields[1].setText("Red");
+
+        page.indexFields[1][4].setText("16");
+        page.saveButton.doClick();
+        check("a repeated stroke index is named by tee and hole",
+                shell.status.equals("Red tee, hole 5: stroke index 16 is already used on hole 3."));
+        page.indexFields[1][4].setText("14");
+
+        page.parFields[1][6].setText("");
+        page.saveButton.doClick();
+        check("a missing par is named by tee and hole", shell.status.equals("Red tee, hole 7: the par is missing."));
+        check("the total par counts only the pars typed", page.parTotalBoxes[1].getText().equals("67"));
+        page.parFields[1][6].setText("5");
+
+        page.slopeFields[1].setText("");
+        page.saveButton.doClick();
+        check("a missing slope is named", shell.status.equals("Red tee: the slope is missing."));
+        page.slopeFields[1].setText("125");
+
+        page.frontRatingFields[1].setText("35.0");
+        page.saveButton.doClick();
+        check("a front-nine rating needs its slope", shell.status.contains("go together")
+                && page.frontSlopeFields[1].getBackground().equals(Theme.FIELD_ERROR));
+        page.frontSlopeFields[1].setText("119");
+
+        page.parFields[2][0].setText("4");
+        int nextId = store.nextTeeId();
+        int teesBefore = store.dataset().tees().size();
+        page.saveButton.doClick();
+        check("Save adds the tees and says so, naming a tee skipped for having no rating",
+                shell.status.equals("Added 2 tees for Sample Links.  Intermediate was skipped because it has no rating."));
+        check("after saving, the window goes Home", shell.lastPage.equals("home"));
+        Dataset reread = DataLoader.load(temp);
+        check("the course file loads back with no errors", reread.errorCount() == 0);
+        check("two tees were added", reread.tees().size() == teesBefore + 2 && store.dataset().tees().size() == teesBefore + 2);
+        golfanalyst.Tee gold = reread.teeMap().get(nextId);
+        golfanalyst.Tee red = reread.teeMap().get(nextId + 1);
+        check("the new TeeIDs are the highest plus one, then plus two", gold != null && red != null);
+        check("the new tees join the course under its own spelling", gold != null && gold.courseName().equals("Sample Links")
+                && gold.city().equals("Anytown") && gold.zip().equals("29000"));
+        check("the typed numbers are saved", red != null && red.rating() == 71.0 && red.slope() == 125
+                && red.strokeIndex()[0] == 18 && red.pars()[6] == 5 && red.frontRating() == 35.0 && red.frontSlope() == 119
+                && red.backSlope() == 0 && red.yardage() == 0);
+
+        // A new nine-hole course, names typed in all lower and all upper case
+        page.showNew();
+        page.courseField.setText("  oak   hollow  ");
+        page.zipField.setText("29100");
+        check("a new course leaves the city and state open", page.cityField.isEditable() && shell.status.startsWith("A new course"));
+        page.cityField.setText("PINE TOWN");
+        page.stateField.setText("sc");
+        check("the state is turned into capitals as it is typed", page.stateField.getText().equals("SC"));
+        page.setNineHoles(true);
+        check("a nine-hole course hides holes 10 to 18", !page.parFields[0][9].isVisible() && page.parFields[0][8].isVisible());
+        check("a nine-hole course hides the front and back ratings", !page.frontRatingFields[0].isVisible() && !page.backSlopeFields[0].isVisible());
+        check("nine holes: after the slope the cursor goes to the yards", page.componentAfter(page.slopeFields[0]) == page.yardageFields[0]);
+        check("nine holes: after hole 9's par it goes to hole 1's stroke index", page.componentAfter(page.parFields[0][8]) == page.indexFields[0][0]);
+        check("nine holes: after hole 9's stroke index it goes to the next tee", page.componentAfter(page.indexFields[0][8]) == page.teeNameFields[1]);
+        int[] ninePars = java.util.Arrays.copyOf(pars, 9);
+        int[] nineIndex = {5, 9, 1, 7, 3, 8, 2, 6, 4};
+        fillTee(page, 0, "white", "34.1", "113", ninePars, nineIndex);
+        page.yardageFields[0].setText("2900");
+        check("nine holes: the total par is over nine holes", page.parTotalBoxes[0].getText().equals("36"));
+        int nineId = store.nextTeeId();
+        page.saveButton.doClick();
+        check("a new course saves with its tidied name", shell.status.equals("Added 1 tee for Oak Hollow."));
+        golfanalyst.Tee nine = DataLoader.load(temp).teeMap().get(nineId);
+        check("the nine-hole tee is saved with 9 holes, tidied names and its yardage", nine != null && nine.holes() == 9
+                && nine.pars().length == 9 && nine.city().equals("Pine Town") && nine.state().equals("SC")
+                && nine.teeName().equals("White") && nine.yardage() == 2900);
+
+        // Nothing rated, and the zip
+        page.showNew();
+        page.courseField.setText("Empty Acres");
+        page.saveButton.doClick();
+        check("a zip is needed", shell.status.equals("The zip must be 5 digits."));
+        page.zipField.setText("29200");
+        page.saveButton.doClick();
+        check("at least one tee needs a rating", shell.status.startsWith("Fill in the rating of at least one tee."));
+
+        // The cursor order on an 18-hole course
+        check("after the course name the cursor goes to the zip", page.componentAfter(page.courseField) == page.zipField);
+        check("after the zip it goes to the city", page.componentAfter(page.zipField) == page.cityField);
+        check("after the state it goes to the first tee's name", page.componentAfter(page.stateField) == page.teeNameFields[0]);
+        check("after the name it goes to the rating, then the slope", page.componentAfter(page.teeNameFields[0]) == page.ratingFields[0]
+                && page.componentAfter(page.ratingFields[0]) == page.slopeFields[0]);
+        check("after the slope come the front and back ratings", page.componentAfter(page.slopeFields[0]) == page.frontRatingFields[0]
+                && page.componentAfter(page.backSlopeFields[0]) == page.yardageFields[0]);
+        check("after the yards it goes down the pars", page.componentAfter(page.yardageFields[0]) == page.parFields[0][0]
+                && page.componentAfter(page.parFields[0][8]) == page.parFields[0][9]);
+        check("after hole 18's par it goes to hole 1's stroke index", page.componentAfter(page.parFields[0][17]) == page.indexFields[0][0]);
+        check("after hole 18's stroke index it goes to the next tee's name", page.componentAfter(page.indexFields[0][17]) == page.teeNameFields[1]);
+        check("after the last tee it goes to Save", page.componentAfter(page.indexFields[3][17]) == page.saveButton);
+
+        page.cancelButton.doClick();
+        check("Cancel on the course page goes Home", shell.lastPage.equals("home"));
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | checkSampleSafeguard()                                                   |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Runs the real window logic on a copy of the sample data in a folder      |
+     | named sample-data: the title and footer say it is the sample data, and   |
+     | saving a course or a round asks first. Cancel saves nothing; Yes makes   |
+     | an empty data folder beside it and saves nothing; Yes again leaves that  |
+     | folder alone; No saves into the sample data.                             |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing (throws IOException if the copy fails)               |
+     +--------------------------------------------------------------------------+
+     */
+    private static void checkSampleSafeguard() throws IOException
+    {
+        Path base = Files.createTempDirectory("golfanalyst-sample-test");
+        Path sample = base.resolve(DataStore.SAMPLE_FOLDER);
+        Path ownData = base.resolve(DataStore.DATA_FOLDER);
+        copyFolder(Path.of("sample-data"), sample);
+        String coursesBefore = Files.readString(sample.resolve(DataLoader.COURSES_FILE));
+        String roundsBefore = Files.readString(sample.resolve(DataLoader.ROUNDS_FILE));
+        DataStore store = new DataStore(sample);
+        check("a folder named sample-data is known to be the sample data", store.isSampleData());
+        AppPanel panel = new AppPanel(store, Path.of("help"), "");
+        check("the window title says it is the sample data", panel.windowTitle().equals(Theme.VERSION_TEXT + " - SAMPLE DATA"));
+        check("the footer says it is the sample data", panel.footer().status().startsWith("This is the sample data"));
+        List<String> asked = new ArrayList<>();
+        int[] answer = {javax.swing.JOptionPane.CANCEL_OPTION};
+        panel.setAsker(question ->
+        {
+            asked.add(question);
+            return answer[0];
+        });
+
+        ((WoodButton) findByText(panel, "New Course")).doClick();
+        CoursePage page = panel.coursePage();
+        int[] ninePars = {4, 3, 5, 4, 4, 3, 5, 4, 4};
+        int[] nineIndex = {5, 9, 1, 7, 3, 8, 2, 6, 4};
+        page.courseField.setText("Test Nine");
+        page.zipField.setText("29300");
+        page.setNineHoles(true);
+        fillTee(page, 0, "Red", "33.0", "110", ninePars, nineIndex);
+        page.saveButton.doClick();
+        check("saving on the sample data asks the agreed question",
+                asked.size() == 1 && asked.get(0).equals("This is the sample data. Create your own data folder first?"));
+        check("Cancel saves nothing and stays on the page", Files.readString(sample.resolve(DataLoader.COURSES_FILE)).equals(coursesBefore)
+                && panel.header().title().equals("New Course") && !Files.exists(ownData));
+
+        answer[0] = javax.swing.JOptionPane.YES_OPTION;
+        page.saveButton.doClick();
+        check("Yes makes a data folder beside the sample data", Files.isDirectory(ownData));
+        check("the new data folder has header rows only",
+                Files.readAllLines(ownData.resolve(DataLoader.COURSES_FILE)).equals(List.of(golfanalyst.CourseWriter.STANDARD_HEADER))
+                        && Files.readAllLines(ownData.resolve(DataLoader.ROUNDS_FILE)).equals(List.of(golfanalyst.RoundWriter.STANDARD_HEADER)));
+        check("Yes saves nothing into the sample data", Files.readString(sample.resolve(DataLoader.COURSES_FILE)).equals(coursesBefore));
+        check("Yes says to close and reopen the program", panel.footer().status().contains("Close Golf Analyst and open it again"));
+
+        Files.writeString(ownData.resolve(DataLoader.COURSES_FILE), "# mine\n", java.nio.file.StandardOpenOption.APPEND);
+        String ownCourses = Files.readString(ownData.resolve(DataLoader.COURSES_FILE));
+        page.saveButton.doClick();
+        check("Yes again leaves an existing data folder alone", Files.readString(ownData.resolve(DataLoader.COURSES_FILE)).equals(ownCourses)
+                && panel.footer().status().contains("already a data folder"));
+
+        answer[0] = javax.swing.JOptionPane.NO_OPTION;
+        page.saveButton.doClick();
+        check("No saves into the sample data", panel.footer().status().equals("Added 1 tee for Test Nine.")
+                && !Files.readString(sample.resolve(DataLoader.COURSES_FILE)).equals(coursesBefore));
+
+        // A round asks the same question
+        ((WoodButton) findByText(panel, "New Round")).doClick();
+        RoundPage roundPage = panel.roundPage();
+        for (int hole = 0; hole < 18; hole++)
+        {
+            type(roundPage.puttFields[hole], "2");
+            type(roundPage.scoreFields[hole], "6");
+        }
+        answer[0] = javax.swing.JOptionPane.CANCEL_OPTION;
+        int askedBefore = asked.size();
+        roundPage.saveButton.doClick();
+        check("saving a round on the sample data asks too", roundPage.saveButton.isEnabled() && asked.size() == askedBefore + 1);
+        check("Cancel saves no round", Files.readString(sample.resolve(DataLoader.ROUNDS_FILE)).equals(roundsBefore));
+        deleteFolder(base);
     }
 }

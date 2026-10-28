@@ -141,9 +141,10 @@ public final class RoundWriter
      |                                                                          |
      | Passed in:  text - the whole file                                        |
      | Passed out: the header split into cells, or null if there is none        |
+     |             (CourseWriter uses it too)                                   |
      +--------------------------------------------------------------------------+
      */
-    private static String[] findHeader(String text)
+    static String[] findHeader(String text)
     {
         String clean = text.startsWith("\uFEFF") ? text.substring(1) : text;
         for (String line : clean.split("\\R"))

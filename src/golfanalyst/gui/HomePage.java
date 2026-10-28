@@ -28,8 +28,8 @@ import javax.swing.JPanel;
  | Course, New Round, Edit Round, Import, Clear) and viewing on the right   |
  | (Rounds, Stats Board, Analyzer, Best Round, Print). The grid fills       |
  | across each row, so the order they are added in is row by row. Only New  |
- | Round and Rounds work now; the others are in place and say so in the     |
- | footer until they are built.                                             |
+ | Course, New Round and Rounds work now; the others are in place and say   |
+ | so in the footer until they are built.                                   |
  |                                                                          |
  | Public Methods:                                                          |
  | onShow() - refreshes every figure from the data                          |
@@ -106,7 +106,7 @@ public final class HomePage extends Page
 
         JPanel buttons = new JPanel(new GridLayout(0, 2, 12, 12));
         buttons.setOpaque(false);
-        buttons.add(actionButton("New Course", () -> shell.setStatus("New Course is not built yet.")));
+        buttons.add(actionButton("New Course", () -> shell.newCourse()));
         buttons.add(actionButton("Rounds", () -> shell.browseRounds()));
         buttons.add(actionButton("New Round", () -> shell.newRound()));
         buttons.add(actionButton("Stats Board", () -> shell.setStatus("Stats Board is not built yet.")));

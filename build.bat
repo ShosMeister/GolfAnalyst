@@ -13,7 +13,7 @@ rem ======================================================================
 setlocal enabledelayedexpansion
 cd /d "%~dp0"
 
-call jdk.bat
+call "%~dp0jdk.bat"
 if errorlevel 1 exit /b 1
 
 if exist out rmdir /s /q out

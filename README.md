@@ -1,4 +1,4 @@
-# GolfAnalyst v4.00 (Java)
+# GolfAnalyst v4.10 (Java)
 
 Golf Analyst with its window. It has the one-window layout of the earlier versions: a wood header
 with Home, Help and Info buttons that stays the same on every screen, a status footer that stays
@@ -34,28 +34,45 @@ folder (NetBeans does that) so it can find the `images`, `help` and data folders
     java -Djava.awt.headless=true -cp out golfanalyst.gui.App --selftest     (screen tests)
 
 If `build.bat` says javac was not found, set `JAVA_HOME` to your JDK folder (NetBeans shows
-it under Tools > Java Platforms) or install a JDK. The scripts were written without a Windows
-machine to test on, so tell me the exact message if any step fails.
+it under Tools > Java Platforms) or install a JDK. The scripts call each other by their full path,
+so they work even on a computer set not to look in the current folder for programs. `test.bat` ends
+with exit code 1 if either set of tests fails. Tell me the exact message if any step fails.
 
 ## Which data folder it opens
 
 1. the folder you name when you start it;
 2. otherwise a folder called `data` next to the program;
-3. otherwise, if there is no `data` folder, `sample-data` (the footer says so);
+3. otherwise, if there is no `data` folder, `sample-data` (the window title and the footer say so);
 4. otherwise a new empty `data` folder with just the file headers.
 
-`sample-data` is randomly generated and is not real. It is there to show the format. To start
-using the program for real, make a `data` folder with your own `courses.tsv` and `rounds.tsv`.
-The program adds rounds to `rounds.tsv` itself when you press Save; courses are added by editing
-`courses.tsv` until the New Course screen is built.
+`sample-data` is randomly generated and is not real. It is there to show the format. The program
+adds courses to `courses.tsv` and rounds to `rounds.tsv` itself when you press Save. While it is
+showing the sample data, Save first asks "This is the sample data. Create your own data folder
+first?". Yes makes an empty `data` folder next to `sample-data` (header rows only, nothing copied,
+an existing folder is never written over) and saves nothing; close the program and open it again to
+use it. No saves into the sample data; Cancel saves nothing.
 
 ## The window
 
-Pages so far: **Home** (handicap, statistics and the buttons) and **Round** (enter a new round,
+Pages so far: **Home** (handicap, statistics and the buttons), **Round** (enter a new round,
 or look back through saved ones with the four arrow buttons, limited to one course or set of tees with the
-Show box). The Home buttons are in two columns: data entry on the left (New Course, New Round, Edit Round,
-Import, Clear) and viewing on the right (Rounds, Stats Board, Analyzer, Best Round, Print). Only New Round and
-Rounds work so far; the others are in place and say "not built yet" in the footer.
+Show box) and **New Course** (a course and up to four sets of tees). The Home buttons are in two columns:
+data entry on the left (New Course, New Round, Edit Round, Import, Clear) and viewing on the right (Rounds,
+Stats Board, Analyzer, Best Round, Print). Only New Course, New Round and Rounds work so far; the others are
+in place and say "not built yet" in the footer.
+
+- **Entering a course:** type the course name and its 5-digit zip first; the tees stay grey until both
+  are in. If that course (any capitals) and zip are already in the program, its city, state and holes
+  are filled in and locked and the new tees are added to it. Then each tee: name, rating and slope, the
+  optional front-nine and back-nine rating and slope, optional yardage, then the par and stroke index of
+  every hole. The total par is shown as you type. Boxes take digits only and move on by themselves: a par
+  (3-6) at once; a stroke index from 2 to 9 at once, a 1 waits (then 0-8 for 10 to 18); a slope after two
+  digits from 5-9 or three from 1 (55 to 155); a rating after the digit after the point. A tee with no
+  rating is skipped. Nothing is ever copied from one tee to another. Names are tidied: extra spaces go,
+  and the capitals change only when the whole name was typed in lower case or in capitals. Save names
+  the first mistake by tee and hole in the footer; when all is well the tees get new TeeIDs, are added
+  to `courses.tsv` in the file's own column order, and the window goes back Home. The tee grid is in a
+  scroll pane with Save and Cancel below it, so nothing is cut off on a small window.
 
 - **Entering a round from the keyboard:** the cursor starts on hole 1's score and goes down all the scores
   (hole 9 to hole 10 included), then down all the putts. Only digits are accepted. A putts box takes one
@@ -66,8 +83,9 @@ Rounds work so far; the others are in place and say "not built yet" in the foote
   versions, and the round Home / Help / Info / arrow buttons light up with a red ring.
 - **Info and Help** (the round buttons at the top right) open that screen's text in its own window.
   The text lives in plain files in the `help` folder: `home-info.txt` and `home-help.txt`, then
-  `round-new-info.txt` and `round-new-help.txt` while you are entering a round, and
-  `round-view-info.txt` and `round-view-help.txt` while you are looking at saved ones.
+  `round-new-info.txt` and `round-new-help.txt` while you are entering a round,
+  `round-view-info.txt` and `round-view-help.txt` while you are looking at saved ones, and
+  `course-info.txt` and `course-help.txt` on the New Course screen.
   The first line of a file is the window title; blank lines separate paragraphs. Edit them with any
   text editor; nothing needs rebuilding.
 - **Pictures** are in the `images` folder: the wood buttons and textures, the round buttons and the
@@ -83,7 +101,7 @@ Rounds work so far; the others are in place and say "not built yet" in the foote
 
 Code for the window is in `src/golfanalyst/gui`: `AppFrame` (the window itself, a thin shell) around
 `AppPanel` (everything the window does: the pages, navigation, Help and Info), `HeaderBar`, `FooterBar`,
-`Page` and its two pages `HomePage` and `RoundPage`, the custom controls (`WoodButton`, `IconButton`,
+`Page` and its three pages `HomePage`, `RoundPage` and `CoursePage`, the custom controls (`WoodButton`, `IconButton`,
 `ValueBox`, `WoodPanel`, `WoodFrame`, `WoodTag`, `ImageCheckBox`, `BackdropPanel`), `Theme` (colours,
 fonts, pictures, in one place), `HelpWindow` and `App`. The pages talk to the window only through the
 `Shell` interface, so they can be tested without opening a window.
@@ -182,6 +200,10 @@ looks odd (for example a fairway marked on a par 3) is kept and reported as a wa
 - The engine has not been compared with a real handicap service. Run your own recent
   rounds through it and compare with your official index before trusting it.
 - Built and tested on Java 21; it only uses language features from Java 17 and earlier.
+- **The New Course page height** was worked out by arithmetic, not by looking: at the default window
+  size the tee grid needs 530 px and should get about 533 px, assuming a Windows title bar of about
+  31 px. If a thin scroll bar appears beside the tees, that guess was a few pixels short; nothing is
+  cut off either way, because Save and Cancel sit outside the scroll pane.
 
 ## Editing in NetBeans or VS Code
 

@@ -1,11 +1,13 @@
-# GolfAnalyst v4.00 (Java) - notes for Claude
+# GolfAnalyst v4.10 (Java) - notes for Claude
 
 A single-golfer golf statistics program with a Swing window. Ported from HyperCard (1991) to Excel/VBA to Java.
 Courses and rounds live in two plain tab-separated text files. Written for one user who tests on Windows.
 
 ## Build, run, test
 - Windows scripts in the project folder: `build.bat`, `app.bat` (opens the window), `run.bat` (text reports), `test.bat`.
-  `jdk.bat` finds a JDK (PATH, JAVA_HOME, common folders, NetBeans' bundled JDK).
+  `jdk.bat` finds a JDK (PATH, JAVA_HOME, common folders, NetBeans' bundled JDK). The scripts call each other by
+  full path (`call "%~dp0jdk.bat"`) so they work when `NoDefaultCurrentDirectoryInExePath` is set; keep it that way.
+  `test.bat` exits 1 if either test run fails.
 - NetBeans opens it as a Maven project (`pom.xml`, source folder is `src`, main class `golfanalyst.gui.App`).
   The program must run with the project folder as its working folder: it reads `images/`, `help/` and `data/`
   (or `sample-data/` if there is no `data/`).
@@ -17,10 +19,12 @@ Courses and rounds live in two plain tab-separated text files. Written for one u
 
 ## Folder map
 - `src/golfanalyst/`: `Tee`, `Round`, `Problem`, `Dataset`, `DataLoader` (reads/validates the two files),
-  `Handicap` (the rules), `Stats`, `RoundWriter` (appends a round, keeps the file's column order), `DataStore`
-  (the one place screens get data), `Main` (text reports, `--selftest`), `SelfTest`.
+  `Handicap` (the rules), `Stats`, `RoundWriter` (appends a round, keeps the file's column order), `CourseWriter`
+  (appends tees the same way, and refuses a line DataLoader would reject), `DataStore` (the one place screens get
+  data; also knows if it is the sample data), `Main` (text reports, `--selftest`), `SelfTest`.
 - `src/golfanalyst/gui/`: `App` (entry), `AppFrame` (thin JFrame), `AppPanel` (ALL the window logic: pages, header,
-  footer, navigation, Help/Info), `Shell` (what a page may ask of the window), `Page`, `HomePage`, `RoundPage`,
+  footer, navigation, Help/Info, the sample-data question), `Shell` (what a page may ask of the window), `Page`,
+  `HomePage`, `RoundPage`, `CoursePage`,
   `HeaderBar`, `FooterBar`, `HelpWindow`, `Theme` (colours, fonts, images, drawing helpers), custom controls
   (`WoodButton`, `IconButton`, `ValueBox`, `WoodPanel`, `WoodFrame`, `WoodTag`, `ImageCheckBox`, `BackdropPanel`),
   `GuiSelfTest`.
@@ -36,6 +40,9 @@ Courses and rounds live in two plain tab-separated text files. Written for one u
 - Never store totals, greens in regulation or sand saves. They are always calculated from score, putts, par and the
   sand flag. The files hold only what the golfer typed.
 - IDs: every course/tee (`TeeID`) and every round (`RoundID`) is unique.
+- Every page that writes to the files calls `Shell.readyToSave()` first. On `sample-data` it asks "This is the sample
+  data. Create your own data folder first?" (Yes makes an empty `data/` beside it and saves nothing; No saves there;
+  Cancel saves nothing). Dialogs go through `AppPanel`'s asker so tests can answer them.
 
 ## The user's code style (strict; apply to everything, including edits)
 - A large comment block at the start of every class and function: what it does, what is passed in, what is passed
@@ -64,6 +71,11 @@ Courses and rounds live in two plain tab-separated text files. Written for one u
   cell): `courses.tsv` (TeeID, Course, City, State, Zip, Tee, Holes, Rating, Slope, Yardage, Pars, StrokeIndex,
   FrontRating, FrontSlope, BackRating, BackSlope) and `rounds.tsv` (RoundID, TeeID, Date, Holes, PCC, Scores, Putts,
   Fairways, Sand). `Holes` in rounds is blank, F or B. One golfer; the name is in `data/settings.txt`.
+- Courses: never copy numbers from one tee to another (the Excel version did; invented ratings spoil the handicap),
+  and never offer a button that does. A tee with a blank rating is skipped. Tee names are unique within a course,
+  ignoring capitals. Names are trimmed; capitals change only when the whole name was typed all lower or all upper
+  case (so TPC Sawgrass and McDonough survive). State is two capital letters, zip five digits, yardage optional.
+  A course is matched by name (any capitals/spaces) plus zip; new tees use the existing course's own spelling.
 
 ## Look and feel decided with the user
 - One window: fixed light-wood header (Home, title in a sunken field, Help, Info, all three with a gold ring),
@@ -74,26 +86,25 @@ Courses and rounds live in two plain tab-separated text files. Written for one u
 - Round entry: columns Hole, Par, Score, Putt, Fwy, Sand. Digits only. Cursor goes down all scores (hole 9 to 10
   included) then down all putts. A score 2-9 or a putt moves on at once; a lone 1 in a score waits (ace or 10+).
   In a Putt box F and S tick Fwy and Sand (their scorecard notation).
+- New Course: course bar (name, zip, city, state, nine-hole box), then four tee columns in a vertical scroll pane
+  with Save and Cancel outside it; rating+slope, front 9 and back 9 each on one row; 22 px rows, so the grid (530 px)
+  fits the 533 px the default window leaves. Typing: par 3-6 moves on; stroke index 2-9 move on, a lone 1 waits
+  then 0-8; slope moves on after two digits from 5-9 or three from 1 (max 155); rating after the digit after the
+  point. The cursor goes down one tee's pars, then its stroke index, then the next tee. Save names the first mistake
+  by tee and hole, goes Home with "Added 3 tees for Sample Links."
 - Home buttons: data entry on the left, viewing on the right:
   left New Course, New Round, Edit Round, Import, Clear; right Rounds, Stats Board, Analyzer, Best Round, Print.
 - Help: the i button says WHAT is on the screen; the ? button says HOW to use it. Files in `help/`
-  (`home-*`, `round-new-*`, `round-view-*`). Update them with every feature. Keep the user's friendly voice.
+  (`home-*`, `round-new-*`, `round-view-*`, `course-*`). Update them with every feature. Keep the user's friendly
+  voice.
 - Version numbers: second pair of digits, `.0x` is a bug fix and `.x0` is a feature (v4.00 -> v4.01 fix, v4.10
   feature). Set in `Theme.VERSION` and `pom.xml`. Release zips are named `GolfAnalyst_vX.XX.zip`.
 
 ## Status and backlog
-Built: Home, round entry, saved-round viewer with the Show (course/tee) filter, Info/Help.
-Not built (buttons are in place and say "not built yet"): New Course, Edit Round, Import, Clear, Stats Board,
-Analyzer, Best Round, Print.
-- **New Course** (next). From the Excel and HyperCard versions: ask course name and 5-digit zip first; if the course
-  exists, offer to add more tees (editing existing rows is not built). City in proper case, State two capital
-  letters, Zip five digits. Up to four tee sets entered at once, named by default Ladies, Beginner, Intermediate,
-  Expert (renamable): name, rating, slope, yardage, 18 pars (3-6), 18 stroke index numbers (each 1-18 once),
-  optional front-nine and back-nine rating and slope, and an option for a nine-hole course (Holes = 9, stroke index
-  1-9). A tee whose rating is blank is skipped. Do NOT copy numbers from another tee to fill it in (the Excel
-  version did; invented ratings would spoil the handicap). New TeeIDs are max + 1, appended to `courses.tsv` in the
-  file's own column order (model it on `RoundWriter`). Digits-only boxes with the same auto-advance idea, and the
-  page background is `images/backgrounds/course.jpg`.
+Built: Home, round entry, saved-round viewer with the Show (course/tee) filter, Info/Help, New Course (v4.10: adds
+a course or more tees to one; up to four tees at once), the sample-data title/footer and save question.
+Not built (buttons are in place and say "not built yet"): Edit Round, Import, Clear, Stats Board, Analyzer,
+Best Round, Print. Changing an existing course or tee is not built either (the user edits `courses.tsv` by hand).
 - **Edit Round**: needs replacing one line of `rounds.tsv` without disturbing comments or other lines.
 - **Clear**: always ask twice and make a dated backup of the files first; it is how the program is reset for a
   different golfer.

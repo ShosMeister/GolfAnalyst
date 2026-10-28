@@ -18,7 +18,11 @@ To change the name, click it in the Golfer's Stats section, type the name and pr
 
 Adding a course
 
-You cannot enter a round until its course is in the program. The New Course button is not built yet, so for now you add a course by editing the file courses.tsv in your data folder. Open it in a text editor, or in a spreadsheet that can save tab-separated text, and copy one of the existing rows. There is one row for each set of tees. Give the new row a TeeID number that no other row uses, then change the course name, the tee name, the rating and slope from the scorecard, the 18 pars and the 18 stroke index numbers (the hole handicap numbers on the card, each from 1 to 18 used once). Save the file and start the program again. If you want a front nine or back nine round on an 18-hole course to count toward your handicap, the row also needs that nine's own rating and slope in the front and back rating columns. The program tells you if a row is wrong and which line to fix.
+You cannot enter a round until its course is in the program. Press New Course, type the course name and zip, then the rating, slope, pars and stroke index numbers of each set of tees straight from the scorecard, and press Save. You can put in up to four sets of tees at once, and add more tees to a course later the same way. The Help button on that screen walks you through it. If you want a front nine or back nine round on an 18-hole course to count toward your handicap, fill in that nine's own rating and slope too.
+
+Your own data
+
+When you first open the program it shows the sample data, so there is something to look at. The title bar and the bar along the bottom say so. The first time you save a course or a round, the program asks whether to make your own data folder. Say Yes, then close the program and open it again: from then on it uses your own data folder and the sample data is left alone.
 
 Using what the numbers tell you
 

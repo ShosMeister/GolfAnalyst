@@ -1568,6 +1568,8 @@ public final class RoundPage extends Page
      | Purpose:                                                                 |
      | Adds the round being entered to rounds.tsv, then shows it as a saved     |
      | round. If the file cannot be written a message says why and nothing      |
+     | changes. On the sample data the window first asks whether to make        |
+     | your own data folder (Shell.readyToSave); if not saving, nothing         |
      | changes.                                                                 |
      |                                                                          |
      | Passed in:  nothing                                                      |
@@ -1578,7 +1580,7 @@ public final class RoundPage extends Page
     {
         LocalDate date = DataLoader.parseDateOrNull(dateField.getText());
         Integer pcc = pccValue();
-        if (date == null || pcc == null)
+        if (date == null || pcc == null || !shell.readyToSave())
         {
             return;
         }

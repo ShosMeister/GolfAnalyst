@@ -1,0 +1,32 @@
+New Course - Help
+
+Here is how to put a course in, straight from the scorecard. Have the card in front of you.
+
+The course
+
+Type the name of the course and press Enter, then the 5-digit zip. If the course is already in the program, the bottom bar says so and lists the tees it has. Just fill in the new tees. Otherwise type the city and the state. If it is a nine-hole course, tick the Nine-hole course box before you start on the tees.
+
+You do not have to fuss over capitals. If you type the whole name in lower case or in capitals, the program gives each word a capital letter for you. If you mix them, it leaves them exactly as you typed them, so names like TPC Sawgrass or McDonough come out right.
+
+The tees
+
+Change the tee names to the ones on your card. Then for each tee type the rating, the slope, the front and back nine ratings if your card has them, and the yardage if you like. Then go down the pars and down the stroke index numbers.
+
+You hardly need to touch the mouse. The cursor moves on by itself as soon as a box is complete:
+- a par moves on as soon as you type it (only 3, 4, 5 and 6 can be typed);
+- a stroke index from 2 to 9 moves on at once. A 1 waits for a second digit, because it could be 1 or the start of 10 to 18;
+- a slope moves on after two digits if it starts with 5 to 9, and after three digits if it starts with 1;
+- a rating moves on after the number after the point, so type 70.4 and you are on to the slope.
+Enter or Tab moves on too, and skips a box you want to leave blank. The cursor goes down all the pars of a tee, then down all its stroke index numbers, then on to the next tee.
+
+Keep an eye on the Par box at the top of each tee. When you have typed all the pars it should match the total par on the card.
+
+Only fill in the tees you want. A tee with no rating is left out. If you typed something else in it, the message after saving reminds you that it was skipped.
+
+Saving
+
+Press Save. If anything is missing or wrong, the bar at the bottom says which tee and which hole, that box turns pink and the cursor goes to it. Fix it and press Save again. When it is all good, the tees are added and you are back at Home with a message saying what was added. Now you can enter rounds on the new course.
+
+If you are still looking at the sample data, the program asks whether to make your own data folder first. Say Yes, then close the program and open it again, and it will be using your own empty data folder. Say No only if you really want to add the course to the sample data.
+
+Made a mistake after saving? Changing a course that is already in the program is not built yet. For now, open courses.tsv in your data folder with a text editor and fix the line. The program tells you if a line is wrong and which one to fix.

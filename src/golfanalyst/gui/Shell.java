@@ -19,6 +19,8 @@ import golfanalyst.DataStore;
  | goHome()         - switches to the Home screen                           |
  | newRound()       - opens the round screen ready to enter a new round     |
  | browseRounds()   - opens the round screen at the latest saved round      |
+ | newCourse()      - opens the screen for adding a course and its tees     |
+ | readyToSave()    - asks, on the sample data, whether to save there       |
  +--------------------------------------------------------------------------+
  */
 public interface Shell
@@ -55,4 +57,24 @@ public interface Shell
      * browseRounds(): opens the round screen showing the latest saved round.
      */
     void browseRounds();
+
+    /*
+     * newCourse(): opens the New Course screen, empty and ready to type in.
+     */
+    void newCourse();
+
+    /*
+     +--------------------------------------------------------------------------+
+     | readyToSave()                                                            |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Called by a screen just before it writes to the data files. On the       |
+     | golfer's own data it simply says yes. On the sample data it asks         |
+     | whether to make the golfer's own data folder first.                      |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: true to go ahead and save, false to save nothing             |
+     +--------------------------------------------------------------------------+
+     */
+    boolean readyToSave();
 }

@@ -38,7 +38,7 @@ On the left: New Course adds a course and its tees. New Round is the screen for 
 
 On the right: Rounds is the screen for looking at the rounds you have saved. Stats Board, Analyzer and Best Round show your statistics in more detail, and Print prints what you are looking at.
 
-New Course, Edit Round, Import, Clear, Stats Board, Analyzer, Best Round and Print are not built yet. They are in place and will be added.
+Edit Round, Import, Clear, Stats Board, Analyzer, Best Round and Print are not built yet. They are in place and will be added.
 
 Across the top and bottom
 
@@ -74,3 +74,5 @@ Golf Analyst v3.01: Fixed minor bugs and added the Import function and Handicap 
 
 History: Java Version
 Golf Analyst v4.00: Rewritten in Java so that it runs on Windows, Mac and Linux without needing Excel. Your courses and rounds are kept in two plain text files that you can edit yourself. The Handicap Index now follows the current USGA rules (the World Handicap System). Nine-hole rounds are supported, which is handy for leagues like Spark Golf. Greens In Regulation and Sand Saves are now calculated instead of entered. The Last 5 and Partial Rounds are gone, since a nine-hole round is now a round of its own.
+
+Golf Analyst v4.10: Added the New Course screen, so courses and up to four sets of tees at a time are typed in instead of edited into courses.tsv by hand. The window now tells you when you are looking at the sample data, and offers to make your own data folder before anything is saved there.

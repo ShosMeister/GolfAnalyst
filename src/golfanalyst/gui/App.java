@@ -1,10 +1,7 @@
 package golfanalyst.gui;
 
-import golfanalyst.DataLoader;
 import golfanalyst.DataStore;
-import golfanalyst.RoundWriter;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import javax.swing.JOptionPane;
@@ -23,7 +20,8 @@ import javax.swing.UIManager;
  |   1. the folder given as the first argument, if there is one;            |
  |   2. otherwise the folder named "data" next to the program;              |
  |   3. otherwise, if there is no "data" folder, the "sample-data" folder   |
- |      (the footer says so), so the first run has something to show;       |
+ |      (the title and footer say so), so the first run has something to    |
+ |      show;                                                               |
  |   4. otherwise a new empty "data" folder with just the file headers.     |
  |                                                                          |
  | Other folders it looks for (next to the program, or set with             |
@@ -41,11 +39,8 @@ import javax.swing.UIManager;
 public final class App
 {
 
-    private static final String DATA_FOLDER = "data";
-    private static final String SAMPLE_FOLDER = "sample-data";
-    private static final String COURSES_HEADER =
-            "TeeID\tCourse\tCity\tState\tZip\tTee\tHoles\tRating\tSlope\tYardage\tPars\tStrokeIndex"
-            + "\tFrontRating\tFrontSlope\tBackRating\tBackSlope";
+    private static final String DATA_FOLDER = DataStore.DATA_FOLDER;
+    private static final String SAMPLE_FOLDER = DataStore.SAMPLE_FOLDER;
 
     private App()
     {
@@ -108,7 +103,6 @@ public final class App
         else if (Files.isDirectory(Path.of(SAMPLE_FOLDER)))
         {
             dataDir = Path.of(SAMPLE_FOLDER);
-            note = "No data folder found, so the sample data is shown.";
         }
         else
         {
@@ -138,9 +132,7 @@ public final class App
     {
         try
         {
-            Files.createDirectories(dir);
-            Files.writeString(dir.resolve(DataLoader.COURSES_FILE), COURSES_HEADER + "\n", StandardCharsets.UTF_8);
-            Files.writeString(dir.resolve(DataLoader.ROUNDS_FILE), RoundWriter.STANDARD_HEADER + "\n", StandardCharsets.UTF_8);
+            DataStore.createEmptyFolder(dir);
         }
         catch (IOException failure)
         {

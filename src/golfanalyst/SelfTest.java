@@ -1,10 +1,16 @@
 package golfanalyst;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 /*
  +--------------------------------------------------------------------------+
@@ -29,6 +35,8 @@ import java.util.Map;
  | - Greens in regulation and sand saves, which are calculated, including   |
  |   chip-ins and holes holed from off the green                            |
  | - Loader errors and warnings, including 9-hole tees and rounds           |
+ | - Adding tees to courses.tsv (CourseWriter), the next TeeID, finding a   |
+ |   course, the sample folder and the empty data folder                    |
  |                                                                          |
  | How to run:                                                              |
  |   java -cp out golfanalyst.Main --selftest                               |
@@ -542,7 +550,130 @@ public final class SelfTest
                 oldColumnRounds.size() == 1 && oldColumnProblems.stream().anyMatch(problem ->
                         problem.severity() == Problem.Severity.WARNING && problem.message().contains("calculated")));
 
+        try
+        {
+            checkCourseFiles();
+        }
+        catch (IOException failure)
+        {
+            check("the course file checks ran without error: " + failure, false);
+        }
+
         System.out.println(passedCount + " passed, " + failedCount + " failed");
         return failedCount == 0;
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | checkCourseFiles()                                                       |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Checks CourseWriter and the course parts of DataStore on files in a      |
+     | temporary folder: the file's own column order (and a column of your      |
+     | own) is kept, Windows line endings and comments are kept, a nine-hole    |
+     | tee is written with 9 holes, what is written loads back the same, a      |
+     | duplicate TeeID is refused with the file left as it was, the next        |
+     | TeeID, finding a course whatever the capitals, the sample folder is      |
+     | known by its name, and an empty data folder gets header rows only and    |
+     | never writes over a file.                                                |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing (throws IOException if a temporary file fails)       |
+     +--------------------------------------------------------------------------+
+     */
+    private static void checkCourseFiles() throws IOException
+    {
+        Path temp = Files.createTempDirectory("golfanalyst-course-test");
+        Path courses = temp.resolve(DataLoader.COURSES_FILE);
+        String parsText = "4,3,5,4,4,3,5,4,4,4,3,5,4,4,3,5,4,4";
+        String indexText = "1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18";
+        String header = "Course\tTeeID\tTee\tMyNotes\tRating\tSlope\tPars\tStrokeIndex\tZip\tCity\tState\tHoles\tYardage"
+                + "\tFrontRating\tFrontSlope\tBackRating\tBackSlope";
+        String first = "Old Links\t1\tWhite\tkeep me\t70.0\t113\t" + parsText + "\t" + indexText + "\t29000\tAnytown\tSC\t18\t6000\t\t\t\t";
+        Files.writeString(courses, "# my comment\r\n" + header + "\r\n" + first + "\r\n", StandardCharsets.UTF_8);
+        Files.writeString(temp.resolve(DataLoader.ROUNDS_FILE), RoundWriter.STANDARD_HEADER + "\n", StandardCharsets.UTF_8);
+
+        DataStore store = new DataStore(temp);
+        check("next TeeID is one more than the highest", store.nextTeeId() == 2);
+        check("a course is found whatever the capitals and spaces", store.teesForCourse("  old   LINKS ", "29000").size() == 1);
+        check("the same name with another zip is another course", store.teesForCourse("Old Links", "29001").isEmpty());
+
+        int[] pars = {4, 3, 5, 4, 4, 3, 5, 4, 4, 4, 3, 5, 4, 4, 3, 5, 4, 4};
+        int[] index = new int[Tee.HOLES];
+        for (int hole = 0; hole < Tee.HOLES; hole++)
+        {
+            index[hole] = Tee.HOLES - hole;
+        }
+        Tee blue = new Tee(2, "Old Links", "Anytown", "SC", "29000", "Blue", Tee.HOLES, 72.3, 131, 0,
+                pars, index, 36.0, 128, 36.3, 134);
+        Tee nine = new Tee(3, "Old Links", "Anytown", "SC", "29000", "Short", Tee.NINE, 33.8, 112, 2800,
+                Arrays.copyOf(pars, Tee.NINE), new int[] {5, 9, 1, 7, 3, 8, 2, 6, 4}, 0, 0, 0, 0);
+        String[] cells = header.split("\t");
+        String line = CourseWriter.formatLine(blue, cells);
+        check("a course line follows the file's own column order, with a blank for a column of your own",
+                line.startsWith("Old Links\t2\tBlue\t\t72.3\t131\t" + parsText + "\t18,17,"));
+        check("a blank yardage is written as blank", line.split("\t", -1)[12].isEmpty());
+
+        store.addTees(List.of(blue, nine));
+        String after = Files.readString(courses, StandardCharsets.UTF_8);
+        check("adding tees keeps the comment and the first line", after.startsWith("# my comment\r\n" + header + "\r\n" + first + "\r\n"));
+        check("adding tees keeps the Windows line endings", !after.replace("\r\n", "").contains("\n"));
+        check("the store reloads with the new tees", store.dataset().tees().size() == 3 && store.dataset().errorCount() == 0);
+        Tee readBlue = store.teeMap().get(2);
+        Tee readNine = store.teeMap().get(3);
+        check("a written tee loads back the same", readBlue != null && readBlue.rating() == 72.3 && readBlue.slope() == 131
+                && readBlue.strokeIndex()[0] == 18 && readBlue.frontRating() == 36.0 && readBlue.backSlope() == 134
+                && readBlue.city().equals("Anytown") && readBlue.yardage() == 0);
+        check("a nine-hole tee is written with 9 holes and loads back", readNine != null && readNine.holes() == Tee.NINE
+                && readNine.pars().length == Tee.NINE && readNine.yardage() == 2800);
+        check("next TeeID moves on after adding", store.nextTeeId() == 4);
+
+        Tee clash = new Tee(1, "New Place", "", "", "29500", "Red", Tee.HOLES, 70.0, 113, 0, pars, index, 0, 0, 0, 0);
+        boolean refused = false;
+        try
+        {
+            store.addTees(List.of(clash));
+        }
+        catch (IOException expected)
+        {
+            refused = expected.getMessage().contains("duplicate TeeID");
+        }
+        check("a TeeID already used is refused", refused);
+        check("a refused tee leaves the file as it was", Files.readString(courses, StandardCharsets.UTF_8).equals(after));
+
+        Path fresh = temp.resolve("fresh");
+        CourseWriter.append(fresh.resolve(DataLoader.COURSES_FILE), List.of(clash));
+        List<String> freshLines = Files.readAllLines(fresh.resolve(DataLoader.COURSES_FILE));
+        check("a new courses file gets the standard header first", freshLines.size() == 2
+                && freshLines.get(0).equals(CourseWriter.STANDARD_HEADER) && freshLines.get(1).startsWith("1\tNew Place\t"));
+
+        check("a folder not named sample-data is not the sample data", !store.isSampleData());
+        Path sample = temp.resolve(DataStore.SAMPLE_FOLDER);
+        Files.createDirectories(sample);
+        Files.writeString(sample.resolve(DataLoader.COURSES_FILE), CourseWriter.STANDARD_HEADER + "\n", StandardCharsets.UTF_8);
+        Files.writeString(sample.resolve(DataLoader.ROUNDS_FILE), RoundWriter.STANDARD_HEADER + "\n", StandardCharsets.UTF_8);
+        DataStore sampleStore = new DataStore(sample);
+        check("a folder named sample-data is the sample data", sampleStore.isSampleData());
+        check("the golfer's own data folder goes beside it", sampleStore.dataFolderBeside().equals(temp.toAbsolutePath().normalize().resolve("data")));
+
+        Path empty = temp.resolve("empty");
+        DataStore.createEmptyFolder(empty);
+        check("an empty data folder has the header rows only",
+                Files.readAllLines(empty.resolve(DataLoader.COURSES_FILE)).equals(List.of(CourseWriter.STANDARD_HEADER))
+                        && Files.readAllLines(empty.resolve(DataLoader.ROUNDS_FILE)).equals(List.of(RoundWriter.STANDARD_HEADER)));
+        Files.writeString(empty.resolve(DataLoader.COURSES_FILE), "# mine\n", StandardOpenOption.APPEND);
+        String mine = Files.readString(empty.resolve(DataLoader.COURSES_FILE));
+        DataStore.createEmptyFolder(empty);
+        check("making the data folder again never writes over a file", Files.readString(empty.resolve(DataLoader.COURSES_FILE)).equals(mine));
+
+        List<Path> paths = new ArrayList<>();
+        try (Stream<Path> walk = Files.walk(temp))
+        {
+            walk.forEach(paths::add);
+        }
+        for (int lp = paths.size() - 1; lp >= 0; lp--)
+        {
+            Files.deleteIfExists(paths.get(lp));
+        }
     }
 }
