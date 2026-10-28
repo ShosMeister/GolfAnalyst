@@ -1,0 +1,17 @@
+Looking at Your Rounds - Help
+
+Here is how to look through your rounds.
+
+Getting here. Press Rounds on the Home screen. It opens at your most recent round.
+
+Moving around. Use the four arrow buttons at the bottom. The two outer arrows jump to the oldest and the newest round. The two inner ones step back and forward one round at a time. The bar along the bottom tells you where you are, for example Round 3 of 12.
+
+Looking at just one course. Open the Show box at the top and pick a course, or one set of tees on a course. The arrows then step through only those rounds. Pick All rounds to go back to everything. If the list has only one choice, it is because you have only played one set of tees.
+
+Watching your handicap change. Start at the oldest round, press Next again and again, and watch Index After. It shows your index right after each round was added.
+
+If you find a mistake. Rounds cannot be changed on this screen yet. Look at the title across the top and note the round's ID number, which is the number before the first colon (without the leading zeros). Open rounds.tsv in your data folder with a text editor and find the line that starts with that number. Correct it and save the file. Then close Golf Analyst and open it again, because it reads the files when it starts. If the corrected line cannot be read, the bar at the bottom tells you which line to fix.
+
+Entering a new round. Press Close, or the Home button, to go back to the Home screen and then press New Round.
+
+Leaving this screen. Press Close or the Home button.

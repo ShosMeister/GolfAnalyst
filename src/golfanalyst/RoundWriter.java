@@ -1,0 +1,198 @@
+package golfanalyst;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
+
+/*
+ +--------------------------------------------------------------------------+
+ | RoundWriter                                                              |
+ +--------------------------------------------------------------------------+
+ | Purpose:                                                                 |
+ | Adds a new round to rounds.tsv. The line is written in the column        |
+ | order of the file's own header row, so a file whose columns you have     |
+ | rearranged, or that has extra columns of your own, stays intact. A       |
+ | column the program does not know is left blank. If the file does not     |
+ | exist, or has no header row yet, the standard header is written first.   |
+ | Existing lines and comments are never touched; the new line is only      |
+ | added at the end.                                                        |
+ |                                                                          |
+ | Constants:                                                               |
+ | STANDARD_HEADER - the header used when a file has none                   |
+ |                                                                          |
+ | Public Methods:                                                          |
+ | append(file, round, tee)            - adds one round to the file         |
+ | formatLine(round, tee, headerCells) - builds the tab-separated line      |
+ | holesText(round, tee)               - the Holes column text              |
+ +--------------------------------------------------------------------------+
+ */
+public final class RoundWriter
+{
+
+    public static final String STANDARD_HEADER = "RoundID\tTeeID\tDate\tHoles\tPCC\tScores\tPutts\tFairways\tSand";
+
+    private RoundWriter()
+    {
+    }
+
+    /*
+     * holesText(round, tee): works out what goes in the Holes column.
+     * Passed in:  round - the round, tee - the course/tee it was played on
+     * Passed out: "" for a whole tee, "F" for the front nine or "B" for the back nine of an 18-hole tee
+     */
+    public static String holesText(Round round, Tee tee)
+    {
+        if (!round.isNineHole() || tee.holes() == Tee.NINE)
+        {
+            return "";
+        }
+        return round.startHole() == 0 ? "F" : "B";
+    }
+
+    /*
+     * joinNumbers(values): turns per-hole numbers into one comma-separated cell.
+     * Passed in:  values - one number per hole played
+     * Passed out: text like "5,4,6,..."
+     */
+    private static String joinNumbers(int[] values)
+    {
+        StringBuilder text = new StringBuilder();
+        for (int lp = 0; lp < values.length; lp++)
+        {
+            text.append(lp == 0 ? "" : ",").append(values[lp]);
+        }
+        return text.toString();
+    }
+
+    /*
+     * joinFlags(flags): turns per-hole yes/no flags into one comma-separated cell of 1s and 0s.
+     * Passed in:  flags - one flag per hole played
+     * Passed out: text like "1,0,0,1,..."
+     */
+    private static String joinFlags(boolean[] flags)
+    {
+        StringBuilder text = new StringBuilder();
+        for (int lp = 0; lp < flags.length; lp++)
+        {
+            text.append(lp == 0 ? "" : ",").append(flags[lp] ? 1 : 0);
+        }
+        return text.toString();
+    }
+
+    /*
+     * cellText(round, tee, column): the text of one column of a round's line.
+     * Passed in:  round, tee - what is being written; column - normalized column name, e.g. "roundid"
+     * Passed out: the text for that column, or "" for a column this program does not know
+     */
+    private static String cellText(Round round, Tee tee, String column)
+    {
+        return switch (column)
+        {
+            case "roundid" -> Integer.toString(round.id());
+            case "teeid" -> Integer.toString(round.teeId());
+            case "date" -> round.date().toString();
+            case "holes" -> holesText(round, tee);
+            case "pcc" -> round.pcc() == 0 ? "" : Integer.toString(round.pcc());
+            case "scores" -> joinNumbers(round.scores());
+            case "putts" -> joinNumbers(round.putts());
+            case "fairways" -> joinFlags(round.fairway());
+            case "sand" -> joinFlags(round.sand());
+            default -> "";
+        };
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | formatLine(round, tee, headerCells)                                      |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Builds one line of rounds.tsv for a round, with the columns in the       |
+     | order of the header row.                                                 |
+     |                                                                          |
+     | Passed in:  round       - the round to write                             |
+     |             tee         - the course/tee it was played on                |
+     |             headerCells - the header row, split into its cells           |
+     | Passed out: the tab-separated line (no line ending)                      |
+     +--------------------------------------------------------------------------+
+     */
+    public static String formatLine(Round round, Tee tee, String[] headerCells)
+    {
+        StringBuilder line = new StringBuilder();
+        for (int col = 0; col < headerCells.length; col++)
+        {
+            if (col > 0)
+            {
+                line.append('\t');
+            }
+            line.append(cellText(round, tee, DataLoader.normalize(headerCells[col])));
+        }
+        return line.toString();
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | findHeader(text)                                                         |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Finds the header row of a data file: the first line that is neither      |
+     | blank nor a # comment.                                                   |
+     |                                                                          |
+     | Passed in:  text - the whole file                                        |
+     | Passed out: the header split into cells, or null if there is none        |
+     +--------------------------------------------------------------------------+
+     */
+    private static String[] findHeader(String text)
+    {
+        String clean = text.startsWith("\uFEFF") ? text.substring(1) : text;
+        for (String line : clean.split("\\R"))
+        {
+            if (!line.isBlank() && !line.trim().startsWith("#"))
+            {
+                return line.split("\t", -1);
+            }
+        }
+        return null;
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | append(file, round, tee)                                                 |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Adds a round to the end of rounds.tsv, creating the file (with the       |
+     | standard header) if it does not exist or has no header. The file's       |
+     | own line ending style is kept.                                           |
+     |                                                                          |
+     | Passed in:  file  - the rounds.tsv path                                  |
+     |             round - the round to add                                     |
+     |             tee   - the course/tee it was played on                      |
+     | Passed out: nothing (the file is changed); throws IOException if the     |
+     |             file cannot be written                                       |
+     +--------------------------------------------------------------------------+
+     */
+    public static void append(Path file, Round round, Tee tee) throws IOException
+    {
+        String existing = Files.exists(file) ? Files.readString(file, StandardCharsets.UTF_8) : "";
+        String[] headerCells = findHeader(existing);
+        String newline = existing.contains("\r\n") ? "\r\n" : "\n";
+        StringBuilder addition = new StringBuilder();
+        if (!existing.isEmpty() && !existing.endsWith("\n"))
+        {
+            addition.append(newline);
+        }
+        if (headerCells == null)
+        {
+            addition.append(STANDARD_HEADER).append(newline);
+            headerCells = STANDARD_HEADER.split("\t");
+        }
+        addition.append(formatLine(round, tee, headerCells)).append(newline);
+        if (file.getParent() != null)
+        {
+            Files.createDirectories(file.getParent());
+        }
+        Files.writeString(file, addition.toString(), StandardCharsets.UTF_8,
+                StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+    }
+}

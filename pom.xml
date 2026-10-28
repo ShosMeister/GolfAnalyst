@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <!--
+    Golf Analyst project file.
+
+    Purpose:    lets NetBeans (File > Open Project), VS Code (Extension Pack for Java) and other
+                Java editors open this folder as a project with no import steps. The source stays
+                in the "src" folder, so build.bat and the command-line instructions keep working.
+    Needs:      a JDK 17 or newer. NetBeans includes the Maven it uses.
+    To run:     main class golfanalyst.gui.App opens the window. Run it from the project folder
+                so it finds the images, help and data folders. An optional argument names a data
+                folder (for example sample-data). The README explains the self-tests.
+  -->
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>golfanalyst</groupId>
+  <artifactId>golfanalyst</artifactId>
+  <version>4.00</version>
+  <packaging>jar</packaging>
+  <name>GolfAnalyst</name>
+
+  <properties>
+    <maven.compiler.release>17</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <exec.mainClass>golfanalyst.gui.App</exec.mainClass>
+  </properties>
+
+  <build>
+    <sourceDirectory>src</sourceDirectory>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.11.0</version>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>3.3.0</version>
+        <configuration>
+          <archive>
+            <manifest>
+              <mainClass>golfanalyst.gui.App</mainClass>
+            </manifest>
+          </archive>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>

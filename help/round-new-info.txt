@@ -1,0 +1,59 @@
+Entering a Round - Info
+
+This is the screen for entering a new round. The white boxes are the ones you type in. The grey boxes are worked out for you as you type and cannot be changed. To look back at rounds you have already saved, use the Rounds button on the Home screen instead.
+
+Across the top
+
+Course / tee: The course and tees you played, with the ID number of that set of tees in front. Every set of tees has its own number. The list comes from the file courses.tsv.
+
+Holes: 18 holes, the front nine or the back nine. A nine-hole course has only one choice.
+
+PCC: The Playing Conditions Calculation for the day, from -1 to 3. It is almost always 0 and it is only used for the handicap. You can leave it alone unless you know the day's value.
+
+The hole-by-hole tables
+
+Out holds holes 1 to 9 and In holds holes 10 to 18. Holes you are not playing are greyed out. Only digits can be typed in the Putt and Score boxes.
+
+Hole: The hole number.
+
+Par: Par for the hole, from the course.
+
+Score: Your strokes on the hole.
+
+Putt: How many putts you took, 0 to 9. A putt only counts when your ball is on the green, and a hole you holed from off the green has 0 putts.
+
+Fwy: Check it if you hit the fairway from the tee. You can click it, or type F in the Putt box of that hole. It is switched off on par 3s, because on a par 3 you are aiming at the green.
+
+Sand: Check it if you were in a bunker at any time on the hole. You can click it, or type S in the Putt box of that hole.
+
+The Out and In boxes at the bottom of each table add up the putts and the scores for that half.
+
+The column on the right
+
+Rating: The Course Rating and the Slope Rating of the tees you chose, for the holes you are playing. A nine-hole round on an 18-hole course needs front nine or back nine ratings in the course file to count toward your handicap. If it has none, the round still counts in your statistics and this box says "no rating".
+
+Eagles, Birdies, Pars, Bogeys, DBogeys, Others: How many holes of each kind you have so far. Others means triple bogey or worse.
+
+The form at the bottom
+
+Date: When you played. It starts as today. You can type it as 2026-10-22 or as 10/22/2026.
+
+Score and Putts: The totals for the holes you have filled in.
+
+Fairway: Fairways hit out of the par 4s and par 5s you are playing.
+
+Sand Saves: How many times you saved par or better out of the holes where you were in the sand.
+
+Greens In Reg: Holes where the strokes before your first putt (your score minus your putts) were no more than par minus 2.
+
+2-Putt: Holes where you took two putts or fewer.
+
+18-Hole Diff: This round's score differential, which is what your handicap is built from. It compares what you shot with what a scratch golfer would shoot on those tees, so rounds on different courses can be compared. On a very bad hole your score is cut back to the most the rules allow (net double bogey) before it is used. A nine-hole round gets an expected score for the other nine holes added to it, based on your index on the day, so that it can sit alongside your 18-hole rounds. It appears when every hole is filled in.
+
+Index After: What your Handicap Index will be once this round is added. It also appears when every hole is filled in.
+
+Save and Cancel: Save adds the round to your data. Cancel throws away what you have typed. The ? button explains how to use them.
+
+Pink boxes and the bar at the bottom
+
+A box turns pink when what is in it cannot be right. The bar along the bottom of the window says what is wrong, or what is still missing.

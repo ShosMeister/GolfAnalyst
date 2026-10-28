@@ -1,0 +1,11 @@
+# SAMPLE DATA - randomly generated for testing. Not real courses or scores.
+# One row per course/tee. TeeID must be unique. Pars and StrokeIndex list the holes (18 values, or 9 when Holes is 9).
+# StrokeIndex is the hole handicap ranking from the scorecard (1 = hardest).
+# FrontRating/FrontSlope and BackRating/BackSlope are the nine-hole ratings of an 18-hole tee; they are needed to
+# use a nine-hole round played on it for the handicap. Holes = 9 marks a nine-hole course whose Rating and Slope
+# are its nine-hole ratings.
+TeeID	Course	City	State	Zip	Tee	Holes	Rating	Slope	Yardage	Pars	StrokeIndex	FrontRating	FrontSlope	BackRating	BackSlope
+1	Sample Links	Anytown	SC	29000	White	18	70.4	123	6050	4,3,5,4,4,3,5,4,4,4,3,5,4,4,3,5,4,4	7,15,1,9,11,17,3,13,5,8,16,2,10,12,18,4,14,6	35.1	121	35.3	125
+2	Sample Links	Anytown	SC	29000	Blue	18	72.1	129	6540	4,3,5,4,4,3,5,4,4,4,3,5,4,4,3,5,4,4	7,15,1,9,11,17,3,13,5,8,16,2,10,12,18,4,14,6	35.9	127	36.2	131
+3	Riverbend GC	Otherville	NC	28000	Gold	18	68.9	118	5710	4,4,3,5,4,4,3,4,5,4,5,3,4,4,4,3,5,4	9,3,17,1,11,5,15,7,13,10,2,16,12,6,4,18,14,8				
+4	Parkside Nine	Anytown	SC	29000	White	9	34.6	116	2950	4,3,5,4,4,3,5,4,4	3,7,1,9,5,8,2,6,4				

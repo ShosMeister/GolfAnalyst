@@ -1,0 +1,74 @@
+Golf Analyst Home - Info
+
+This is the Home screen. It shows where you stand overall and has the buttons that take you to everything else. Every number on it is worked out by the program from the rounds you have saved. None of it is typed in.
+
+The Handicap section (left)
+
+Handicap Index: Your current USGA Handicap Index. It follows the rules of the World Handicap System: your best 8 rounds out of your last 20, each one adjusted for the difficulty of the course and tees you played. With fewer than 20 rounds on record, fewer of your best rounds are used. You need at least 54 holes played before you have an index at all: three rounds of 18, or a mix of 18-hole and nine-hole rounds that adds up to 54 holes. Nine-hole rounds count toward your index as long as the nine you played has a rating. It shows n/a until then.
+
+Low Index: The lowest index you had during the last 365 days. The rules use it to stop your index from climbing too quickly. It only exists once you have 20 rounds on record.
+
+Total Rounds, 18-Hole Rounds and 9-Hole Rounds: How many rounds you have saved. A nine-hole round counts as a round of its own. It is not added to another nine to make an 18.
+
+Rounds Used: How many of the rounds on record count toward your index, out of how many there are (up to 20), for example 8 of 20.
+
+The Golfer's Stats section (right)
+
+These are the numbers that help you find the weak spot in your game. They use every round you have saved and are not course specific. The Stats Board will show them course by course. All of the percentages are rounded to one decimal place.
+
+Name: Your name. Click it to change it. It is kept in settings.txt in your data folder.
+
+Average (18 holes) and Average (9 holes): A straight average of your 18-hole rounds and of your nine-hole rounds. They are kept apart because a nine-hole score cannot be compared with an 18-hole one.
+
+Personal Best: Your best 18-hole round and your best nine-hole round, in that order.
+
+Fairways Hit: The percentage of fairways you hit from the tee. Only par 4s and par 5s are counted, since on a par 3 you are aiming at the green.
+
+Sand Saves: The percentage of times you were in the sand and still made par or better. It does not matter whether it was a greenside or a fairway bunker.
+
+Greens In Reg: The percentage of holes where you reached the green in regulation, which means you had a putt for birdie or better. The strokes you took before your first putt (your score minus your putts) must be no more than par minus 2. That is why a putt only counts when you are on the green. A chip-in for a birdie on a par 4 is not a green in regulation. A hole in one is.
+
+Two-Putt: The percentage of holes where you took two putts or fewer. Whatever is left over was three putts or more.
+
+The buttons in the middle
+
+New Round: The screen for entering a round.
+
+Rounds: The screen for looking at the rounds you have saved.
+
+Stats Board, Analyzer, Best Round, New Course and Print: Not built yet. They are in their familiar places and will be added.
+
+Across the top and bottom
+
+The round house button on the left takes you back here from any other screen. The i button, this one, explains what is on the screen you are looking at. The ? button explains how to use it. The bar along the bottom shows messages. If a problem was found in your data files it tells you how many, and clicking it lists them.
+
+About Golf Analyst
+
+Welcome to the Golf Analyst - a program written by Angelo Mileto.
+
+The original version of this program was written in 1991 in HyperCard on the Mac, before the USGA came up with the Slope system for handicapping. It has been rewritten several times since, and this version runs on Windows, Mac and Linux.
+
+History: Mac HyperCard Version
+Golf Analyst v2.10: Written by Angelo Mileto, September 1991 in HyperCard. Special thanks go out to Dave Speer and the gang at Computer Solutions in San Antonio, Texas, without whose help this stack would not have been possible.
+
+Golf Analyst v2.11: Updated May 1992 to correct a minor bug in the par calculation.
+
+Golf Analyst v2.12: Updated May 1992 to correct a bug I created while fixing the bug in the par calculation :)
+
+Golf Analyst v2.20: Updated June 1992 to add in the USGA Slope Calculations.
+
+Golf Analyst v2.30: Updated May 1994 to correct an error which caused the program to lock up if the scores were over 110.
+
+Golf Analyst v2.50: Updated June 1997 to correct some minor typing errors and add the ability to track partial rounds. Also, the Best Score function was added.
+
+The original background was designed by Dave Speer.
+
+The Course Analyzer card was created by Malcolm S. Douglas.
+
+History: MS Excel Version
+Golf Analyst v3.00: Completely rewritten in MS Excel to allow for use on both Mac and PC, August 2005. Background images were gathered from various sources and all copyright information remains intact. All functions are as the original program except all pre-slope calculations have been removed.
+
+Golf Analyst v3.01: Fixed minor bugs and added the Import function and Handicap Report.
+
+History: Java Version
+Golf Analyst v4.00: Rewritten in Java so that it runs on Windows, Mac and Linux without needing Excel. Your courses and rounds are kept in two plain text files that you can edit yourself. The Handicap Index now follows the current USGA rules (the World Handicap System). Nine-hole rounds are supported, which is handy for leagues like Spark Golf. Greens In Regulation and Sand Saves are now calculated instead of entered. The Last 5 and Partial Rounds are gone, since a nine-hole round is now a round of its own.
