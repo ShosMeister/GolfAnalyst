@@ -24,10 +24,12 @@ import javax.swing.JPanel;
  | the golfers on the tee. All of the figures come from the loaded data and |
  | are calculated, never typed in. Click the golfer's name to change it.    |
  |                                                                          |
- | Buttons that work now: New Round and Rounds. The others (Stats           |
- | Board, Analyzer, Best Round, New Course, Print) are placed where they    |
- | were in the earlier versions and say so in the footer until they are     |
- | built.                                                                   |
+ | The buttons are laid out in two columns: data entry on the left (New     |
+ | Course, New Round, Edit Round, Import, Clear) and viewing on the right   |
+ | (Rounds, Stats Board, Analyzer, Best Round, Print). The grid fills       |
+ | across each row, so the order they are added in is row by row. Only New  |
+ | Round and Rounds work now; the others are in place and say so in the     |
+ | footer until they are built.                                             |
  |                                                                          |
  | Public Methods:                                                          |
  | onShow() - refreshes every figure from the data                          |

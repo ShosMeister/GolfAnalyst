@@ -32,11 +32,13 @@ Two-Putt: The percentage of holes where you took two putts or fewer. Whatever is
 
 The buttons in the middle
 
-New Round: The screen for entering a round.
+The buttons on the left are for putting information in. The buttons on the right are for looking at it.
 
-Rounds: The screen for looking at the rounds you have saved.
+On the left: New Course adds a course and its tees. New Round is the screen for entering a round. Edit Round is for correcting a round you have saved, Import is for loading many rounds or courses at once, and Clear is for clearing out old data to start over.
 
-Stats Board, Analyzer, Best Round, New Course and Print: Not built yet. They are in their familiar places and will be added.
+On the right: Rounds is the screen for looking at the rounds you have saved. Stats Board, Analyzer and Best Round show your statistics in more detail, and Print prints what you are looking at.
+
+New Course, Edit Round, Import, Clear, Stats Board, Analyzer, Best Round and Print are not built yet. They are in place and will be added.
 
 Across the top and bottom
 

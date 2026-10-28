@@ -42,6 +42,7 @@ Courses and rounds live in two plain tab-separated text files. Written for one u
   out. Use multi-line block comments `/* ... */`, not `//` on every line. A short 3-line block is fine for a tiny
   function. (The boxed look comes from `tools/boxfmt.py` if the `template/` folder exists; otherwise just match
   the existing files.)
+- Multi-line comments must always be /* ... */. Short one-line remarks and section dividers may use //.
 - The opening brace `{` always goes on its own line (classes, methods, if, for, try, switch...). `else`, `catch`
   and `finally` go on their own line under the closing brace. Array initializers like `{1, 2}` may stay on one line.
 - Loop counters: never `i`, `j`, `k`. Use `lp`, then `lp1`, `lp2` when nested. Use `row`, `col`, `hole`, `x`, `y`

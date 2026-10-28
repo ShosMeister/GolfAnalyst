@@ -53,8 +53,9 @@ The program adds rounds to `rounds.tsv` itself when you press Save; courses are 
 
 Pages so far: **Home** (handicap, statistics and the buttons) and **Round** (enter a new round,
 or look back through saved ones with the four arrow buttons, limited to one course or set of tees with the
-Show box). The Stats Board, Analyzer, Best Round,
-New Course and Print buttons are in their old places and say "not built yet" in the footer.
+Show box). The Home buttons are in two columns: data entry on the left (New Course, New Round, Edit Round,
+Import, Clear) and viewing on the right (Rounds, Stats Board, Analyzer, Best Round, Print). Only New Round and
+Rounds work so far; the others are in place and say "not built yet" in the footer.
 
 - **Entering a round from the keyboard:** the cursor starts on hole 1's score and goes down all the scores
   (hole 9 to hole 10 included), then down all the putts. Only digits are accepted. A putts box takes one
