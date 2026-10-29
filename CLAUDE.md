@@ -132,10 +132,14 @@ Courses and rounds live in two plain tab-separated text files. Written for one u
   ".0"); "-" for nothing to divide by. One `WoodFrame` centred with 14 px of photo round it: a pinned band (heading
   `WoodTag`s 3 px smaller than their 25 px slots, all one font size set by the headings alone, the sort shown as a
   small triangle in the tag's top right corner because no arrow fits beside "Putts/Rnd"; then tan total rows "All
-  18-hole rounds" and "All nine-hole rounds") painted with `WoodFrame.paintFrameWood`, then a scroll pane of 25 px
-  white hairline rows with the vertical bar always shown (`WoodScrollBarUI`, 17 px; track from the frame's own wood,
-  thumb of turned light wood filling the track when everything fits). Width 858 + 17 + 18 = 893; height 99 + 25 x
-  rows, at most 19 rows in a 626 px page. Heading click sorts (again reverses), each section on its own, "-" always
+  18-hole rounds" and "All nine-hole rounds", BOTH always shown, 0 under Rnds and dashes when empty) painted with
+  `WoodFrame.paintFrameWood`, then a scroll pane of 25 px white hairline rows with the vertical bar always shown
+  (`WoodScrollBarUI`, 17 px; track from the frame's own wood, thumb of turned light wood filling the track when
+  everything fits). The "Nine-hole rounds" band row is always in the list. The list is never under 12 rows
+  (`MIN_ROWS`): unused rows are blank hairline rows; an empty section shows a faint watermark row (13 pt italic,
+  (165,160,150)): "No rounds yet. Press New Round on the Home screen." (no rounds at all; "No 18-hole rounds yet"
+  when there are only nine-hole ones) and "No nine-hole rounds yet". Blank and watermark rows cannot be picked.
+  Width 858 + 17 + 18 = 893; height 99 + 25 x rows (band always 81), 12 to 19 rows in a 626 px page (frame 399 to 574). Heading click sorts (again reverses), each section on its own, "-" always
   last, kept for the session. Gold (255,236,150, bold) = best per column per section among rows with 2+ rounds when
   2+ such rows exist, ties all gold. Click highlights a row (cream + 2 px gold outline), Up/Down move it over the band,
   Enter or double-click calls `Shell.browseRoundsOn(teeId)` (Rounds on the tee's newest round, Show set to the tee,

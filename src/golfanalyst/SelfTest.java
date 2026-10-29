@@ -584,7 +584,8 @@ public final class SelfTest
      | - the average, best score, putts and each percentage come out right;     |
      | - a figure with nothing to divide by shows "-";                          |
      | - each kind of row shows the right rating and slope;                     |
-     | - the two total rows add up all 18-hole and all nine-hole rounds;        |
+     | - the two total rows add up all 18-hole and all nine-hole rounds, and    |
+     |   are there even when there is nothing to add up;                        |
      | - historical rounds are left out;                                        |
      | - sorting works both ways, with "-" always at the bottom;                |
      | - gold marks the best figure only among rows with two or more rounds,    |
@@ -680,7 +681,10 @@ public final class SelfTest
         check("the nine-hole total covers the four nine-hole rounds", board.allNine() != null && board.allNine().rounds() == 4
                 && board.allNine().text(StatsBoard.Column.BEST).equals("36"));
         StatsBoard.Board eighteensOnly = StatsBoard.build(List.of(roundA, roundB), tees);
-        check("no nine-hole total without nine-hole rounds", eighteensOnly.allNine() == null && eighteensOnly.nine().isEmpty());
+        check("the nine-hole total is there even with no nine-hole rounds: 0 rounds and dashes", eighteensOnly.nine().isEmpty()
+                && eighteensOnly.allNine().rounds() == 0 && eighteensOnly.allNine().text(StatsBoard.Column.ROUNDS).equals("0")
+                && eighteensOnly.allNine().text(StatsBoard.Column.AVERAGE).equals("-")
+                && eighteensOnly.allNine().label().equals("All nine-hole rounds"));
         StatsBoard.Board empty = StatsBoard.build(List.of(), tees);
         check("with no rounds the board is empty and the total has nothing to show", empty.eighteen().isEmpty()
                 && empty.allEighteen().rounds() == 0 && empty.allEighteen().text(StatsBoard.Column.AVERAGE).equals("-"));

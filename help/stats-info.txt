@@ -6,7 +6,7 @@ This is the Stats Board. It shows your statistics course by course, so you can s
 
 Each row is one course and set of tees, written as Course:Tee. Your 18-hole rounds come first, one row for each set of tees you have played.
 
-Nine-hole rounds are never mixed in with 18-hole ones, because the scores cannot be compared. They come after the brown Nine-hole rounds band. A nine played on an 18-hole course gets its own row for the front nine and for the back nine, marked (Front 9) or (Back 9). A nine-hole course gets just one row.
+Nine-hole rounds are never mixed in with 18-hole ones, because the scores cannot be compared. They come after the tan Nine-hole rounds band, which is always there, even before you have played a nine-hole round. A nine played on an 18-hole course gets its own row for the front nine and for the back nine, marked (Front 9) or (Back 9). A nine-hole course gets just one row.
 
 # The columns
 
@@ -32,9 +32,11 @@ Sand %: Your sand saves: how often you were in the sand and still made par or be
 
 All of the percentages use every hole played in that row. A dash means there is nothing to work it out from yet, for example Sand % on a course where you have never been in a bunker.
 
+The rest of the list is blank rows, like an empty sheet of paper, so the board always looks the same size. It is at least 12 rows tall, and grows as you play more courses until it reaches the bottom of the screen. After that the list scrolls.
+
 # The band at the top
 
-The headings and the two total rows stay in place while the rows below them scroll. All 18-hole rounds and All nine-hole rounds give the same figures over every round of that kind, so they match the Home screen.
+The headings and the two total rows stay in place while the rows below them scroll. All 18-hole rounds and All nine-hole rounds give the same figures over every round of that kind, so they match the Home screen. Both are always shown: a total with no rounds shows 0 under Rnds and a dash everywhere else.
 
 # The colours
 

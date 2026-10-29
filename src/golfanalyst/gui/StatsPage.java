@@ -47,8 +47,15 @@ import javax.swing.border.Border;
  | The Stats Board: the statistics of every course and tees played, one     |
  | row each, in a wood frame on the photo. 18-hole rows first; if there     |
  | are nine-hole rounds, a "Nine-hole rounds" band and then the nine-hole   |
- | rows (a row per tee and nine). The figures come from StatsBoard, which   |
- | has no Swing code.                                                       |
+ | rows (a row per tee and nine). The band row is always there, even with   |
+ | no nine-hole rounds. The figures come from StatsBoard, which has no      |
+ | Swing code.                                                              |
+ |                                                                          |
+ | The list never looks empty: it is at least 12 rows tall, and rows not    |
+ | needed are blank white spreadsheet rows. A section with no rows shows a  |
+ | faint watermark row instead ("No nine-hole rounds yet", or "No rounds    |
+ | yet. Press New Round on the Home screen."). Blank and watermark rows     |
+ | cannot be picked.                                                        |
  |                                                                          |
  | Across the top of the frame a pinned wood band holds the column          |
  | headings (click one to sort, again to reverse; the two sections sort     |
@@ -62,11 +69,12 @@ import javax.swing.border.Border;
  |                                                                          |
  | Sizes: the grid is 266 + 96 + 8 x 62 = 858 px wide, plus the 17 px       |
  | scroll bar (always shown, so nothing jumps) = 875, plus 9 + 9 wood =     |
- | 893 of the 944 px page. Rows are 25 px. The band is 3 + 3 x 25 + 3 = 81  |
- | (56 without nine-hole rounds). The frame is 9 + band + 25 x rows + 9;    |
- | with 14 px of photo above and below, a 626 px page holds 19 rows         |
- | (99 + 19 x 25 = 574); past that the list scrolls. The limit follows the  |
- | real page height.                                                        |
+ | 893 of the 944 px page. Rows are 25 px. The band is always 3 + 3 x 25 +  |
+ | 3 = 81. The frame is 9 + 81 + 25 x rows + 9 = 99 + 25 x rows. The list   |
+ | is never under 12 rows (300 px, frame 399; the scroll bar's track is     |
+ | then 300 - 2 x 17 = 266 px). With 14 px of photo above and below, a 626  |
+ | px page holds at most 19 rows (99 + 19 x 25 = 574); past that the list   |
+ | scrolls. The limit follows the real page height.                         |
  |                                                                          |
  | Public Methods:                                                          |
  | onShow()        - works the board out again and refills the screen       |
@@ -87,6 +95,11 @@ public final class StatsPage extends Page
     static final int PAGE_MARGIN = 14;
     static final int FRAME_WOOD = 9;
     static final String NINE_BAND = "Nine-hole rounds";
+    static final int MIN_ROWS = 12;
+    static final String NO_NINE_MARK = "No nine-hole rounds yet";
+    static final String NO_ROUNDS_MARK = "No rounds yet. Press New Round on the Home screen.";
+    static final String NO_EIGHTEEN_MARK = "No 18-hole rounds yet";
+    static final Color WATERMARK_TEXT = new Color(165, 160, 150);
     static final String FOOTER_HINT = "Click a course to highlight it, double-click to see its rounds. Click a heading to sort. "
             + "Gold marks the best figure among rows with two or more rounds.";
     static final String NO_ROUNDS = "There are no rounds yet, so the Stats Board is empty. Enter a round with New Round on the Home screen.";
@@ -117,13 +130,15 @@ public final class StatsPage extends Page
     final WoodScrollBarUI barUI = new WoodScrollBarUI();
     final List<RowPanel> rowPanels = new ArrayList<>();
     final List<JComponent> totalCells = new ArrayList<>();
+    final List<JPanel> blankRows = new ArrayList<>();
+    final List<JLabel> watermarks = new ArrayList<>();
     JLabel nineBand = null;
 
     private Column sortColumn = Column.COURSE;
     private boolean ascending = true;
     private String selectedKey = null;
     private StatsBoard.Board board = null;
-    private int bandRows = 2;
+    private int bandRows = 3;
 
     /*
      +--------------------------------------------------------------------------+
@@ -248,14 +263,14 @@ public final class StatsPage extends Page
     }
 
     /*
-     * visibleRows(): how many rows the list shows before it scrolls: all of them, up to what fits the page (at least one).
+     * visibleRows(): how many rows the list shows before it scrolls: all of them (never fewer than 12), up to what fits the page.
      */
     int visibleRows()
     {
         int pageHeight = (getHeight() > 0 ? getHeight() : 626);
         int bandHeight = 2 * BAND_PAD + bandRows * ROW_HEIGHT;
         int room = (pageHeight - 2 * PAGE_MARGIN - 2 * FRAME_WOOD - bandHeight) / ROW_HEIGHT;
-        int wanted = Math.max(1, list.getComponentCount());
+        int wanted = Math.max(MIN_ROWS, list.getComponentCount());
         return Math.max(1, Math.min(wanted, room));
     }
 
@@ -298,7 +313,7 @@ public final class StatsPage extends Page
         board = StatsBoard.build(store.roundsByDate(), store.teeMap());
         fillBand();
         fillRows();
-        boolean noRounds = board.allEighteen().rounds() == 0 && board.allNine() == null;
+        boolean noRounds = board.allEighteen().rounds() == 0 && board.allNine().rounds() == 0;
         shell.setStatus(noRounds ? NO_ROUNDS : FOOTER_HINT);
         list.requestFocusInWindow();
     }
@@ -326,10 +341,10 @@ public final class StatsPage extends Page
      +--------------------------------------------------------------------------+
      | Purpose:                                                                 |
      | Lays out the pinned band: the row of heading tags, then the totals of    |
-     | all 18-hole rounds and, when there are any, of all nine-hole rounds:     |
-     | tan cells with a dark brown edge, no rating, dashes where there is       |
-     | nothing to show. The last slot of each row is left empty above the       |
-     | scroll bar.                                                              |
+     | all 18-hole rounds and of all nine-hole rounds, both always shown: tan   |
+     | cells with a dark brown edge, no rating, the number of rounds (0 if      |
+     | none) and dashes where there is nothing to show. The last slot of each   |
+     | row is left empty above the scroll bar.                                  |
      |                                                                          |
      | Passed in:  nothing                                                      |
      | Passed out: nothing                                                      |
@@ -340,18 +355,8 @@ public final class StatsPage extends Page
         band.removeAll();
         totalCells.clear();
         List<Row> totals = new ArrayList<>();
-        if (board == null)
-        {
-            totals.add(null);
-        }
-        else
-        {
-            totals.add(board.allEighteen());
-            if (board.allNine() != null)
-            {
-                totals.add(board.allNine());
-            }
-        }
+        totals.add(board == null ? null : board.allEighteen());
+        totals.add(board == null ? null : board.allNine());
         bandRows = 1 + totals.size();
         GridBagConstraints at = new GridBagConstraints();
         for (int col = 0; col < COLUMNS.length; col = col + 1)
@@ -393,7 +398,7 @@ public final class StatsPage extends Page
     }
 
     /*
-     * totalText(total, column, row): what a total cell shows: its name, nothing under Rating\Slope, and its figures, or dashes when there are no rounds.
+     * totalText(total, column, row): what a total cell shows: its name, nothing under Rating\Slope, the number of rounds (0 if none), and its figures or dashes.
      */
     private static String totalText(Row total, Column column, int row)
     {
@@ -405,9 +410,9 @@ public final class StatsPage extends Page
         {
             return "";
         }
-        if (total == null || total.rounds() == 0)
+        if (total == null)
         {
-            return "-";
+            return (column == Column.ROUNDS ? "0" : "-");
         }
         return total.text(column);
     }
@@ -417,9 +422,11 @@ public final class StatsPage extends Page
      | fillRows()                                                               |
      +--------------------------------------------------------------------------+
      | Purpose:                                                                 |
-     | Fills the list: the 18-hole rows in the chosen order, then (if there     |
-     | are any) the "Nine-hole rounds" band and the nine-hole rows in the same  |
-     | order, each section sorted on its own and with its own gold figures.     |
+     | Fills the list: the 18-hole rows in the chosen order, the "Nine-hole     |
+     | rounds" band (always), and the nine-hole rows in the same order, each    |
+     | section sorted on its own and with its own gold figures. A section with  |
+     | no rows gets a faint watermark row instead, and blank rows fill the      |
+     | list up to 12 rows so it looks like a blank sheet.                       |
      | The highlighted row stays highlighted, follows its data to its new       |
      | place, and is scrolled into view.                                        |
      |                                                                          |
@@ -431,24 +438,42 @@ public final class StatsPage extends Page
     {
         list.removeAll();
         rowPanels.clear();
+        blankRows.clear();
+        watermarks.clear();
         nineBand = null;
         if (board == null)
         {
             return;
         }
-        addSection(board.eighteen());
-        if (!board.nine().isEmpty())
+        if (board.eighteen().isEmpty())
         {
-            nineBand = new JLabel(NINE_BAND, SwingConstants.LEFT);
-            nineBand.setOpaque(true);
-            nineBand.setBackground(NINE_BAND_FACE);
-            nineBand.setForeground(Theme.FIELD_TEXT);
-            nineBand.setFont(Theme.font(Font.BOLD, NAME_FONT));
-            nineBand.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, Theme.GRID_LINE),
-                    BorderFactory.createEmptyBorder(0, NAME_PAD, 0, 0)));
-            fixSize(nineBand, GRID_WIDTH);
-            list.add(nineBand);
+            boolean noRounds = board.allNine().rounds() == 0;
+            list.add(blankRow(noRounds ? NO_ROUNDS_MARK : NO_EIGHTEEN_MARK));
+        }
+        else
+        {
+            addSection(board.eighteen());
+        }
+        nineBand = new JLabel(NINE_BAND, SwingConstants.LEFT);
+        nineBand.setOpaque(true);
+        nineBand.setBackground(NINE_BAND_FACE);
+        nineBand.setForeground(Theme.FIELD_TEXT);
+        nineBand.setFont(Theme.font(Font.BOLD, NAME_FONT));
+        nineBand.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, Theme.GRID_LINE),
+                BorderFactory.createEmptyBorder(0, NAME_PAD, 0, 0)));
+        fixSize(nineBand, GRID_WIDTH);
+        list.add(nineBand);
+        if (board.nine().isEmpty())
+        {
+            list.add(blankRow(NO_NINE_MARK));
+        }
+        else
+        {
             addSection(board.nine());
+        }
+        while (list.getComponentCount() < MIN_ROWS)
+        {
+            list.add(blankRow(null));
         }
         if (selectedKey != null && panelFor(selectedKey) == null)
         {
@@ -458,6 +483,54 @@ public final class StatsPage extends Page
         list.repaint();
         frame.revalidate();
         showSelected();
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | blankRow(watermark)                                                      |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Makes a row of the blank sheet: ten empty white cells with the same      |
+     | hairlines as a course row. With a watermark, its first cell shows that   |
+     | text faintly (13 pt italic, light grey). It does not react to the        |
+     | mouse, so it cannot be picked.                                           |
+     |                                                                          |
+     | Passed in:  watermark - the faint text, or null for a blank row          |
+     | Passed out: the row                                                      |
+     +--------------------------------------------------------------------------+
+     */
+    private JPanel blankRow(String watermark)
+    {
+        JPanel row = new JPanel(new GridBagLayout());
+        row.setBackground(Color.WHITE);
+        Border lines = BorderFactory.createMatteBorder(0, 0, 1, 1, Theme.GRID_LINE);
+        GridBagConstraints at = new GridBagConstraints();
+        at.fill = GridBagConstraints.BOTH;
+        for (int col = 0; col < COLUMNS.length; col = col + 1)
+        {
+            boolean marked = col == 0 && watermark != null;
+            JLabel cell = new JLabel(marked ? watermark : "", SwingConstants.LEFT);
+            cell.setOpaque(true);
+            cell.setBackground(Color.WHITE);
+            cell.setForeground(WATERMARK_TEXT);
+            cell.setFont(Theme.font(Font.ITALIC, NAME_FONT));
+            cell.setBorder(col == 0 ? BorderFactory.createCompoundBorder(lines, BorderFactory.createEmptyBorder(0, NAME_PAD, 0, 0)) : lines);
+            Dimension size = new Dimension(COLUMN_WIDTHS[col], ROW_HEIGHT);
+            cell.setPreferredSize(size);
+            cell.setMinimumSize(size);
+            if (marked)
+            {
+                watermarks.add(cell);
+            }
+            at.gridx = col;
+            row.add(cell, at);
+        }
+        fixSize(row, GRID_WIDTH);
+        if (watermark == null)
+        {
+            blankRows.add(row);
+        }
+        return row;
     }
 
     /*

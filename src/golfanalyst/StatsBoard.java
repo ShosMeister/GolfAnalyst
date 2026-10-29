@@ -222,7 +222,7 @@ public final class StatsBoard
     }
 
     /*
-     * Board: the 18-hole rows, the nine-hole rows (each in course order) and the two total rows (allNine is null when there are no nine-hole rounds).
+     * Board: the 18-hole rows, the nine-hole rows (each in course order) and the two total rows, which are always there (0 rounds and dashes when there is nothing to total).
      */
     public record Board(List<Row> eighteen, List<Row> nine, Row allEighteen, Row allNine)
     {
@@ -294,7 +294,7 @@ public final class StatsBoard
             }
         }
         Row eighteenTotal = makeRow(ALL_EIGHTEEN, null, Part.TOTAL, allEighteen, tees);
-        Row nineTotal = (allNine.isEmpty() ? null : makeRow(ALL_NINE, null, Part.TOTAL, allNine, tees));
+        Row nineTotal = makeRow(ALL_NINE, null, Part.TOTAL, allNine, tees);
         return new Board(sort(eighteenRows, Column.COURSE, true), sort(nineRows, Column.COURSE, true), eighteenTotal, nineTotal);
     }
 
@@ -354,7 +354,7 @@ public final class StatsBoard
     {
         Stats.Summary summary = Stats.summarize(rounds, tees);
         boolean nineHoles = part == Part.FRONT || part == Part.BACK || part == Part.NINE_COURSE
-                || (part == Part.TOTAL && !rounds.isEmpty() && rounds.get(0).isNineHole());
+                || (part == Part.TOTAL && ALL_NINE.equals(label));
         double rating = Double.NaN;
         int slope = 0;
         if (tee != null)

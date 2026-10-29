@@ -24,6 +24,10 @@ The program remembers your sort while it is open, so you can go and look at some
 
 Gold marks the best figure in each column, so you can see at a glance which course you score best on, where you hit the most fairways and so on. Only rows with two or more rounds can be gold, because a single good round is not a pattern. Look for the courses with no gold at all: those are the ones to work on.
 
+# The faint writing
+
+When a part of the board has nothing in it yet, its first row says so in faint grey letters. Before you have saved any rounds the top row says No rounds yet. Press New Round on the Home screen. Until you play a nine-hole round, the row under the Nine-hole rounds band says No nine-hole rounds yet. The faint writing goes away by itself as soon as there is a row to show. You cannot click on it, or on the blank rows below.
+
 # When there are a lot of courses
 
 The list scrolls once there are more rows than fit on the screen. Use the scroll bar on the right, its arrows, or the mouse wheel. The headings and totals stay where they are at the top.

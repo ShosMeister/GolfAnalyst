@@ -1429,7 +1429,10 @@ public final class GuiSelfTest
      | reversing, the hover, and the sort kept when the page is shown again;    |
      | highlighting a row and keeping it across a sort; the Up and Down keys    |
      | passing over the nine-hole band; Enter and a double-click opening the    |
-     | rounds; and an empty board with no rounds.                               |
+     | rounds; the 12-row minimum with blank rows that cannot be picked, with   |
+     | no rounds and with one course; the nine-hole total and band always       |
+     | shown; and the faint watermark rows, shown only while a section is       |
+     | empty.                                                                   |
      |                                                                          |
      | Passed in:  nothing                                                      |
      | Passed out: nothing (throws IOException if a temporary file fails)       |
@@ -1462,7 +1465,7 @@ public final class GuiSelfTest
         check("the list sits under the band", page.scroll.getY() == page.band.getY() + page.band.getHeight()
                 && page.scroll.getWidth() == 875);
         int rows = page.list.getComponentCount();
-        check("the frame grows with the rows (" + rows + " rows)", page.scroll.getHeight() == Math.min(rows, 19) * 25);
+        check("the frame grows with the rows (" + rows + " rows)", page.scroll.getHeight() == Math.min(Math.max(rows, 12), 19) * 25);
         check("the frame stays inside the page", page.frame.getHeight() <= 626 - 28);
         check("the vertical scroll bar is always shown and is 17 px wide",
                 page.scroll.getVerticalScrollBarPolicy() == javax.swing.ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS
@@ -1571,17 +1574,62 @@ public final class GuiSelfTest
                 0, 20, 10, 2, false, java.awt.event.MouseEvent.BUTTON1));
         check("a double-click opens that row's rounds", shell.lastPage.equals("browse " + nineRow.row.teeId()));
 
+        check("the sample data has nine-hole rows, so there is no nine-hole watermark", page.watermarks.isEmpty());
+
+        // A copy with no rounds, then with one course
         Path emptyFolder = Files.createTempDirectory("golfanalyst-stats-empty");
         Files.copy(temp.resolve(DataLoader.COURSES_FILE), emptyFolder.resolve(DataLoader.COURSES_FILE));
-        Files.writeString(emptyFolder.resolve(DataLoader.ROUNDS_FILE), golfanalyst.RoundWriter.STANDARD_HEADER + "\n", StandardCharsets.UTF_8);
+        Path emptyRounds = emptyFolder.resolve(DataLoader.ROUNDS_FILE);
+        Files.writeString(emptyRounds, golfanalyst.RoundWriter.STANDARD_HEADER + "\n", StandardCharsets.UTF_8);
         TestShell emptyShell = new TestShell(new DataStore(emptyFolder));
         StatsPage emptyPage = new StatsPage(emptyShell);
         emptyPage.onShow();
+        emptyPage.setSize(944, 626);
+        layoutAll(emptyPage);
         check("with no rounds the footer says so", emptyShell.status.equals(StatsPage.NO_ROUNDS));
-        check("with no rounds the band shows dashes and one total row", emptyPage.totalCells.size() == 10
-                && ((javax.swing.JLabel) emptyPage.totalCells.get(2)).getText().equals("-")
+        check("with no rounds the band still has both total rows, with 0 and dashes", emptyPage.totalCells.size() == 20
+                && ((javax.swing.JLabel) emptyPage.totalCells.get(2)).getText().equals("0")
                 && ((javax.swing.JLabel) emptyPage.totalCells.get(3)).getText().equals("-")
-                && emptyPage.rowPanels.isEmpty());
+                && ((javax.swing.JLabel) emptyPage.totalCells.get(10)).getText().equals("All nine-hole rounds")
+                && ((javax.swing.JLabel) emptyPage.totalCells.get(12)).getText().equals("0")
+                && ((javax.swing.JLabel) emptyPage.totalCells.get(19)).getText().equals("-"));
+        check("with no rounds the list has no course rows, only the band row and blank rows", emptyPage.rowPanels.isEmpty()
+                && emptyPage.nineBand != null && emptyPage.list.getComponentCount() == StatsPage.MIN_ROWS);
+        check("with no rounds the list is still 12 rows (300 px) tall", emptyPage.scroll.getHeight() == 300
+                && emptyPage.frame.getHeight() == 399 && emptyPage.band.getHeight() == 81);
+        check("the scroll bar has a real track and its thumb fills it", emptyPage.barUI.thumbArea().height == 300 - 2 * 17);
+        check("with no rounds the first row says so faintly", emptyPage.watermarks.size() == 2
+                && emptyPage.watermarks.get(0).getText().equals(StatsPage.NO_ROUNDS_MARK)
+                && emptyPage.watermarks.get(0).getFont().isItalic() && emptyPage.watermarks.get(0).getFont().getSize2D() == 13f
+                && emptyPage.watermarks.get(0).getForeground().equals(StatsPage.WATERMARK_TEXT)
+                && emptyPage.list.getComponent(0) == emptyPage.watermarks.get(0).getParent());
+        check("and the row under the nine-hole band says there are none", emptyPage.watermarks.get(1).getText().equals(StatsPage.NO_NINE_MARK)
+                && emptyPage.list.getComponent(1) == emptyPage.nineBand && emptyPage.list.getComponent(2) == emptyPage.watermarks.get(1).getParent());
+        javax.swing.JPanel blank = emptyPage.blankRows.get(0);
+        sendMouse(blank, java.awt.event.MouseEvent.MOUSE_PRESSED, 50, 10);
+        sendMouse(emptyPage.watermarks.get(0).getParent(), java.awt.event.MouseEvent.MOUSE_PRESSED, 50, 10);
+        emptyPage.getActionMap().get("down").actionPerformed(null);
+        check("blank rows and watermark rows cannot be picked", emptyPage.selectedKey() == null
+                && blank.getMouseListeners().length == 0 && emptyPage.blankRows.size() == StatsPage.MIN_ROWS - 3);
+
+        Files.writeString(emptyRounds, golfanalyst.RoundWriter.STANDARD_HEADER + "\n"
+                + "1\t1\t2026-10-22\t\t\t5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5\t2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2\t"
+                + "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0\t0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0\n", StandardCharsets.UTF_8);
+        TestShell oneShell = new TestShell(new DataStore(emptyFolder));
+        StatsPage onePage = new StatsPage(oneShell);
+        onePage.onShow();
+        onePage.setSize(944, 626);
+        layoutAll(onePage);
+        check("with one course: its row, the nine-hole band, the watermark and blank rows make 12", onePage.rowPanels.size() == 1
+                && onePage.list.getComponent(1) == onePage.nineBand && onePage.list.getComponentCount() == StatsPage.MIN_ROWS
+                && onePage.scroll.getHeight() == 300);
+        check("with an 18-hole row the no-rounds watermark is gone, the nine-hole one stays", onePage.watermarks.size() == 1
+                && onePage.watermarks.get(0).getText().equals(StatsPage.NO_NINE_MARK));
+        check("with no nine-hole rounds the nine-hole total shows 0 and dashes",
+                ((javax.swing.JLabel) onePage.totalCells.get(12)).getText().equals("0")
+                && ((javax.swing.JLabel) onePage.totalCells.get(13)).getText().equals("-")
+                && ((javax.swing.JLabel) onePage.totalCells.get(2)).getText().equals("1"));
+        check("the footer is the usual hint once there is a round", oneShell.status.equals(StatsPage.FOOTER_HINT));
         deleteFolder(emptyFolder);
         deleteFolder(temp);
     }
