@@ -12,7 +12,6 @@ import java.awt.FocusTraversalPolicy;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
-import java.awt.Insets;
 import java.awt.Rectangle;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
@@ -32,6 +31,7 @@ import javax.swing.JTextField;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
+import javax.swing.border.Border;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.text.AbstractDocument;
@@ -48,31 +48,39 @@ import javax.swing.text.JTextComponent;
  | The screen for adding a course and up to four sets of tees at once.      |
  |                                                                          |
  | The bar across the top is the course: name and 5-digit zip first, then   |
- | city, state and whether it is a nine-hole course. The tees stay greyed   |
- | until the name and zip are in. If that name (whatever the capitals) and  |
- | zip are already in the program, the city, state and nine-hole box are    |
- | filled in from it and locked, the footer lists the tees it has, and the  |
- | new tees are added to it.                                                |
+ | city, state and whether it is a nine-hole course. If that name           |
+ | (whatever the capitals) and zip are already in the program, the city,    |
+ | state and nine-hole box are filled in from it and locked, the footer     |
+ | lists the tees it has, and the new tees are added to it.                 |
  |                                                                          |
- | Below, in a scroll pane, are four tee columns, named Ladies, Beginner,   |
- | Intermediate and Expert to start with (they can be renamed). Each has    |
- | its name, rating and slope, the front-nine and back-nine rating and      |
- | slope (optional), the yardage (optional), the total par worked out as    |
- | you type, then the par and stroke index of every hole. Nothing is ever   |
- | copied from one tee to another: a rating invented that way would spoil   |
- | the handicap. A tee whose rating is left blank is skipped.               |
+ | Below it, like the round page, is a centred row of five wood frames      |
+ | over the photo: a caption frame (Tee name, Rating / Slope, Front 9,      |
+ | Back 9, Yards / Par, Hole and the hole numbers) and one frame per tee,   |
+ | named Ladies, Beginner, Intermediate and Expert to start with (they can  |
+ | be renamed). Inside each frame the boxes are spreadsheet cells: white,   |
+ | borderless, 56 px wide and 21 px tall, with thin lines between them.     |
+ | The cell with the cursor gets a gold outline and a cream fill. Only the  |
+ | total par, worked out as you type, is grey.                              |
  |                                                                          |
- | Save and Cancel sit under the scroll pane so they are always in view.    |
- | Save checks everything first and the footer names the first mistake by   |
- | tee and hole; the box turns pink and the cursor goes to it. When all is  |
- | well the tees are added to courses.tsv (new TeeIDs, the file's own       |
- | column order) and the window goes back Home saying what was added.       |
+ | The first tee has a small arrow button that copies its pars and stroke   |
+ | index into the EMPTY par and stroke index cells of the other three       |
+ | tees. Nothing else is ever copied: a rating copied from another tee      |
+ | would spoil the handicap. A tee whose rating is left blank is skipped.   |
+ |                                                                          |
+ | Everything is checked as you type. The footer always names the next      |
+ | thing to fill in or fix, by tee and hole, and Save stays off until all   |
+ | is well ("Ready to save."). A real mistake (a stroke index used twice,   |
+ | a tee name already used) turns its cell pink at once; a cell simply not  |
+ | filled in yet stays white. Save adds the tees to courses.tsv (new        |
+ | TeeIDs, the file's own column order) and goes back Home saying what was  |
+ | added.                                                                   |
  |                                                                          |
  | Sizes (default window 960 x 770, header 76, footer 30): the page gets    |
- | about 625 px. Margins 14, the course bar 32 + 6, the button bar 32 + 6   |
- | and the scroll pane's border 2 leave 533 px to see the tees in. The tee  |
- | grid is 24 rows of 22 px plus 2 = 530, so it fits; on a smaller window   |
- | the scroll bar appears.                                                  |
+ | about 626 px. A frame is 24 rows of 21 px (504) + 2 + 2 padding + 9 + 9  |
+ | wood = 526. With the course bar 32 + 6, the button bar 32 + 6 and the    |
+ | margins 8 + 6 that is 616. Across: 136 + 4 x 134 + 4 gaps of 14 = 728    |
+ | of the 916 px available. The frames sit in a see-through scroll pane,    |
+ | so a smaller window gets a scroll bar instead of cutting anything off.   |
  |                                                                          |
  | Public Methods:                                                          |
  | showNew()   - empties the screen ready for a new course                  |
@@ -87,13 +95,20 @@ public final class CoursePage extends Page
     private static final int HOLES = Tee.HOLES;
     private static final int NINE = Tee.NINE;
     private static final String[] DEFAULT_TEE_NAMES = {"Ladies", "Beginner", "Intermediate", "Expert"};
-    private static final int ROW_HEIGHT = 22;
-    private static final int BOX_HEIGHT = ROW_HEIGHT - 2;
+    private static final int ROW_HEIGHT = 21;
+    private static final int CELL_WIDTH = 56;
+    private static final int CAPTION_WIDTH = 114;
+    private static final int COPY_WIDTH = 24;
+    private static final int CELL_PAD = 2;
+    private static final int FRAME_GAP = 14;
     private static final int BAR_BOX_HEIGHT = 24;
-    private static final int TEE_GAP = 14;
+    private static final float CELL_FONT = 15f;
+    private static final float NAME_FONT = 14f;
+    private static final float SMALLEST_NAME_FONT = 10f;
     private static final int MIN_SLOPE = 55;
     private static final int MAX_SLOPE = 155;
     private static final String READY_PROMPT = "Type the course name and its 5-digit zip first.";
+    private static final String READY_TO_SAVE = "Ready to save.";
 
     final JTextField courseField = new JTextField();
     final JTextField zipField = new JTextField();
@@ -108,21 +123,24 @@ public final class CoursePage extends Page
     final JTextField[] backRatingFields = new JTextField[TEES];
     final JTextField[] backSlopeFields = new JTextField[TEES];
     final JTextField[] yardageFields = new JTextField[TEES];
-    final ValueBox[] parTotalBoxes = new ValueBox[TEES];
+    final JLabel[] parTotalBoxes = new JLabel[TEES];
     final JTextField[][] parFields = new JTextField[TEES][HOLES];
     final JTextField[][] indexFields = new JTextField[TEES][HOLES];
+    final WoodButton copyButton = new WoodButton("►");
     final WoodButton saveButton = new WoodButton("Save");
     final WoodButton cancelButton = new WoodButton("Cancel");
     final JScrollPane scroller;
-    final JPanel teeGrid = new JPanel(new GridBagLayout());
+    final JPanel framesRow = new JPanel(new FlowLayout(FlowLayout.CENTER, FRAME_GAP, 0));
 
     private final List<JTextField> allBoxes = new ArrayList<>();
+    private final Set<JTextField> cells = new HashSet<>();
     private final List<JComponent> frontRow = new ArrayList<>();
     private final List<JComponent> backRow = new ArrayList<>();
     private final List<List<JComponent>> holeRows = new ArrayList<>();
     private final transient EntryTraversal focusPolicy = new EntryTraversal();
     private transient List<Tee> existingTees = new ArrayList<>();
     private JTextField badField = null;
+    private JTextField cursorCell = null;
     private boolean updating = false;
 
     /*
@@ -130,9 +148,9 @@ public final class CoursePage extends Page
      | CoursePage(shell)                                                        |
      +--------------------------------------------------------------------------+
      | Purpose:                                                                 |
-     | Builds the screen: the course bar, the tee grid in its scroll pane       |
-     | and the Save / Cancel bar, then empties it. Like every page it must      |
-     | not call the window while it is being built.                             |
+     | Builds the screen: the course bar, the row of wood frames in its         |
+     | see-through scroll pane and the Save / Cancel bar, then empties it.      |
+     | Like every page it must not call the window while it is being built.     |
      |                                                                          |
      | Passed in:  shell - the window this page sits in                         |
      | Passed out: the page                                                     |
@@ -146,18 +164,21 @@ public final class CoursePage extends Page
 
         add(buildCourseBar(), BorderLayout.NORTH);
 
-        buildTeeGrid();
-        JPanel gridTop = new JPanel(new BorderLayout());
-        gridTop.setBackground(Color.WHITE);
-        gridTop.add(teeGrid, BorderLayout.NORTH);
-        scroller = new JScrollPane(gridTop, ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
+        buildFrames();
+        JPanel framesTop = new JPanel(new BorderLayout());
+        framesTop.setOpaque(false);
+        framesTop.add(framesRow, BorderLayout.NORTH);
+        scroller = new JScrollPane(framesTop, ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
                 ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-        scroller.setBorder(BorderFactory.createLineBorder(Theme.FRAME_DARK, 1));
+        scroller.setOpaque(false);
+        scroller.getViewport().setOpaque(false);
+        scroller.setBorder(BorderFactory.createEmptyBorder());
         scroller.getVerticalScrollBar().setUnitIncrement(ROW_HEIGHT);
         add(scroller, BorderLayout.CENTER);
 
         add(buildButtonBar(), BorderLayout.SOUTH);
 
+        copyButton.addActionListener(event -> copyFirstTee());
         saveButton.addActionListener(event -> save());
         cancelButton.addActionListener(event -> shell.goHome());
         nineHoleCheck.setOnChange(() -> setNineHoles(nineHoleCheck.isSelected()));
@@ -227,158 +248,313 @@ public final class CoursePage extends Page
 
     /*
      +--------------------------------------------------------------------------+
-     | buildTeeGrid()                                                           |
+     | buildFrames()                                                            |
      +--------------------------------------------------------------------------+
      | Purpose:                                                                 |
-     | Builds the white grid of tees. Column 0 is the hole number; each tee     |
-     | then has four columns (caption, box, caption, box). Rows:                |
+     | Builds the centred row of five wood frames: the caption frame, then one  |
+     | frame per tee. Every frame has the same rows, each 21 px tall, so they   |
+     | line up across the page:                                                 |
      |   0      tee name                                                        |
-     |   1      Rating and Slope                                                |
-     |   2      Front 9 rating and slope (hidden on a nine-hole course)         |
-     |   3      Back 9 rating and slope (hidden on a nine-hole course)          |
-     |   4      Yards, and the total par worked out as you type                 |
+     |   1      rating and slope                                                |
+     |   2      front 9 rating and slope (hidden on a nine-hole course)         |
+     |   3      back 9 rating and slope (hidden on a nine-hole course)          |
+     |   4      yards and the total par                                         |
      |   5      the Hole / Par / SI headings                                    |
      |   6-23   holes 1 to 18 (10 to 18 hidden on a nine-hole course)           |
-     | Every row is 22 px: a 20 px box with 1 px above and below.               |
      |                                                                          |
      | Passed in:  nothing                                                      |
-     | Passed out: nothing (fills teeGrid)                                      |
+     | Passed out: nothing (fills framesRow)                                    |
      +--------------------------------------------------------------------------+
      */
-    private void buildTeeGrid()
+    private void buildFrames()
     {
-        teeGrid.setBackground(Color.WHITE);
-        teeGrid.setBorder(BorderFactory.createEmptyBorder(1, 4, 1, 4));
+        framesRow.setOpaque(false);
         for (int hole = 0; hole < HOLES; hole++)
         {
             holeRows.add(new ArrayList<>());
         }
-        place(caption("Tee"), 0, 0, 1, 0);
-        place(heading("Hole"), 0, 5, 1, 0);
-        for (int hole = 0; hole < HOLES; hole++)
-        {
-            JLabel number = new JLabel(Integer.toString(hole + 1), SwingConstants.CENTER);
-            number.setFont(Theme.font(Font.BOLD, 13f));
-            number.setPreferredSize(new Dimension(30, BOX_HEIGHT));
-            place(number, 0, 6 + hole, 1, 0);
-            holeRows.get(hole).add(number);
-        }
+        framesRow.add(buildCaptionFrame());
         for (int tee = 0; tee < TEES; tee++)
         {
-            buildTeeColumn(tee, 1 + 4 * tee);
+            framesRow.add(buildTeeFrame(tee));
         }
     }
 
     /*
-     +--------------------------------------------------------------------------+
-     | buildTeeColumn(tee, base)                                                |
-     +--------------------------------------------------------------------------+
-     | Purpose:                                                                 |
-     | Makes and places every box of one tee (see buildTeeGrid for the rows).   |
-     |                                                                          |
-     | Passed in:  tee  - which tee, 0 to 3                                     |
-     |             base - its first grid column                                 |
-     | Passed out: nothing                                                      |
-     +--------------------------------------------------------------------------+
+     * framed(sheet): puts a white sheet of cells inside a wood frame, with about 2 px of white round the cells.
+     * Passed in:  sheet - the white panel of rows
+     * Passed out: the frame
      */
-    private void buildTeeColumn(int tee, int base)
+    private static WoodFrame framed(JPanel sheet)
     {
-        teeNameFields[tee] = nameBox(new JTextField(), 176, BOX_HEIGHT);
-        teeNameFields[tee].setHorizontalAlignment(SwingConstants.CENTER);
-        place(teeNameFields[tee], base, 0, 4, TEE_GAP);
-
-        ratingFields[tee] = numberBox(new JTextField(), BoxFilter.Kind.RATING, 48, BOX_HEIGHT);
-        slopeFields[tee] = numberBox(new JTextField(), BoxFilter.Kind.SLOPE, 44, BOX_HEIGHT);
-        placePair(base, 1, "Rating", ratingFields[tee], "Slope", slopeFields[tee], null);
-
-        frontRatingFields[tee] = numberBox(new JTextField(), BoxFilter.Kind.RATING, 48, BOX_HEIGHT);
-        frontSlopeFields[tee] = numberBox(new JTextField(), BoxFilter.Kind.SLOPE, 44, BOX_HEIGHT);
-        placePair(base, 2, "Front 9", frontRatingFields[tee], "Slope", frontSlopeFields[tee], frontRow);
-
-        backRatingFields[tee] = numberBox(new JTextField(), BoxFilter.Kind.RATING, 48, BOX_HEIGHT);
-        backSlopeFields[tee] = numberBox(new JTextField(), BoxFilter.Kind.SLOPE, 44, BOX_HEIGHT);
-        placePair(base, 3, "Back 9", backRatingFields[tee], "Slope", backSlopeFields[tee], backRow);
-
-        yardageFields[tee] = numberBox(new JTextField(), BoxFilter.Kind.YARDAGE, 48, BOX_HEIGHT);
-        yardageFields[tee].setToolTipText("Total yardage (you can leave it blank)");
-        parTotalBoxes[tee] = new ValueBox();
-        parTotalBoxes[tee].setHorizontalAlignment(SwingConstants.CENTER);
-        parTotalBoxes[tee].setPreferredSize(new Dimension(44, BOX_HEIGHT));
-        parTotalBoxes[tee].setMinimumSize(new Dimension(44, BOX_HEIGHT));
-        parTotalBoxes[tee].setToolTipText("The total par, worked out as you type");
-        placePair(base, 4, "Yards", yardageFields[tee], "Par", parTotalBoxes[tee], null);
-
-        place(heading("Par"), base, 5, 2, TEE_GAP);
-        place(heading("SI"), base + 2, 5, 2, 0);
-        for (int hole = 0; hole < HOLES; hole++)
-        {
-            parFields[tee][hole] = numberBox(new JTextField(), BoxFilter.Kind.PAR, 36, BOX_HEIGHT);
-            parFields[tee][hole].getDocument().addDocumentListener(new ChangeWatcher(() -> updateTotals()));
-            indexFields[tee][hole] = numberBox(new JTextField(), BoxFilter.Kind.STROKE_INDEX, 40, BOX_HEIGHT);
-            place(parFields[tee][hole], base, 6 + hole, 2, TEE_GAP);
-            place(indexFields[tee][hole], base + 2, 6 + hole, 2, 0);
-            holeRows.get(hole).add(parFields[tee][hole]);
-            holeRows.get(hole).add(indexFields[tee][hole]);
-        }
+        sheet.setBackground(Color.WHITE);
+        sheet.setBorder(BorderFactory.createEmptyBorder(CELL_PAD, CELL_PAD, CELL_PAD, CELL_PAD));
+        WoodFrame frame = new WoodFrame();
+        frame.add(sheet, BorderLayout.CENTER);
+        return frame;
     }
 
     /*
-     * placePair(base, row, firstText, firstBox, secondText, secondBox, rowParts): puts "caption box caption box" across one tee's four columns.
-     * Passed in:  base - the tee's first column, row - the grid row, the two captions and boxes,
-     *             rowParts - a list to remember them in (so the row can be hidden), or null
+     * put(sheet, part, col, row, width): adds one cell to a frame's sheet, touching its neighbours (no gaps).
+     * Passed in:  sheet - the white panel, part - the cell, col/row - where, width - columns it spans
      * Passed out: nothing
      */
-    private void placePair(int base, int row, String firstText, JComponent firstBox, String secondText,
-                           JComponent secondBox, List<JComponent> rowParts)
-    {
-        JComponent[] parts = {caption(firstText), firstBox, caption(secondText), secondBox};
-        for (int col = 0; col < parts.length; col++)
-        {
-            place(parts[col], base + col, row, 1, col == 0 ? TEE_GAP : 0);
-            if (rowParts != null)
-            {
-                rowParts.add(parts[col]);
-            }
-        }
-    }
-
-    /*
-     * place(part, col, row, width, leftGap): adds one part to the tee grid at a column and row.
-     * Passed in:  part - the component, col/row - where, width - columns it spans, leftGap - extra space on its left
-     * Passed out: nothing
-     */
-    private void place(JComponent part, int col, int row, int width, int leftGap)
+    private static void put(JPanel sheet, JComponent part, int col, int row, int width)
     {
         GridBagConstraints at = new GridBagConstraints();
         at.gridx = col;
         at.gridy = row;
         at.gridwidth = width;
-        at.insets = new Insets(1, 2 + leftGap, 1, 2);
-        at.anchor = GridBagConstraints.CENTER;
-        teeGrid.add(part, at);
+        at.fill = GridBagConstraints.BOTH;
+        sheet.add(part, at);
     }
 
     /*
-     * caption(text): a small bold caption for a box in the tee grid.
+     * fixSize(part, width): makes a cell exactly one row tall and the given width.
      */
-    private static JLabel caption(String text)
+    private static void fixSize(JComponent part, int width)
     {
-        JLabel label = new JLabel(text, SwingConstants.RIGHT);
-        label.setFont(Theme.font(Font.BOLD, 12f));
-        return label;
+        Dimension size = new Dimension(width, ROW_HEIGHT);
+        part.setPreferredSize(size);
+        part.setMinimumSize(size);
     }
 
     /*
-     * heading(text): a grey column heading (Hole, Par, SI), like the round tables.
+     * hairlines(rightLine): the thin cell lines: one under every cell, and one on the right of the left cell of a pair.
+     * Passed in:  rightLine - true for the left cell of a pair
+     * Passed out: the border
      */
-    private static JLabel heading(String text)
+    private static Border hairlines(boolean rightLine)
+    {
+        return BorderFactory.createMatteBorder(0, 0, 1, rightLine ? 1 : 0, Theme.GRID_LINE);
+    }
+
+    /*
+     * greyCell(text, rightLine): a grey cell that cannot be typed in: a Par or SI heading, or the total par.
+     * Passed in:  text - what it shows, rightLine - true for the left cell of a pair
+     * Passed out: the cell
+     */
+    private static JLabel greyCell(String text, boolean rightLine)
     {
         JLabel label = new JLabel(text, SwingConstants.CENTER);
-        label.setFont(Theme.font(Font.BOLD, 13f));
+        label.setFont(Theme.font(Font.BOLD, CELL_FONT));
         label.setOpaque(true);
         label.setBackground(Theme.FIELD_FACE);
-        label.setPreferredSize(new Dimension(text.equals("Hole") ? 34 : 76, BOX_HEIGHT));
+        label.setBorder(hairlines(rightLine));
+        fixSize(label, CELL_WIDTH);
         return label;
+    }
+
+    /*
+     * captionTag(text): a light wood caption tag for the caption frame.
+     */
+    private static WoodTag captionTag(String text)
+    {
+        WoodTag tag = new WoodTag(text);
+        fixSize(tag, CAPTION_WIDTH);
+        return tag;
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | buildCaptionFrame()                                                      |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | The frame on the left: wood caption tags for the top rows (Tee name,     |
+     | Rating / Slope, Front 9, Back 9, Yards / Par, Hole), then the hole       |
+     | numbers 1 to 18 in 14 pt bold.                                           |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: the frame                                                    |
+     +--------------------------------------------------------------------------+
+     */
+    private WoodFrame buildCaptionFrame()
+    {
+        JPanel sheet = new JPanel(new GridBagLayout());
+        String[] captions = {"Tee name", "Rating / Slope", "Front 9", "Back 9", "Yards / Par", "Hole"};
+        for (int row = 0; row < captions.length; row++)
+        {
+            WoodTag tag = captionTag(captions[row]);
+            put(sheet, tag, 0, row, 1);
+            if (row == 2)
+            {
+                frontRow.add(tag);
+            }
+            if (row == 3)
+            {
+                backRow.add(tag);
+            }
+        }
+        for (int hole = 0; hole < HOLES; hole++)
+        {
+            JLabel number = new JLabel(Integer.toString(hole + 1), SwingConstants.CENTER);
+            number.setFont(Theme.font(Font.BOLD, NAME_FONT));
+            number.setBorder(hairlines(false));
+            fixSize(number, CAPTION_WIDTH);
+            put(sheet, number, 0, 6 + hole, 1);
+            holeRows.get(hole).add(number);
+        }
+        return framed(sheet);
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | buildTeeFrame(tee)                                                       |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | One tee's frame: two cells across. The name spans both (on the first     |
+     | tee it shares its row with the copy arrow); then rating and slope,       |
+     | front 9 and back 9 rating and slope, yards and total par, the Par / SI   |
+     | headings, and the par and stroke index of every hole.                    |
+     |                                                                          |
+     | Passed in:  tee - which tee, 0 to 3                                      |
+     | Passed out: the frame                                                    |
+     +--------------------------------------------------------------------------+
+     */
+    private WoodFrame buildTeeFrame(int tee)
+    {
+        JPanel sheet = new JPanel(new GridBagLayout());
+        teeNameFields[tee] = nameBox(new JTextField(), 2 * CELL_WIDTH, ROW_HEIGHT);
+        teeNameFields[tee].setHorizontalAlignment(SwingConstants.CENTER);
+        if (tee == 0)
+        {
+            JPanel nameRow = new JPanel(new BorderLayout());
+            nameRow.setOpaque(false);
+            fixSize(nameRow, 2 * CELL_WIDTH);
+            fixSize(teeNameFields[tee], 2 * CELL_WIDTH - COPY_WIDTH);
+            fixSize(copyButton, COPY_WIDTH);
+            copyButton.setFocusable(false);
+            copyButton.setToolTipText("Copy these pars and stroke index numbers into the empty par and SI cells of the other tees");
+            nameRow.add(teeNameFields[tee], BorderLayout.CENTER);
+            nameRow.add(copyButton, BorderLayout.EAST);
+            put(sheet, nameRow, 0, 0, 2);
+        }
+        else
+        {
+            put(sheet, teeNameFields[tee], 0, 0, 2);
+        }
+        makeCell(teeNameFields[tee], false);
+        teeNameFields[tee].setFont(Theme.font(Font.BOLD, NAME_FONT));
+        JTextField name = teeNameFields[tee];
+        name.getDocument().addDocumentListener(new ChangeWatcher(() -> fitName(name)));
+
+        ratingFields[tee] = numberCell(BoxFilter.Kind.RATING, true);
+        slopeFields[tee] = numberCell(BoxFilter.Kind.SLOPE, false);
+        put(sheet, ratingFields[tee], 0, 1, 1);
+        put(sheet, slopeFields[tee], 1, 1, 1);
+
+        frontRatingFields[tee] = numberCell(BoxFilter.Kind.RATING, true);
+        frontSlopeFields[tee] = numberCell(BoxFilter.Kind.SLOPE, false);
+        put(sheet, frontRatingFields[tee], 0, 2, 1);
+        put(sheet, frontSlopeFields[tee], 1, 2, 1);
+        frontRow.addAll(List.of(frontRatingFields[tee], frontSlopeFields[tee]));
+
+        backRatingFields[tee] = numberCell(BoxFilter.Kind.RATING, true);
+        backSlopeFields[tee] = numberCell(BoxFilter.Kind.SLOPE, false);
+        put(sheet, backRatingFields[tee], 0, 3, 1);
+        put(sheet, backSlopeFields[tee], 1, 3, 1);
+        backRow.addAll(List.of(backRatingFields[tee], backSlopeFields[tee]));
+
+        yardageFields[tee] = numberCell(BoxFilter.Kind.YARDAGE, true);
+        yardageFields[tee].setToolTipText("Total yardage (you can leave it blank)");
+        parTotalBoxes[tee] = greyCell("", false);
+        parTotalBoxes[tee].setToolTipText("The total par, worked out as you type");
+        put(sheet, yardageFields[tee], 0, 4, 1);
+        put(sheet, parTotalBoxes[tee], 1, 4, 1);
+
+        put(sheet, greyCell("Par", true), 0, 5, 1);
+        put(sheet, greyCell("SI", false), 1, 5, 1);
+        for (int hole = 0; hole < HOLES; hole++)
+        {
+            parFields[tee][hole] = numberCell(BoxFilter.Kind.PAR, true);
+            parFields[tee][hole].getDocument().addDocumentListener(new ChangeWatcher(() -> updateTotals()));
+            indexFields[tee][hole] = numberCell(BoxFilter.Kind.STROKE_INDEX, false);
+            put(sheet, parFields[tee][hole], 0, 6 + hole, 1);
+            put(sheet, indexFields[tee][hole], 1, 6 + hole, 1);
+            holeRows.get(hole).add(parFields[tee][hole]);
+            holeRows.get(hole).add(indexFields[tee][hole]);
+        }
+        return framed(sheet);
+    }
+
+    /*
+     * numberCell(kind, rightLine): a spreadsheet cell with typing rules (see numberBox and makeCell).
+     * Passed in:  kind - which typing rules, rightLine - true for the left cell of a pair
+     * Passed out: the cell
+     */
+    private JTextField numberCell(BoxFilter.Kind kind, boolean rightLine)
+    {
+        JTextField field = numberBox(new JTextField(), kind, CELL_WIDTH, ROW_HEIGHT);
+        makeCell(field, rightLine);
+        return field;
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | makeCell(field, rightLine)                                               |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Turns a text box into a spreadsheet cell: no sunken box, bold 15 pt      |
+     | centred text, exactly one row tall, with the thin cell lines. The cell   |
+     | with the cursor gets a 2 px gold outline (and a cream fill, see          |
+     | colourBoxes) until the cursor leaves it.                                 |
+     |                                                                          |
+     | Passed in:  field     - the box                                          |
+     |             rightLine - true for the left cell of a pair                 |
+     | Passed out: nothing                                                      |
+     +--------------------------------------------------------------------------+
+     */
+    private void makeCell(JTextField field, boolean rightLine)
+    {
+        Border normal = hairlines(rightLine);
+        Border outlined = BorderFactory.createLineBorder(Theme.GOLD, 2);
+        field.setBorder(normal);
+        field.setFont(Theme.font(Font.BOLD, CELL_FONT));
+        field.setHorizontalAlignment(SwingConstants.CENTER);
+        fixSize(field, field.getPreferredSize().width);
+        field.addFocusListener(new FocusAdapter()
+        {
+            @Override
+            public void focusGained(FocusEvent event)
+            {
+                cursorCell = field;
+                field.setBorder(outlined);
+                colourBoxes();
+            }
+
+            @Override
+            public void focusLost(FocusEvent event)
+            {
+                if (cursorCell == field)
+                {
+                    cursorCell = null;
+                }
+                field.setBorder(normal);
+                colourBoxes();
+            }
+        });
+        cells.add(field);
+    }
+
+    /*
+     * fitName(field): keeps a tee name inside its cell: 14 pt, made smaller (down to 10 pt) only when a long name would not fit.
+     * Passed in:  field - a tee name cell
+     * Passed out: nothing
+     */
+    private static void fitName(JTextField field)
+    {
+        int room = field.getPreferredSize().width - 6;
+        float size = NAME_FONT;
+        Font font = Theme.font(Font.BOLD, size);
+        while (size > SMALLEST_NAME_FONT && field.getFontMetrics(font).stringWidth(field.getText()) > room)
+        {
+            size -= 1f;
+            font = Theme.font(Font.BOLD, size);
+        }
+        if (!font.equals(field.getFont()))
+        {
+            field.setFont(font);
+        }
     }
 
     /*
@@ -434,7 +610,7 @@ public final class CoursePage extends Page
     }
 
     /*
-     * commonBehaviour(field): what every box does: Enter moves on, the cursor arriving selects the text and scrolls the box into view, and typing clears the pink mistake mark.
+     * commonBehaviour(field): what every box does: an ordinary boxed look (cells change it), Enter moves on, the cursor arriving selects the text and scrolls the box into view, and every change is checked.
      * Passed in:  field - the box
      * Passed out: nothing
      */
@@ -458,7 +634,7 @@ public final class CoursePage extends Page
     // ------------------------------------------------------------ the course step
 
     /*
-     * courseReady(): whether the course name and a 5-digit zip have been typed, which opens the tees.
+     * courseReady(): whether the course name and a 5-digit zip have been typed.
      */
     private boolean courseReady()
     {
@@ -472,8 +648,8 @@ public final class CoursePage extends Page
      | Purpose:                                                                 |
      | Runs when the course name or zip changes. Looks the course up; if it is  |
      | already in the program, fills in and locks its city, state and           |
-     | nine-hole box and lists its tees in the footer. If it was found a        |
-     | moment ago but no longer matches, those boxes are emptied again.         |
+     | nine-hole box (the footer then lists its tees, see refresh). If it was   |
+     | found a moment ago but no longer matches, those boxes are emptied again. |
      |                                                                          |
      | Passed in:  nothing                                                      |
      | Passed out: nothing                                                      |
@@ -485,8 +661,7 @@ public final class CoursePage extends Page
         {
             return;
         }
-        boolean ready = courseReady();
-        List<Tee> found = ready ? shell.store().teesForCourse(courseField.getText(), zipField.getText()) : new ArrayList<>();
+        List<Tee> found = courseReady() ? shell.store().teesForCourse(courseField.getText(), zipField.getText()) : new ArrayList<>();
         boolean wasExisting = !existingTees.isEmpty();
         existingTees = found;
         updating = true;
@@ -504,28 +679,11 @@ public final class CoursePage extends Page
         }
         updating = false;
         applyState();
-        if (!ready)
-        {
-            shell.setStatus(READY_PROMPT);
-        }
-        else if (found.isEmpty())
-        {
-            shell.setStatus("A new course. Fill in the city and state, then its tees.");
-        }
-        else
-        {
-            List<String> names = new ArrayList<>();
-            for (Tee tee : found)
-            {
-                names.add(tee.teeName());
-            }
-            shell.setStatus(found.get(0).courseName() + " is already in the program with the tees " + String.join(", ", names)
-                    + ". The tees you fill in here are added to it.");
-        }
+        refresh();
     }
 
     /*
-     * setNineHoles(nine): ticks or unticks the nine-hole box and shows or hides the holes and rows that go with it.
+     * setNineHoles(nine): ticks or unticks the nine-hole box, shows or hides the holes and rows that go with it, and checks everything again.
      * Passed in:  nine - true for a nine-hole course
      * Passed out: nothing
      */
@@ -533,6 +691,7 @@ public final class CoursePage extends Page
     {
         nineHoleCheck.setSelected(nine);
         applyState();
+        refresh();
     }
 
     /*
@@ -540,11 +699,12 @@ public final class CoursePage extends Page
      | applyState()                                                             |
      +--------------------------------------------------------------------------+
      | Purpose:                                                                 |
-     | Brings the screen up to date: the tees are open only once the course     |
-     | name and zip are in; the city, state and nine-hole box are locked for    |
-     | a course already in the program; a nine-hole course hides the front /    |
-     | back rows and holes 10 to 18. Then the colours and par totals.           |
-     | It never calls the window, so it is safe while the page is being built.  |
+     | Brings the screen up to date: the city, state and nine-hole box are      |
+     | locked for a course already in the program; a nine-hole course hides     |
+     | the front / back rows and holes 10 to 18 in every frame. Then the        |
+     | colours and par totals. The tee cells are never greyed: they can be      |
+     | typed in from the start. It never calls the window, so it is safe        |
+     | while the page is being built.                                           |
      |                                                                          |
      | Passed in:  nothing                                                      |
      | Passed out: nothing                                                      |
@@ -552,7 +712,6 @@ public final class CoursePage extends Page
      */
     private void applyState()
     {
-        boolean open = courseReady();
         boolean locked = !existingTees.isEmpty();
         boolean nine = nineHoleCheck.isSelected();
         cityField.setEditable(!locked);
@@ -573,14 +732,8 @@ public final class CoursePage extends Page
                 part.setVisible(!nine);
             }
         }
-        for (int tee = 0; tee < TEES; tee++)
-        {
-            for (JTextField field : teeBoxes(tee))
-            {
-                field.setEnabled(open);
-            }
-        }
-        teeGrid.revalidate();
+        framesRow.revalidate();
+        framesRow.repaint();
         colourBoxes();
         updateTotals();
     }
@@ -608,27 +761,64 @@ public final class CoursePage extends Page
     }
 
     /*
-     * typed(): runs after any box changes: the pink mistake mark goes once you start fixing things.
+     * typed(): runs after any box changes (but not while the screen fills boxes itself): checks everything again.
      */
     private void typed()
     {
-        if (updating || badField == null)
+        if (!updating)
         {
-            return;
+            refresh();
         }
-        badField = null;
-        colourBoxes();
     }
 
     /*
-     * colourBoxes(): white for a box you can type in, grey for one you cannot, pink for the mistake Save found.
+     +--------------------------------------------------------------------------+
+     | refresh()                                                                |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Checks everything as you type. A real mistake (findWrong) comes          |
+     | first: the footer names it and its cell turns pink. Otherwise the        |
+     | footer names the next thing still to fill in, with no pink, because a    |
+     | cell you have not reached yet is not a mistake. Save is on only when     |
+     | nothing is left, and the footer then says "Ready to save."               |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing                                                      |
+     +--------------------------------------------------------------------------+
+     */
+    private void refresh()
+    {
+        if (updating)
+        {
+            return;
+        }
+        String wrong = findWrong();
+        JTextField pink = badField;
+        String problem = wrong != null ? wrong : findMistake();
+        badField = wrong != null ? pink : null;
+        saveButton.setEnabled(problem == null);
+        colourBoxes();
+        shell.setStatus(problem == null ? READY_TO_SAVE : problem);
+    }
+
+    /*
+     * colourBoxes(): pink for a real mistake, cream for the cell with the cursor, white for a box you can type in, grey for one you cannot.
      */
     private void colourBoxes()
     {
         for (JTextField field : allBoxes)
         {
             boolean typing = field.isEnabled() && field.isEditable();
-            field.setBackground(field == badField ? Theme.FIELD_ERROR : (typing ? Color.WHITE : Theme.FIELD_FACE));
+            Color face = typing ? Color.WHITE : Theme.FIELD_FACE;
+            if (field == cursorCell)
+            {
+                face = Theme.FIELD_FOCUS;
+            }
+            if (field == badField)
+            {
+                face = Theme.FIELD_ERROR;
+            }
+            field.setBackground(face);
         }
     }
 
@@ -650,7 +840,72 @@ public final class CoursePage extends Page
                     any = true;
                 }
             }
-            parTotalBoxes[tee].setValue(any ? Integer.toString(total) : "");
+            parTotalBoxes[tee].setText(any ? Integer.toString(total) : "");
+        }
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | copyFirstTee()                                                           |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | What the arrow on the first tee does: copies its pars and stroke index   |
+     | into the par and SI cells of the other three tees, but only into cells   |
+     | that are EMPTY, so nothing you typed is replaced. Nothing else is        |
+     | copied (never a rating, slope or yardage). The footer says which tees    |
+     | received numbers, or why nothing was copied.                             |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing                                                      |
+     +--------------------------------------------------------------------------+
+     */
+    private void copyFirstTee()
+    {
+        String first = teeNameFields[0].getText().trim().isEmpty() ? "the first tee" : teeNameFields[0].getText().trim();
+        boolean anyToCopy = false;
+        for (int hole = 0; hole < playedHoles(); hole++)
+        {
+            anyToCopy = anyToCopy || !parFields[0][hole].getText().isEmpty() || !indexFields[0][hole].getText().isEmpty();
+        }
+        if (!anyToCopy)
+        {
+            shell.setStatus("Type the pars and stroke index of " + first + " first, then press the arrow to copy them.");
+            return;
+        }
+        List<String> filled = new ArrayList<>();
+        updating = true;
+        for (int tee = 1; tee < TEES; tee++)
+        {
+            boolean got = false;
+            for (int hole = 0; hole < playedHoles(); hole++)
+            {
+                for (JTextField[][] column : new JTextField[][][] {parFields, indexFields})
+                {
+                    String source = column[0][hole].getText();
+                    if (column[tee][hole].getText().isEmpty() && !source.isEmpty())
+                    {
+                        column[tee][hole].setText(source);
+                        got = true;
+                    }
+                }
+            }
+            if (got)
+            {
+                String name = teeNameFields[tee].getText().trim();
+                filled.add(name.isEmpty() ? "Tee " + (tee + 1) : name);
+            }
+        }
+        updating = false;
+        updateTotals();
+        refresh();
+        if (filled.isEmpty())
+        {
+            shell.setStatus("The par and SI cells of the other tees are already filled, so nothing was copied.");
+        }
+        else
+        {
+            shell.setStatus("Copied the pars and stroke index of " + first + " into the empty cells of " + String.join(", ", filled)
+                    + ". Check any holes that differ on the card.");
         }
     }
 
@@ -884,6 +1139,7 @@ public final class CoursePage extends Page
         existingTees = new ArrayList<>();
         badField = null;
         updating = false;
+        saveButton.setEnabled(false);
         applyState();
         scroller.getVerticalScrollBar().setValue(0);
     }
@@ -932,12 +1188,72 @@ public final class CoursePage extends Page
 
     /*
      +--------------------------------------------------------------------------+
+     | findWrong()                                                              |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Looks only for real mistakes, the kind that turn a cell pink at once:    |
+     | a rated tee whose name is already used on the course (ignoring           |
+     | capitals, saved tees included), a rating of 0, and on any tee a stroke   |
+     | index outside 1 to 18 (1 to 9 on a nine-hole course) or used twice.      |
+     | Cells not filled in yet are not mistakes here (see findMistake).         |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: the message, or null (badField is set to the cell)           |
+     +--------------------------------------------------------------------------+
+     */
+    private String findWrong()
+    {
+        badField = null;
+        Set<String> names = new HashSet<>();
+        for (Tee tee : existingTees)
+        {
+            names.add(tee.teeName().trim().toLowerCase(Locale.ROOT));
+        }
+        for (int tee = 0; tee < TEES; tee++)
+        {
+            String name = teeNameFields[tee].getText().trim();
+            if (hasRating(tee) && !name.isEmpty() && !names.add(name.toLowerCase(Locale.ROOT)))
+            {
+                return mistake(teeNameFields[tee], "There is already a tee called " + name + " on this course.");
+            }
+            String rating = ratingFields[tee].getText();
+            if (rating.matches("\\d{1,2}(\\.\\d?)?") && Double.parseDouble(rating) <= 0)
+            {
+                return mistake(ratingFields[tee], teeLabel(tee) + ": the rating must be more than 0.");
+            }
+            int[] usedOn = new int[HOLES + 1];
+            for (int hole = 0; hole < playedHoles(); hole++)
+            {
+                String text = indexFields[tee][hole].getText();
+                if (text.isEmpty())
+                {
+                    continue;
+                }
+                String where = teeLabel(tee) + ", hole " + (hole + 1) + ": ";
+                int rank = Integer.parseInt(text);
+                if (rank < 1 || rank > playedHoles())
+                {
+                    return mistake(indexFields[tee][hole], where + "the stroke index must be 1 to " + playedHoles() + ".");
+                }
+                if (usedOn[rank] > 0)
+                {
+                    return mistake(indexFields[tee][hole], where + "stroke index " + rank + " is already used on hole " + usedOn[rank] + ".");
+                }
+                usedOn[rank] = hole + 1;
+            }
+        }
+        return null;
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
      | findMistake()                                                            |
      +--------------------------------------------------------------------------+
      | Purpose:                                                                 |
-     | Checks everything before saving and returns the first mistake, naming    |
-     | the tee and hole: the course name and a 5-digit zip are needed; a        |
-     | state must be two letters; at least one tee must have a rating; each     |
+     | Checks everything needed before saving and returns the first thing to    |
+     | fill in or fix, naming the tee and hole: the course name and a 5-digit   |
+     | zip are needed; a state must be two letters; at least one tee must have  |
+     | a rating (until then the footer says what kind of course this is); each  |
      | tee with a rating needs a name not used by another tee of the course     |
      | (ignoring capitals, tees already saved included), a rating like 70.4,    |
      | a slope of 55 to 155, front and back rating and slope in pairs, a par    |
@@ -954,11 +1270,11 @@ public final class CoursePage extends Page
         badField = null;
         if (courseField.getText().isBlank())
         {
-            return mistake(courseField, "Type the name of the course.");
+            return mistake(courseField, READY_PROMPT);
         }
         if (!zipField.getText().matches("\\d{5}"))
         {
-            return mistake(zipField, "The zip must be 5 digits.");
+            return mistake(zipField, "Type the course's 5-digit zip.");
         }
         if (!stateField.getText().isEmpty() && !stateField.getText().matches("[A-Z]{2}"))
         {
@@ -985,9 +1301,29 @@ public final class CoursePage extends Page
         }
         if (!anyRated)
         {
-            return mistake(ratingFields[0], "Fill in the rating of at least one tee. A tee with no rating is skipped.");
+            return mistake(ratingFields[0], noTeeYet());
         }
         return null;
+    }
+
+    /*
+     * noTeeYet(): the footer message before any tee has a rating: which tees a course already has, or that it is a new course.
+     * Passed in:  nothing
+     * Passed out: the message
+     */
+    private String noTeeYet()
+    {
+        if (existingTees.isEmpty())
+        {
+            return "A new course. Fill in the city and state, then each tee you want, starting with its rating.";
+        }
+        List<String> names = new ArrayList<>();
+        for (Tee tee : existingTees)
+        {
+            names.add(tee.teeName());
+        }
+        return existingTees.get(0).courseName() + " is already in the program with the tees " + String.join(", ", names)
+                + ". The tees you fill in here are added to it.";
     }
 
     /*
@@ -1182,7 +1518,7 @@ public final class CoursePage extends Page
     }
 
     /*
-     * skippedTees(): the tees left out because they have no rating although something else was typed in them, so the message after saving can say so.
+     * skippedTees(): the tees left out because they have no rating although a slope, front or back nine or yardage was typed in them, so the message after saving can say so. Pars and stroke index do not count: the copy arrow may have filled them.
      * Passed in:  nothing
      * Passed out: their names
      */
@@ -1195,9 +1531,10 @@ public final class CoursePage extends Page
             {
                 continue;
             }
-            for (JTextField field : teeBoxes(tee))
+            for (JTextField field : List.of(slopeFields[tee], frontRatingFields[tee], frontSlopeFields[tee],
+                    backRatingFields[tee], backSlopeFields[tee], yardageFields[tee]))
             {
-                if (field != teeNameFields[tee] && !field.getText().isEmpty())
+                if (!field.getText().isEmpty())
                 {
                     String name = teeNameFields[tee].getText().trim();
                     skipped.add(name.isEmpty() ? "Tee " + (tee + 1) : name);
@@ -1213,12 +1550,12 @@ public final class CoursePage extends Page
      | save()                                                                   |
      +--------------------------------------------------------------------------+
      | Purpose:                                                                 |
-     | Tidies the names, checks everything (findMistake) and, if something is   |
-     | wrong, names it in the footer, marks the box pink and puts the cursor    |
-     | there. Otherwise, after the window's sample-data question, adds the      |
-     | tees to courses.tsv with new TeeIDs and goes Home with a message such    |
-     | as "Added 3 tees for Sample Links." If the file cannot be written the    |
-     | footer says why and nothing changes.                                     |
+     | Save is only on when everything checks out, but the names are tidied     |
+     | and everything checked once more first, in case tidying changed          |
+     | something. Then, after the window's sample-data question, the tees are   |
+     | added to courses.tsv with new TeeIDs and the window goes Home with a     |
+     | message such as "Added 3 tees for Sample Links." If the file cannot be   |
+     | written the footer says why and nothing changes.                         |
      |                                                                          |
      | Passed in:  nothing                                                      |
      | Passed out: nothing                                                      |
@@ -1232,20 +1569,8 @@ public final class CoursePage extends Page
         {
             tidyBox(field);
         }
-        String problem = findMistake();
-        if (problem != null)
-        {
-            shell.setStatus(problem);
-            colourBoxes();
-            if (badField != null)
-            {
-                JTextField fix = badField;
-                fix.scrollRectToVisible(new Rectangle(0, 0, fix.getWidth(), fix.getHeight()));
-                SwingUtilities.invokeLater(() -> fix.requestFocusInWindow());
-            }
-            return;
-        }
-        if (!shell.readyToSave())
+        refresh();
+        if (!saveButton.isEnabled() || !shell.readyToSave())
         {
             return;
         }

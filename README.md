@@ -1,4 +1,4 @@
-# GolfAnalyst v4.10 (Java)
+# GolfAnalyst v4.11 (Java)
 
 Golf Analyst with its window. It has the one-window layout of the earlier versions: a wood header
 with Home, Help and Info buttons that stays the same on every screen, a status footer that stays
@@ -61,18 +61,22 @@ data entry on the left (New Course, New Round, Edit Round, Import, Clear) and vi
 Stats Board, Analyzer, Best Round, Print). Only New Course, New Round and Rounds work so far; the others are
 in place and say "not built yet" in the footer.
 
-- **Entering a course:** type the course name and its 5-digit zip first; the tees stay grey until both
-  are in. If that course (any capitals) and zip are already in the program, its city, state and holes
-  are filled in and locked and the new tees are added to it. Then each tee: name, rating and slope, the
-  optional front-nine and back-nine rating and slope, optional yardage, then the par and stroke index of
-  every hole. The total par is shown as you type. Boxes take digits only and move on by themselves: a par
-  (3-6) at once; a stroke index from 2 to 9 at once, a 1 waits (then 0-8 for 10 to 18); a slope after two
-  digits from 5-9 or three from 1 (55 to 155); a rating after the digit after the point. A tee with no
-  rating is skipped. Nothing is ever copied from one tee to another. Names are tidied: extra spaces go,
-  and the capitals change only when the whole name was typed in lower case or in capitals. Save names
-  the first mistake by tee and hole in the footer; when all is well the tees get new TeeIDs, are added
-  to `courses.tsv` in the file's own column order, and the window goes back Home. The tee grid is in a
-  scroll pane with Save and Cancel below it, so nothing is cut off on a small window.
+- **Entering a course:** the page looks like the round page: a centred row of wood frames over the
+  photo, captions down the left frame and one frame per tee, with spreadsheet-style cells (the cell with
+  the cursor has a gold outline). Type the course name and its 5-digit zip first. If that course (any
+  capitals) and zip are already in the program, its city, state and holes are filled in and locked and
+  the new tees are added to it. Then each tee: name, rating and slope, the optional front-nine and
+  back-nine rating and slope, optional yardage, then the par and stroke index of every hole. The total
+  par is shown as you type. Cells take digits only and move on by themselves: a par (3-6) at once; a
+  stroke index from 2 to 9 at once, a 1 waits (then 0-8 for 10 to 18); a slope after two digits from 5-9
+  or three from 1 (55 to 155); a rating after the digit after the point. The arrow beside the first
+  tee's name copies its pars and stroke index into the empty par and SI cells of the other tees; a
+  rating, slope or yardage is never copied. A tee with no rating is skipped. Names are tidied: extra
+  spaces go, and the capitals change only when the whole name was typed in lower case or in capitals.
+  Everything is checked as you type: the footer names the next thing to fill in or fix, by tee and hole;
+  a real mistake (a stroke index used twice, a tee name already used) turns pink at once; Save comes on
+  only when all is well. Save adds the tees with new TeeIDs to `courses.tsv` in the file's own column
+  order and goes back Home.
 
 - **Entering a round from the keyboard:** the cursor starts on hole 1's score and goes down all the scores
   (hole 9 to hole 10 included), then down all the putts. Only digits are accepted. A putts box takes one
@@ -200,10 +204,10 @@ looks odd (for example a fairway marked on a par 3) is kept and reported as a wa
 - The engine has not been compared with a real handicap service. Run your own recent
   rounds through it and compare with your official index before trusting it.
 - Built and tested on Java 21; it only uses language features from Java 17 and earlier.
-- **The New Course page height** was worked out by arithmetic, not by looking: at the default window
-  size the tee grid needs 530 px and should get about 533 px, assuming a Windows title bar of about
-  31 px. If a thin scroll bar appears beside the tees, that guess was a few pixels short; nothing is
-  cut off either way, because Save and Cancel sit outside the scroll pane.
+- **The New Course page size** was worked out by arithmetic: each frame is 24 rows of 21 px plus
+  padding and wood, 526 px, and the whole page needs 616 of the 626 px the default window gives it.
+  Across, the five frames and their gaps take 728 of 916 px. On a smaller window a scroll bar appears
+  beside the frames; Save and Cancel stay in view below them.
 
 ## Editing in NetBeans or VS Code
 

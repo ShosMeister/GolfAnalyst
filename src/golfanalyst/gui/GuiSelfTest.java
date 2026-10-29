@@ -820,14 +820,38 @@ public final class GuiSelfTest
     }
 
     /*
+     * focusOn(field, gained): tells a cell's listeners the cursor arrived (true) or left (false), as Swing would; a screen with no window cannot really move the cursor.
+     * Passed in:  field - the cell, gained - true when the cursor arrives
+     * Passed out: nothing
+     */
+    private static void focusOn(JTextField field, boolean gained)
+    {
+        java.awt.event.FocusEvent event = new java.awt.event.FocusEvent(field,
+                gained ? java.awt.event.FocusEvent.FOCUS_GAINED : java.awt.event.FocusEvent.FOCUS_LOST);
+        for (java.awt.event.FocusListener listener : field.getFocusListeners())
+        {
+            if (gained)
+            {
+                listener.focusGained(event);
+            }
+            else
+            {
+                listener.focusLost(event);
+            }
+        }
+    }
+
+    /*
      +--------------------------------------------------------------------------+
      | checkCoursePage(page, store, shell, temp)                                |
      +--------------------------------------------------------------------------+
      | Purpose:                                                                 |
-     | The New Course screen on a copy of the sample data: the course step,     |
-     | finding a course already there, the checks on Save and their messages,   |
-     | the total par, the cursor order, adding tees to an existing course       |
-     | (with one skipped) and saving a new nine-hole course.                    |
+     | The New Course screen on a copy of the sample data: the frame sizes,     |
+     | the cell look and the cursor's gold outline, finding a course already    |
+     | there, the checks made as you type (Save off until all is well, the      |
+     | footer naming the next thing to fix, pink only for real mistakes), the   |
+     | total par, the copy arrow, the cursor order, adding tees to an existing  |
+     | course (with one skipped) and saving a new nine-hole course.             |
      |                                                                          |
      | Passed in:  page  - a New Course screen built on the test shell          |
      |             store - the test data store, shell - the test shell          |
@@ -846,62 +870,84 @@ public final class GuiSelfTest
             reversed[hole] = 18 - hole;
         }
 
+        // The look: five frames of the agreed sizes, spreadsheet cells, gold outline on the cursor's cell
+        check("there are five frames: captions and four tees", page.framesRow.getComponentCount() == 5);
+        check("the caption frame is 136 x 526", page.framesRow.getComponent(0).getPreferredSize().equals(new java.awt.Dimension(136, 526)));
+        boolean teeSizes = true;
+        for (int lp = 1; lp < 5; lp++)
+        {
+            teeSizes = teeSizes && page.framesRow.getComponent(lp).getPreferredSize().equals(new java.awt.Dimension(134, 526));
+        }
+        check("each tee frame is 134 x 526, so the rows line up", teeSizes);
+        check("a cell is 56 x 21", page.parFields[0][0].getPreferredSize().equals(new java.awt.Dimension(56, 21)));
+        check("a cell is bold 15 pt", page.parFields[0][0].getFont().isBold() && page.parFields[0][0].getFont().getSize2D() == 15f);
+
         page.showNew();
         check("New Course names the tees Ladies, Beginner, Intermediate and Expert",
                 page.teeNameFields[0].getText().equals("Ladies") && page.teeNameFields[3].getText().equals("Expert"));
         check("New Course starts with the title New Course", page.title().equals("New Course") && page.helpKey().equals("course"));
-        check("the tees stay greyed until the course and zip are in", !page.ratingFields[0].isEnabled());
-        check("a greyed box has the grey face", page.ratingFields[0].getBackground().equals(Theme.FIELD_FACE));
+        check("the tee cells are open and white from the start", page.ratingFields[0].isEnabled()
+                && page.ratingFields[0].getBackground().equals(java.awt.Color.WHITE));
+        check("the total par is a grey cell", page.parTotalBoxes[0].getBackground().equals(Theme.FIELD_FACE));
+        check("Save is off on an empty screen", !page.saveButton.isEnabled());
         check("the footer asks for the course and zip first", shell.status.contains("5-digit zip"));
+        focusOn(page.parFields[0][0], true);
+        check("the cell with the cursor has a gold outline and a cream fill",
+                page.parFields[0][0].getBackground().equals(Theme.FIELD_FOCUS)
+                        && page.parFields[0][0].getBorder() instanceof javax.swing.border.LineBorder
+                        && ((javax.swing.border.LineBorder) page.parFields[0][0].getBorder()).getLineColor().equals(Theme.GOLD));
+        focusOn(page.parFields[0][0], false);
+        check("it goes back to normal when the cursor leaves", page.parFields[0][0].getBackground().equals(java.awt.Color.WHITE)
+                && !(page.parFields[0][0].getBorder() instanceof javax.swing.border.LineBorder));
 
         // A course already in the program, typed with other capitals and spaces
         page.courseField.setText("sample   LINKS");
+        check("with a name but no zip, the footer asks for the zip", shell.status.equals("Type the course's 5-digit zip."));
         page.zipField.setText("29000");
         check("a course already there is found whatever the capitals", page.cityField.getText().equals("Anytown")
                 && page.stateField.getText().equals("SC"));
         check("its city and state are locked", !page.cityField.isEditable() && !page.stateField.isEditable());
         check("the footer lists the tees it has", shell.status.contains("White, Blue"));
-        check("with the course and zip in, the tees open", page.ratingFields[0].isEnabled()
-                && page.ratingFields[0].getBackground().equals(java.awt.Color.WHITE));
         check("the cursor skips the locked city and state", page.componentAfter(page.zipField) == page.teeNameFields[0]);
 
         fillTee(page, 0, "white", "69.0", "120", pars, index);
         check("the total par is worked out as you type", page.parTotalBoxes[0].getText().equals("72"));
-        page.saveButton.doClick();
-        check("a tee name already on the course is refused, ignoring capitals", shell.status.contains("already a tee called White"));
-        check("the box with the mistake turns pink", page.teeNameFields[0].getBackground().equals(Theme.FIELD_ERROR));
+        check("a tee name already on the course is named at once, ignoring capitals",
+                shell.status.equals("There is already a tee called white on this course."));
+        check("a real mistake turns its cell pink at once", page.teeNameFields[0].getBackground().equals(Theme.FIELD_ERROR));
+        check("Save stays off while there is a mistake", !page.saveButton.isEnabled());
         page.teeNameFields[0].setText("Gold");
-        check("typing clears the pink mark", !page.teeNameFields[0].getBackground().equals(Theme.FIELD_ERROR));
+        check("fixing it clears the pink", !page.teeNameFields[0].getBackground().equals(Theme.FIELD_ERROR));
+        check("one complete tee is ready to save", shell.status.equals("Ready to save.") && page.saveButton.isEnabled());
 
         fillTee(page, 1, "GOLD", "71.0", "125", pars, reversed);
-        page.saveButton.doClick();
-        check("two new tees with the same name are refused", shell.status.contains("already a tee called Gold"));
+        check("two new tees with the same name are a mistake", shell.status.equals("There is already a tee called GOLD on this course.")
+                && !page.saveButton.isEnabled());
         page.teeNameFields[1].setText("Red");
 
         page.indexFields[1][4].setText("16");
-        page.saveButton.doClick();
         check("a repeated stroke index is named by tee and hole",
                 shell.status.equals("Red tee, hole 5: stroke index 16 is already used on hole 3."));
+        check("a repeated stroke index is pink", page.indexFields[1][4].getBackground().equals(Theme.FIELD_ERROR));
         page.indexFields[1][4].setText("14");
 
         page.parFields[1][6].setText("");
-        page.saveButton.doClick();
         check("a missing par is named by tee and hole", shell.status.equals("Red tee, hole 7: the par is missing."));
+        check("a cell not filled in yet is not pink", page.parFields[1][6].getBackground().equals(java.awt.Color.WHITE));
+        check("Save is off while a par is missing", !page.saveButton.isEnabled());
         check("the total par counts only the pars typed", page.parTotalBoxes[1].getText().equals("67"));
         page.parFields[1][6].setText("5");
 
         page.slopeFields[1].setText("");
-        page.saveButton.doClick();
         check("a missing slope is named", shell.status.equals("Red tee: the slope is missing."));
         page.slopeFields[1].setText("125");
 
         page.frontRatingFields[1].setText("35.0");
-        page.saveButton.doClick();
-        check("a front-nine rating needs its slope", shell.status.contains("go together")
-                && page.frontSlopeFields[1].getBackground().equals(Theme.FIELD_ERROR));
+        check("a front-nine rating needs its slope", shell.status.contains("go together") && !page.saveButton.isEnabled());
         page.frontSlopeFields[1].setText("119");
 
-        page.parFields[2][0].setText("4");
+        page.yardageFields[2].setText("5000");
+        check("with everything filled in, the footer says it is ready", shell.status.equals("Ready to save.") && page.saveButton.isEnabled());
         int nextId = store.nextTeeId();
         int teesBefore = store.dataset().tees().size();
         page.saveButton.doClick();
@@ -939,6 +985,7 @@ public final class GuiSelfTest
         fillTee(page, 0, "white", "34.1", "113", ninePars, nineIndex);
         page.yardageFields[0].setText("2900");
         check("nine holes: the total par is over nine holes", page.parTotalBoxes[0].getText().equals("36"));
+        check("nine holes: a complete tee is ready to save", page.saveButton.isEnabled());
         int nineId = store.nextTeeId();
         page.saveButton.doClick();
         check("a new course saves with its tidied name", shell.status.equals("Added 1 tee for Oak Hollow."));
@@ -947,16 +994,36 @@ public final class GuiSelfTest
                 && nine.pars().length == 9 && nine.city().equals("Pine Town") && nine.state().equals("SC")
                 && nine.teeName().equals("White") && nine.yardage() == 2900);
 
-        // Nothing rated, and the zip
+        // The copy arrow: only into empty par and SI cells of the other tees, never a rating
         page.showNew();
-        page.courseField.setText("Empty Acres");
-        page.saveButton.doClick();
-        check("a zip is needed", shell.status.equals("The zip must be 5 digits."));
+        page.courseField.setText("Copy Hills");
         page.zipField.setText("29200");
+        page.copyButton.doClick();
+        check("the copy arrow with nothing to copy says what to do", shell.status.startsWith("Type the pars and stroke index of Ladies first"));
+        fillTee(page, 0, "Ladies", "70.2", "121", pars, index);
+        page.parFields[2][3].setText("5");
+        page.copyButton.doClick();
+        check("the copy arrow says which tees it filled", shell.status.equals("Copied the pars and stroke index of Ladies into the empty cells of"
+                + " Beginner, Intermediate, Expert. Check any holes that differ on the card."));
+        boolean copied = true;
+        for (int hole = 0; hole < 18; hole++)
+        {
+            copied = copied && page.parFields[1][hole].getText().equals(Integer.toString(pars[hole]))
+                    && page.indexFields[3][hole].getText().equals(Integer.toString(index[hole]));
+        }
+        check("the pars and stroke index are copied to the other tees", copied);
+        check("a par typed before copying is kept", page.parFields[2][3].getText().equals("5"));
+        check("the rating and slope are never copied", page.ratingFields[1].getText().isEmpty() && page.slopeFields[3].getText().isEmpty());
+        check("copying does not move the cursor or need a click on each cell", page.parTotalBoxes[1].getText().equals("72"));
+        page.copyButton.doClick();
+        check("copying again with every cell filled copies nothing", shell.status.startsWith("The par and SI cells of the other tees are already filled"));
         page.saveButton.doClick();
-        check("at least one tee needs a rating", shell.status.startsWith("Fill in the rating of at least one tee."));
+        check("tees holding only copied pars and stroke index are skipped quietly", shell.status.equals("Added 1 tee for Copy Hills."));
 
-        // The cursor order on an 18-hole course
+        // The cursor order on an 18-hole course (Save is off, so after the last tee comes Cancel)
+        page.showNew();
+        page.courseField.setText("Order Test");
+        page.zipField.setText("29300");
         check("after the course name the cursor goes to the zip", page.componentAfter(page.courseField) == page.zipField);
         check("after the zip it goes to the city", page.componentAfter(page.zipField) == page.cityField);
         check("after the state it goes to the first tee's name", page.componentAfter(page.stateField) == page.teeNameFields[0]);
@@ -968,7 +1035,8 @@ public final class GuiSelfTest
                 && page.componentAfter(page.parFields[0][8]) == page.parFields[0][9]);
         check("after hole 18's par it goes to hole 1's stroke index", page.componentAfter(page.parFields[0][17]) == page.indexFields[0][0]);
         check("after hole 18's stroke index it goes to the next tee's name", page.componentAfter(page.indexFields[0][17]) == page.teeNameFields[1]);
-        check("after the last tee it goes to Save", page.componentAfter(page.indexFields[3][17]) == page.saveButton);
+        check("after the last tee it goes to Cancel while Save is off", page.componentAfter(page.indexFields[3][17]) == page.cancelButton);
+        check("the copy arrow is not in the cursor order", page.componentAfter(page.teeNameFields[0]) != page.copyButton);
 
         page.cancelButton.doClick();
         check("Cancel on the course page goes Home", shell.lastPage.equals("home"));

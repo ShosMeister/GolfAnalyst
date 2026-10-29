@@ -54,6 +54,10 @@ public final class Theme
     public static final Color FIELD_FACE = new Color(228, 228, 228);
     public static final Color FIELD_TEXT = Color.BLACK;
     public static final Color FIELD_ERROR = new Color(255, 200, 200);
+    /** The pale cream fill of the spreadsheet cell that has the cursor (New Course). */
+    public static final Color FIELD_FOCUS = new Color(255, 248, 220);
+    /** The thin lines between spreadsheet cells (New Course). */
+    public static final Color GRID_LINE = new Color(185, 180, 170);
     public static final Color FRAME_DARK = new Color(70, 40, 10);
     public static final Color WOOD_FALLBACK = new Color(120, 70, 25);
     public static final Color BACKDROP_FALLBACK = new Color(58, 96, 52);
@@ -64,7 +68,7 @@ public final class Theme
     public static final int ICON_SIZE = 56;
     public static final int NAV_ICON_SIZE = 46;
     /** The version. The second pair of digits: .0x is a bug fix, .x0 is a new feature. */
-    public static final String VERSION = "4.10";
+    public static final String VERSION = "4.11";
     public static final String VERSION_TEXT = "Golf Analyst v" + VERSION;
     /** The picture stretched across the header. Change this name to use a different wood. */
     public static final String HEADER_WOOD = "Wood_Light.gif";
