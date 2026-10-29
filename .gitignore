@@ -6,3 +6,4 @@ data/
 # the user's own exports from the Excel version (personal data)
 GolfAnalyst_v302AM.txt
 GolfAnalyst_Courses.txt
+courses-to-finish.tsv
