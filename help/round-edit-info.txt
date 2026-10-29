@@ -14,13 +14,13 @@ Score and Putt: The score and putts of each hole you played. You can change any 
 
 Fwy and Sand: Whether you hit the fairway from the tee and whether you were in a bunker.
 
-# The column on the right and the form at the bottom
+# The column on the right and the frame under the tables
 
 These show the round as it would be with your changes: the eagles to others, the totals, fairways, sand saves, greens in regulation and two-putts, and what the round does to your handicap.
 
 Date: The day you played. You can change it.
 
-# The buttons at the bottom right
+# Save and Cancel, at the right end of the frame under the tables
 
 Save: Puts your changes in rounds.tsv in place of the round as it was. Only that round's line is changed. Before saving, the file as it was is copied to rounds.tsv.bak in your data folder, so a bad edit can always be undone. Save is only on when every hole you played is complete and correct.
 

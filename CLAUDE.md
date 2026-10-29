@@ -104,6 +104,20 @@ Courses and rounds live in two plain tab-separated text files. Written for one u
 - Round entry: columns Hole, Par, Score, Putt, Fwy, Sand. Digits only. Cursor goes down all scores (hole 9 to 10
   included) then down all putts. A score 2-9 or a putt moves on at once; a lone 1 in a score waits (ace or 10+).
   In a Putt box F and S tick Fwy and Sand (their scorecard notation).
+- Round page look (entry, view, edit) matches New Course: Out and In tables in hugging `WoodFrame`s, spreadsheet
+  cells 22 px tall with `GRID_LINE` hairlines under and right of each, columns Hole 34, Par 30, Score 42, Putt 38,
+  Fwy 32, Sand 36; headings grey 11 pt, cells 14 pt bold; par always grey; Score/Putt/Date white to type, cream
+  `FIELD_FOCUS` with a 2 px `GOLD` outline at the cursor, grey in view mode; Fwy/Sand check pictures 18 x 18 in white
+  (grey in view) cells. Right of In: a results `WoodFrame` (teak inside, same 264 px height, rows level with the
+  holes: Rating, Eagles..Others, 18-Hole Diff, Index After; `WoodTag` 86 x 20 in 90 x 22, values 82 px 13 pt).
+  Under them, 6 px down and as wide (682): the details `WoodFrame` (teak inside; Date, Score, Putts / Fairway, Sand
+  Saves, Greens In Reg / 2-Putt; Save + Cancel or Edit + Close, 112 x 32, at its right end). The arrows are centred
+  8 px below. The group is centred on the photo; the arithmetic is in the `RoundPage` class comment.
+- Peek (in `BackdropPanel`, so every page has it): press and hold the left button on the yellow version text (its
+  bounds + 6 px) and only the photo and the text are painted (`paintChildren` skipped, `isPaintingOrigin` true so
+  self-repainting controls stay hidden, keys swallowed); releasing anywhere shows everything. Hand cursor and the
+  tool tip "Press and hold to see the whole picture." No page may put a control that takes the mouse over the label
+  (see-through layout panels without mouse listeners are fine).
 - Edit Round: Home's Edit Round opens the round viewer at the latest round; the viewer has an Edit button (where
   Save sits when entering). Edit mode keeps Course/tee and Holes locked and opens date, PCC, scores, putts, Fwy and
   Sand; the header says "Edit 00031:Sample Links:White"; help files `round-edit-*`. Save replaces only that round

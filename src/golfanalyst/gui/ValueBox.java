@@ -21,6 +21,7 @@ import javax.swing.SwingConstants;
  | Public Methods:                                                          |
  | setValue(text) - shows the text                                          |
  | setError(flag) - pink face when true                                     |
+ | setFlat(flag)  - a flat spreadsheet cell (no sunken edge) when true      |
  +--------------------------------------------------------------------------+
  */
 @SuppressWarnings({"serial", "this-escape"})
@@ -28,6 +29,7 @@ public class ValueBox extends JLabel
 {
 
     private boolean error = false;
+    private boolean flat = false;
 
     /*
      * ValueBox(): makes an empty, right-aligned, bold box.
@@ -64,7 +66,18 @@ public class ValueBox extends JLabel
     }
 
     /*
-     * paintComponent(graphics): draws the grey face with a sunken edge, then the text.
+     * setFlat(flag): draws the box as a flat cell, for the spreadsheet-style tables; its lines come from its border.
+     * Passed in:  flag - true for a flat cell
+     * Passed out: nothing
+     */
+    public void setFlat(boolean flag)
+    {
+        flat = flag;
+        repaint();
+    }
+
+    /*
+     * paintComponent(graphics): draws the grey face with a sunken edge (or flat), then the text.
      * Passed in:  graphics - what to draw on
      * Passed out: nothing
      */
@@ -74,12 +87,15 @@ public class ValueBox extends JLabel
         Graphics2D canvas = (Graphics2D) graphics.create();
         canvas.setColor(error ? Theme.FIELD_ERROR : Theme.FIELD_FACE);
         canvas.fillRect(0, 0, getWidth(), getHeight());
-        canvas.setColor(new Color(110, 110, 110));
-        canvas.drawLine(0, 0, getWidth() - 1, 0);
-        canvas.drawLine(0, 0, 0, getHeight() - 1);
-        canvas.setColor(Color.WHITE);
-        canvas.drawLine(0, getHeight() - 1, getWidth() - 1, getHeight() - 1);
-        canvas.drawLine(getWidth() - 1, 0, getWidth() - 1, getHeight() - 1);
+        if (!flat)
+        {
+            canvas.setColor(new Color(110, 110, 110));
+            canvas.drawLine(0, 0, getWidth() - 1, 0);
+            canvas.drawLine(0, 0, 0, getHeight() - 1);
+            canvas.setColor(Color.WHITE);
+            canvas.drawLine(0, getHeight() - 1, getWidth() - 1, getHeight() - 1);
+            canvas.drawLine(getWidth() - 1, 0, getWidth() - 1, getHeight() - 1);
+        }
         canvas.dispose();
         super.paintComponent(graphics);
     }

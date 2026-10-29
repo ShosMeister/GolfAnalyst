@@ -28,13 +28,17 @@ Sand: Whether you were in a bunker at any time on the hole.
 
 The Out and In boxes at the bottom of each table add up the putts and the scores for that half.
 
-# The column on the right
+# The column on the right of the tables
 
 Rating: The Course Rating and the Slope Rating of the tees you chose, for the holes you are playing. A nine-hole round on an 18-hole course needs front nine or back nine ratings in the course file to count toward your handicap. If it has none, the round still counts in your statistics and this box says "no rating".
 
 Eagles, Birdies, Pars, Bogeys, DBogeys, Others: How many holes of each kind you have so far. Others means triple bogey or worse.
 
-# The form at the bottom
+18-Hole Diff: This round's score differential, which is what your handicap is built from. It compares what you shot with what a scratch golfer would shoot on those tees, so rounds on different courses can be compared. On a very bad hole your score is cut back to the most the rules allow (net double bogey) before it is used. A nine-hole round gets an expected score for the other nine holes added to it, based on your index on the day, so that it can sit alongside your 18-hole rounds. It appears when every hole is filled in.
+
+Index After: What your Handicap Index will be once this round is added. It also appears when every hole is filled in.
+
+# The frame under the tables
 
 Date: When you played. It starts as today. You can type it as 2026-10-22 or as 10/22/2026.
 
@@ -47,10 +51,6 @@ Sand Saves: How many times you saved par or better out of the holes where you we
 Greens In Reg: Holes where the strokes before your first putt (your score minus your putts) were no more than par minus 2.
 
 2-Putt: Holes where you took two putts or fewer.
-
-18-Hole Diff: This round's score differential, which is what your handicap is built from. It compares what you shot with what a scratch golfer would shoot on those tees, so rounds on different courses can be compared. On a very bad hole your score is cut back to the most the rules allow (net double bogey) before it is used. A nine-hole round gets an expected score for the other nine holes added to it, based on your index on the day, so that it can sit alongside your 18-hole rounds. It appears when every hole is filled in.
-
-Index After: What your Handicap Index will be once this round is added. It also appears when every hole is filled in.
 
 Save and Cancel: Save adds the round to your data. Cancel throws away what you have typed. The ? button explains how to use them.
 

@@ -44,6 +44,8 @@ Import, Clear, Stats Board, Analyzer, Best Round and Print are not built yet. Th
 
 The round house button on the left takes you back here from any other screen. The i button, this one, explains what is on the screen you are looking at. The ? button explains how to use it. The bar along the bottom shows messages. If a problem was found in your data files it tells you how many, and clicking it lists them.
 
+The yellow Golf Analyst text at the bottom left of every screen is the version of the program. It is also a way to see the whole photo behind the screen: hold the mouse button down on it and everything else on the screen is hidden until you let go.
+
 # About Golf Analyst
 
 Welcome to the Golf Analyst - a program written by Angelo Mileto.

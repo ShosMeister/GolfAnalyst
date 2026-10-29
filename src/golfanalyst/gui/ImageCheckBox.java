@@ -23,6 +23,10 @@ import javax.swing.JComponent;
  | Public Methods:                                                          |
  | isSelected(), setSelected(flag) - the on/off state                       |
  | setOnChange(action)             - what to do when the user clicks it     |
+ | setPictureSize(size)            - draws the picture smaller, e.g. 18     |
+ |                                                                          |
+ | If it is made opaque it fills its background colour first, so it can be  |
+ | a cell of a table.                                                       |
  +--------------------------------------------------------------------------+
  */
 @SuppressWarnings({"serial", "this-escape"})
@@ -31,6 +35,7 @@ public class ImageCheckBox extends JComponent
 
     private boolean selected = false;
     private Runnable onChange = null;
+    private int pictureSize = 0;
 
     /*
      * ImageCheckBox(): makes an unchecked box that toggles when clicked.
@@ -87,7 +92,18 @@ public class ImageCheckBox extends JComponent
     }
 
     /*
-     * paintComponent(graphics): draws the checked or unchecked picture in the middle, faded if disabled.
+     * setPictureSize(size): draws the picture at this width and height instead of its own size.
+     * Passed in:  size - pixels, or 0 for the picture's own size
+     * Passed out: nothing
+     */
+    public void setPictureSize(int size)
+    {
+        pictureSize = size;
+        repaint();
+    }
+
+    /*
+     * paintComponent(graphics): fills the background if opaque, then draws the checked or unchecked picture in the middle, faded if disabled.
      * Passed in:  graphics - what to draw on
      * Passed out: nothing
      */
@@ -96,6 +112,11 @@ public class ImageCheckBox extends JComponent
     {
         Graphics2D canvas = (Graphics2D) graphics.create();
         Theme.smooth(canvas);
+        if (isOpaque())
+        {
+            canvas.setColor(getBackground());
+            canvas.fillRect(0, 0, getWidth(), getHeight());
+        }
         if (!isEnabled())
         {
             canvas.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.35f));
@@ -103,7 +124,9 @@ public class ImageCheckBox extends JComponent
         BufferedImage picture = Theme.image(selected ? "checkbox_selOSX.gif" : "checkbox_OSX.gif");
         if (picture != null)
         {
-            canvas.drawImage(picture, (getWidth() - picture.getWidth()) / 2, (getHeight() - picture.getHeight()) / 2, null);
+            int width = (pictureSize > 0 ? pictureSize : picture.getWidth());
+            int height = (pictureSize > 0 ? pictureSize : picture.getHeight());
+            canvas.drawImage(picture, (getWidth() - width) / 2, (getHeight() - height) / 2, width, height, null);
         }
         else
         {

@@ -18,13 +18,17 @@ PCC: The Playing Conditions Calculation that was used. It is almost always 0.
 
 Hole, Par, Putt and Score are what they say. A check in Fwy means you hit the fairway from the tee on that hole. A check in Sand means you were in a bunker on that hole. Out and In are the totals for holes 1 to 9 and 10 to 18.
 
-# The column on the right
+# The column on the right of the tables
 
 Rating: The Course Rating and the Slope Rating for the holes that were played. If it says "no rating" the round counts in your statistics but not in your handicap.
 
 Eagles, Birdies, Pars, Bogeys, DBogeys, Others: How many holes of each kind the round had. Others means triple bogey or worse.
 
-# The form at the bottom
+18-Hole Diff: The round's score differential, which is what your handicap is built from. For a nine-hole round it is the nine-hole differential plus an expected score for the other nine holes, based on your index on that day. It shows "pending" for a nine-hole round played before you had a Handicap Index, until you have played 54 holes.
+
+Index After: What your Handicap Index was right after this round was added.
+
+# The frame under the tables
 
 Date, Score and Putts: When the round was played and its totals.
 
@@ -36,12 +40,8 @@ Greens In Reg: Holes where the strokes before your first putt (your score minus 
 
 2-Putt: Holes where you took two putts or fewer.
 
-18-Hole Diff: The round's score differential, which is what your handicap is built from. For a nine-hole round it is the nine-hole differential plus an expected score for the other nine holes, based on your index on that day. It shows "pending" for a nine-hole round played before you had a Handicap Index, until you have played 54 holes.
-
-Index After: What your Handicap Index was right after this round was added.
-
 # The four arrows and the bar at the bottom
 
 The arrows are First, Previous, Next and Last round, within whatever you chose in Show. An arrow is greyed out when there is nowhere to go. The bar along the bottom says which round you are on and how many there are in your choice, for example Round 3 of 12.
 
-Edit opens the round on show so you can fix it. Close goes back to the Home screen.
+Edit and Close: At the right end of the frame under the tables. Edit opens the round on show so you can fix it. Close goes back to the Home screen.

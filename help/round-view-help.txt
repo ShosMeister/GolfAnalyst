@@ -15,7 +15,7 @@ Open the Show box at the top and pick a course, or one set of tees on a course. 
 Start at the oldest round, press Next again and again, and watch Index After. It shows your index right after each round was added.
 
 # If you find a mistake
-Step to the round and press Edit, at the bottom right. The boxes open so you can fix the date, PCC, scores, putts, fairways and sand, and Save puts the round back with your changes. The ? button on that screen walks you through it.
+Step to the round and press Edit, at the right end of the frame under the tables. The boxes open so you can fix the date, PCC, scores, putts, fairways and sand, and Save puts the round back with your changes. The ? button on that screen walks you through it.
 
 # Entering a new round
 Press Close, or the Home button, to go back to the Home screen and then press New Round.

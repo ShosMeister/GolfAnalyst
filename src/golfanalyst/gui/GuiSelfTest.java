@@ -42,6 +42,10 @@ import javax.swing.JTextField;
  |   the styles that reach the window, and every real help file             |
  | - The sample-data safeguard: title, footer, and Yes / No / Cancel for    |
  |   both a course and a round                                              |
+ | - The round screen's look: frame and cell sizes, the group centred on    |
+ |   the photo, and the white / cream / grey faces in each mode             |
+ | - The peek: holding the mouse on the version text hides the controls     |
+ |   and the keyboard until it is let go                                    |
  |                                                                          |
  | How to run:                                                              |
  |   java -cp out golfanalyst.gui.App --selftest                            |
@@ -713,6 +717,8 @@ public final class GuiSelfTest
         checkHelpFormatter();
         checkCoursePage(coursePage, store, shell, temp);
         checkRoundEditing(page, store, shell, temp);
+        checkRoundLook(page);
+        checkPeek();
         checkSampleSafeguard();
 
         List<Path> leftovers = new ArrayList<>();
@@ -1044,6 +1050,274 @@ public final class GuiSelfTest
             check(file + ": no # is shown", filePieces.stream().noneMatch(piece -> piece.text().startsWith("#")));
             check(file + ": the title is not repeated", !filePieces.get(0).text().equals(HelpFormatter.title(text)));
         }
+    }
+
+    /*
+     * layoutAll(part): lays out a component and everything inside it, as a window would before showing it.
+     * Passed in:  part - the component
+     * Passed out: nothing
+     */
+    private static void layoutAll(Component part)
+    {
+        if (part instanceof Container box)
+        {
+            box.doLayout();
+            for (Component child : box.getComponents())
+            {
+                layoutAll(child);
+            }
+        }
+    }
+
+    /*
+     * isGoldOutline(field): whether a box has the 2 px gold cursor outline.
+     */
+    private static boolean isGoldOutline(JComponent field)
+    {
+        return field.getBorder() instanceof javax.swing.border.LineBorder line
+                && line.getLineColor().equals(Theme.GOLD) && line.getThickness() == 2;
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | checkRoundLook(page)                                                     |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | The round screen's look at the default page size (944 x 626): the Out    |
+     | and In frames and the results column all 264 px tall, the details frame  |
+     | 6 px under them and exactly as wide, the arrows 8 px under that and      |
+     | centred, the whole group centred on the photo; the cell sizes; and the   |
+     | faces: white cells to type in, cream with a gold outline at the cursor,  |
+     | grey while looking at a saved round, white again while editing it.       |
+     |                                                                          |
+     | Passed in:  page - the round screen built on the test shell              |
+     | Passed out: nothing                                                      |
+     +--------------------------------------------------------------------------+
+     */
+    private static void checkRoundLook(RoundPage page)
+    {
+        page.showNew();
+        page.setSize(944, 626);
+        layoutAll(page);
+        java.awt.Dimension tableSize = new java.awt.Dimension(234, 264);
+        check("the Out and In frames hug their grids: 234 x 264",
+                page.outFrame.getSize().equals(tableSize) && page.inFrame.getSize().equals(tableSize));
+        check("the results column is as tall as the tables: 194 x 264", page.resultsFrame.getSize().equals(new java.awt.Dimension(194, 264)));
+        check("the results column is 10 px right of the In frame", page.resultsFrame.getX() == page.inFrame.getX() + 234 + 10);
+        check("the details frame is 6 px under the tables", page.detailsFrame.getY() == 264 + 6);
+        check("the details frame is as wide as the tables and the results column (682)",
+                page.detailsFrame.getWidth() == 682 && page.group.getWidth() == 682 && page.detailsFrame.getX() == 0);
+        check("the details frame is 100 px tall", page.detailsFrame.getHeight() == 100);
+        check("the arrows are 8 px under the details frame",
+                page.navRow.getY() == page.detailsFrame.getY() + page.detailsFrame.getHeight() + 8);
+        check("the arrows are centred", Math.abs(page.navRow.getX() + page.navRow.getWidth() / 2 - page.group.getWidth() / 2) <= 1);
+        java.awt.Rectangle group = javax.swing.SwingUtilities.convertRectangle(page.group.getParent(), page.group.getBounds(), page);
+        int leftGap = group.x;
+        int rightGap = page.getWidth() - (group.x + group.width);
+        check("the group is centred across the page (" + leftGap + " / " + rightGap + " px of photo)", Math.abs(leftGap - rightGap) <= 1 && leftGap > 0);
+        java.awt.Container middle = page.group.getParent();
+        int topGap = page.group.getY();
+        int bottomGap = middle.getHeight() - (page.group.getY() + page.group.getHeight());
+        check("the group is centred down the page (" + topGap + " / " + bottomGap + " px of photo)", Math.abs(topGap - bottomGap) <= 1 && topGap > 0);
+        check("everything fits the 626 px page", group.y + group.height <= 626 - 6);
+
+        check("a hole number cell is 34 x 22 on white", page.holeLabels[0].getSize().equals(new java.awt.Dimension(34, 22))
+                && page.holeLabels[0].getBackground().equals(java.awt.Color.WHITE));
+        check("a par cell is 30 x 22", page.parBoxes[0].getSize().equals(new java.awt.Dimension(30, 22)));
+        check("a score cell is 42 x 22, bold 14 pt", page.scoreFields[0].getSize().equals(new java.awt.Dimension(42, 22))
+                && page.scoreFields[0].getFont().isBold() && page.scoreFields[0].getFont().getSize2D() == 14f);
+        check("a putt cell is 38 x 22", page.puttFields[0].getSize().equals(new java.awt.Dimension(38, 22)));
+        check("the Fwy and Sand cells are 32 and 36 wide", page.fairwayChecks[0].getSize().equals(new java.awt.Dimension(32, 22))
+                && page.sandChecks[0].getSize().equals(new java.awt.Dimension(36, 22)));
+        check("a results value is 82 wide, 13 pt", page.ratingBox.getWidth() == 82 && page.indexBox.getWidth() == 82
+                && page.resultBoxes[0].getFont().getSize2D() == 13f);
+        check("the date cell is 86 wide and the other details 62", page.dateField.getWidth() == 86
+                && page.scoreBox.getWidth() == 62 && page.twoPuttBox.getWidth() == 62);
+        check("Save and Cancel are 112 x 32", page.saveButton.getSize().equals(new java.awt.Dimension(112, 32))
+                && page.cancelButton.getSize().equals(new java.awt.Dimension(112, 32)));
+        check("Save is above Cancel, 6 px apart", page.cancelButton.getY() == page.saveButton.getY() + 32 + 6);
+
+        check("entering: a score cell is white", page.scoreFields[0].getBackground().equals(java.awt.Color.WHITE));
+        check("entering: the date cell is white", page.dateField.getBackground().equals(java.awt.Color.WHITE));
+        check("entering: the Fwy and Sand cells are white", page.fairwayChecks[0].getBackground().equals(java.awt.Color.WHITE)
+                && page.sandChecks[0].getBackground().equals(java.awt.Color.WHITE));
+        focusOn(page.scoreFields[0], true);
+        check("the cursor's cell is cream with a 2 px gold outline",
+                page.scoreFields[0].getBackground().equals(Theme.FIELD_FOCUS) && isGoldOutline(page.scoreFields[0]));
+        focusOn(page.scoreFields[0], false);
+        check("when the cursor leaves it is white with its hairlines again", page.scoreFields[0].getBackground().equals(java.awt.Color.WHITE)
+                && page.scoreFields[0].getBorder() instanceof javax.swing.border.MatteBorder);
+        focusOn(page.puttFields[3], true);
+        type(page.scoreFields[3], "3");
+        type(page.puttFields[3], "3");
+        check("a wrong cell stays pink even with the cursor in it", page.puttFields[3].getBackground().equals(Theme.FIELD_ERROR));
+        type(page.puttFields[3], "");
+        type(page.scoreFields[3], "");
+        focusOn(page.puttFields[3], false);
+
+        page.showLatest();
+        check("looking: the score and putt cells are grey", page.scoreFields[0].getBackground().equals(Theme.FIELD_FACE)
+                && page.puttFields[0].getBackground().equals(Theme.FIELD_FACE));
+        check("looking: the date cell is grey", page.dateField.getBackground().equals(Theme.FIELD_FACE));
+        check("looking: the Fwy and Sand cells are grey", page.fairwayChecks[0].getBackground().equals(Theme.FIELD_FACE)
+                && page.sandChecks[0].getBackground().equals(Theme.FIELD_FACE));
+        focusOn(page.scoreFields[0], true);
+        check("looking: a clicked cell gets no gold outline", !isGoldOutline(page.scoreFields[0]));
+        focusOn(page.scoreFields[0], false);
+        layoutAll(page);
+        check("looking: Edit is where Save was, above Close", page.editButton.isVisible() && !page.saveButton.isVisible()
+                && page.editButton.getY() == 0 && page.cancelButton.getText().equals("Close"));
+        page.editButton.doClick();
+        check("editing: the score cells and the date are white again", page.scoreFields[0].getBackground().equals(java.awt.Color.WHITE)
+                && page.dateField.getBackground().equals(java.awt.Color.WHITE)
+                && page.sandChecks[0].getBackground().equals(java.awt.Color.WHITE));
+        page.cancelButton.doClick();
+        check("Cancel with no changes goes back to looking", page.scoreFields[0].getBackground().equals(Theme.FIELD_FACE));
+        page.showNew();
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | checkPeek()                                                              |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | The press-and-hold peek on the version text of the shared background:    |
+     | paints a panel to an image to find the label, then presses and lets go   |
+     | of the mouse there and checks that the panel's controls are not painted  |
+     | while it is held and are painted again after. Also the hand cursor, the  |
+     | tool tip, that a press elsewhere does nothing, that a release anywhere   |
+     | ends it, and that keys are swallowed while peeking.                      |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing                                                      |
+     +--------------------------------------------------------------------------+
+     */
+    private static void checkPeek()
+    {
+        java.awt.KeyboardFocusManager originalKeys = java.awt.KeyboardFocusManager.getCurrentKeyboardFocusManager();
+        KeySpy keys = new KeySpy();
+        java.awt.KeyboardFocusManager.setCurrentKeyboardFocusManager(keys);
+        int[] paints = {0};
+        BackdropPanel backdrop = new BackdropPanel();
+        backdrop.setLayout(new java.awt.BorderLayout());
+        JComponent control = new JComponent()
+        {
+            @Override
+            protected void paintComponent(java.awt.Graphics graphics)
+            {
+                paints[0] = paints[0] + 1;
+            }
+        };
+        backdrop.add(control, java.awt.BorderLayout.CENTER);
+        backdrop.setSize(944, 626);
+        layoutAll(backdrop);
+        java.awt.image.BufferedImage picture = new java.awt.image.BufferedImage(944, 626, java.awt.image.BufferedImage.TYPE_INT_RGB);
+        java.awt.Graphics2D canvas = picture.createGraphics();
+        backdrop.paint(canvas);
+        java.awt.Rectangle label = backdrop.versionLabelBounds();
+        check("the controls are painted normally", paints[0] == 1);
+        check("the version label is at the bottom left (" + label + ")", label.x == 10 && label.y + label.height <= 626
+                && label.y > 626 - 50 && label.width > 100);
+        boolean yellow = false;
+        for (int x = label.x; x < label.x + label.width && !yellow; x = x + 1)
+        {
+            for (int y = label.y; y < label.y + label.height && !yellow; y = y + 1)
+            {
+                yellow = picture.getRGB(x, y) == 0xFFFFFF00;
+            }
+        }
+        check("the yellow version text is painted inside its bounds", yellow);
+
+        int insideX = label.x + label.width / 2;
+        int insideY = label.y + label.height / 2;
+        sendMouse(backdrop, java.awt.event.MouseEvent.MOUSE_MOVED, insideX, insideY);
+        check("the mouse shows a hand over the label", backdrop.getCursor().getType() == java.awt.Cursor.HAND_CURSOR);
+        check("the label has the peek tool tip", BackdropPanel.PEEK_TIP.equals(backdrop.getToolTipText(
+                mouseEvent(backdrop, java.awt.event.MouseEvent.MOUSE_MOVED, insideX, insideY))));
+        check("the peek tool tip says what to do", BackdropPanel.PEEK_TIP.equals("Press and hold to see the whole picture."));
+        sendMouse(backdrop, java.awt.event.MouseEvent.MOUSE_MOVED, 400, 300);
+        check("the hand goes away off the label", backdrop.getCursor().getType() == java.awt.Cursor.DEFAULT_CURSOR);
+        check("there is no tool tip off the label", backdrop.getToolTipText(mouseEvent(backdrop, java.awt.event.MouseEvent.MOUSE_MOVED, 400, 300)) == null);
+
+        sendMouse(backdrop, java.awt.event.MouseEvent.MOUSE_PRESSED, 400, 300);
+        check("pressing away from the label does not peek", !backdrop.isPeeking());
+        sendMouse(backdrop, java.awt.event.MouseEvent.MOUSE_RELEASED, 400, 300);
+
+        sendMouse(backdrop, java.awt.event.MouseEvent.MOUSE_PRESSED, label.x - 5, label.y - 5);
+        check("pressing within 6 px of the label peeks", backdrop.isPeeking());
+        sendMouse(backdrop, java.awt.event.MouseEvent.MOUSE_RELEASED, label.x - 5, label.y - 5);
+
+        sendMouse(backdrop, java.awt.event.MouseEvent.MOUSE_PRESSED, insideX, insideY);
+        check("holding the button on the label peeks", backdrop.isPeeking());
+        paints[0] = 0;
+        backdrop.paint(canvas);
+        check("while peeking the controls are not painted", paints[0] == 0);
+        java.awt.event.KeyEvent key = new java.awt.event.KeyEvent(control, java.awt.event.KeyEvent.KEY_TYPED,
+                System.currentTimeMillis(), 0, java.awt.event.KeyEvent.VK_UNDEFINED, '5');
+        check("while peeking the keyboard is ignored", keys.swallows(key));
+        sendMouse(backdrop, java.awt.event.MouseEvent.MOUSE_DRAGGED, 2000, -300);
+        check("dragging off the label and out of the window still peeks", backdrop.isPeeking());
+        sendMouse(backdrop, java.awt.event.MouseEvent.MOUSE_RELEASED, 2000, -300);
+        check("letting go anywhere, even outside the window, ends the peek", !backdrop.isPeeking());
+        paints[0] = 0;
+        backdrop.paint(canvas);
+        check("after letting go the controls are painted again", paints[0] == 1);
+        check("after letting go the keyboard works again", !keys.swallows(key));
+        canvas.dispose();
+        java.awt.KeyboardFocusManager.setCurrentKeyboardFocusManager(originalKeys);
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | KeySpy                                                                   |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | A keyboard focus manager for the peek test that can say whether one of   |
+     | the extra key handlers added to it (the peek's key blocker) would        |
+     | swallow a key.                                                           |
+     +--------------------------------------------------------------------------+
+     */
+    private static final class KeySpy extends java.awt.DefaultKeyboardFocusManager
+    {
+        /*
+         * swallows(key): whether an added key handler takes the key before any control sees it.
+         */
+        boolean swallows(java.awt.event.KeyEvent key)
+        {
+            List<java.awt.KeyEventDispatcher> handlers = getKeyEventDispatchers();
+            if (handlers == null)
+            {
+                return false;
+            }
+            for (java.awt.KeyEventDispatcher handler : handlers)
+            {
+                if (handler.dispatchKeyEvent(key))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+    }
+
+    /*
+     * mouseEvent(target, kind, x, y): a left-button mouse event at a point.
+     */
+    private static java.awt.event.MouseEvent mouseEvent(Component target, int kind, int x, int y)
+    {
+        boolean held = kind == java.awt.event.MouseEvent.MOUSE_PRESSED || kind == java.awt.event.MouseEvent.MOUSE_DRAGGED;
+        int modifiers = (held ? java.awt.event.InputEvent.BUTTON1_DOWN_MASK : 0);
+        int button = (kind == java.awt.event.MouseEvent.MOUSE_MOVED || kind == java.awt.event.MouseEvent.MOUSE_DRAGGED
+                ? java.awt.event.MouseEvent.NOBUTTON : java.awt.event.MouseEvent.BUTTON1);
+        return new java.awt.event.MouseEvent(target, kind, System.currentTimeMillis(), modifiers, x, y, 1, false, button);
+    }
+
+    /*
+     * sendMouse(target, kind, x, y): delivers a left-button mouse event to a component's own mouse listeners.
+     */
+    private static void sendMouse(Component target, int kind, int x, int y)
+    {
+        target.dispatchEvent(mouseEvent(target, kind, x, y));
     }
 
     /*

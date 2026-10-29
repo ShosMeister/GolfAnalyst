@@ -22,12 +22,15 @@ import java.awt.event.FocusEvent;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import javax.swing.BorderFactory;
+import javax.swing.Box;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
@@ -36,6 +39,7 @@ import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
+import javax.swing.border.Border;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.text.AbstractDocument;
@@ -51,9 +55,23 @@ import javax.swing.text.DocumentFilter;
  | Purpose:                                                                 |
  | The screen for entering a new round and for looking back at saved ones.  |
  | It has two tables, Out (holes 1-9) and In (holes 10-18), each hole with  |
- | its par, fairway and sand check boxes, putts and score. A column on the  |
- | right counts eagles, birdies, pars, bogeys, double bogeys and others,    |
- | and a form at the bottom shows the date, totals and the round's figures. |
+ | its par, score, putts and fairway and sand check boxes. They look like   |
+ | the New Course page: spreadsheet cells with hairlines in a wood frame.   |
+ | A wood column on the right, its rows level with the holes, shows the     |
+ | rating, the eagles to others, the differential and the index after the   |
+ | round. A wood frame under them shows the date, the totals and the        |
+ | round's figures, with the buttons at its right end; the four arrows sit  |
+ | centred under that. The whole group is centred on the photo.             |
+ |                                                                          |
+ | Sizes (page area about 944 x 626): a hole table is 34 + 30 + 42 + 38 +   |
+ | 32 + 36 = 212 wide and 11 rows of 22 = 242 tall, + 2 + 2 padding + 9 +   |
+ | 9 wood = 234 x 264. The results column is 90 + 82 = 172 wide, the same   |
+ | 11 rows, so 194 x 264. Across: 234 + 10 + 234 + 10 + 194 = 682. The      |
+ | details frame is 3 rows of 22 + 2 gaps of 2 = 70 (the two buttons, 32 +  |
+ | 6 + 32, are also 70) + 6 + 6 padding + 9 + 9 wood = 100 tall. Down: 264  |
+ | + 6 + 100 + 8 + 46 arrows = 424; with the margins 10 + 6, the course     |
+ | bar 35 and its gap 8 that is 483 of 626, so about 71 px of photo shows   |
+ | above and below the group, and 117 px each side.                         |
  |                                                                          |
  | Everything under "calculated" is worked out as you type and cannot be    |
  | edited: par comes from the course, the result of each hole from the      |
@@ -97,8 +115,36 @@ public final class RoundPage extends Page
     private static final int MAX_PCC = 3;
     private static final int RESULT_BUCKETS = 6;
     private static final String[] RESULT_NAMES = {"Eagles", "Birdies", "Pars", "Bogeys", "DBogeys", "Others"};
-    private static final int NAV_INDENT = 250;
-    private static final int ROW_HEIGHT = 24;
+    private static final String[] HEADINGS = {"Hole", "Par", "Score", "Putt", "Fwy", "Sand"};
+    private static final int[] COLUMN_WIDTHS = {34, 30, 42, 38, 32, 36};
+    private static final int HOLE_COL = 0;
+    private static final int PAR_COL = 1;
+    private static final int SCORE_COL = 2;
+    private static final int PUTT_COL = 3;
+    private static final int FWY_COL = 4;
+    private static final int SAND_COL = 5;
+    private static final int ROW_HEIGHT = 22;
+    private static final int CELL_PAD = 2;
+    private static final float HEADING_FONT = 11f;
+    private static final float CELL_FONT = 14f;
+    private static final float VALUE_FONT = 13f;
+    private static final int CHECK_PICTURE = 18;
+    private static final int TAG_WIDTH = 86;
+    private static final int TAG_HEIGHT = 20;
+    private static final int CAPTION_CELL_WIDTH = 90;
+    private static final int RESULT_VALUE_WIDTH = 82;
+    private static final int DATE_WIDTH = 86;
+    private static final int DETAIL_VALUE_WIDTH = 62;
+    private static final int PAIR_GAP = 3;
+    private static final int COLUMN_GAP = 14;
+    private static final int DETAIL_ROW_GAP = 2;
+    private static final int BUTTON_WIDTH = 112;
+    private static final int BUTTON_HEIGHT = 32;
+    private static final int BUTTON_GAP = 6;
+    private static final int FRAME_GAP = 10;
+    private static final int DETAILS_GAP = 6;
+    private static final int NAV_GAP = 8;
+    private static final Border CURSOR_OUTLINE = BorderFactory.createLineBorder(Theme.GOLD, 2);
 
     private enum Mode
     {
@@ -162,6 +208,12 @@ public final class RoundPage extends Page
     final IconButton previousButton = new IconButton("Previous.png", "Previous round", Theme.NAV_ICON_SIZE);
     final IconButton nextButton = new IconButton("Next.png", "Next round", Theme.NAV_ICON_SIZE);
     final IconButton lastButton = new IconButton("Last.png", "Last round", Theme.NAV_ICON_SIZE);
+    final JPanel group = new JPanel(new GridBagLayout());
+    final WoodFrame outFrame;
+    final WoodFrame inFrame;
+    final WoodFrame resultsFrame;
+    final WoodFrame detailsFrame;
+    final JPanel navRow;
 
     private final transient EntryTraversal focusPolicy = new EntryTraversal();
     private Mode mode = Mode.NEW;
@@ -174,15 +226,18 @@ public final class RoundPage extends Page
     private int playedStart = 0;
     private int playedCount = HOLES;
     private String editStart = "";
+    private JTextField cursorCell = null;
+    private final Set<JTextField> wrongFields = new HashSet<>();
 
     /*
      +--------------------------------------------------------------------------+
      | RoundPage(shell)                                                         |
      +--------------------------------------------------------------------------+
      | Purpose:                                                                 |
-     | Builds the screen: the course/date bar across the top, the two hole      |
-     | tables and the count column, the form at the bottom and the four         |
-     | arrow buttons, then starts in NEW mode.                                  |
+     | Builds the screen: the course bar across the top, then one group         |
+     | centred on the photo: the Out and In tables and the results column       |
+     | side by side, the details frame under them (as wide as all three),       |
+     | and the four arrow buttons centred under that. Then starts in NEW mode.  |
      |                                                                          |
      | Passed in:  shell - the window this page sits in                         |
      | Passed out: the page                                                     |
@@ -196,30 +251,36 @@ public final class RoundPage extends Page
 
         add(buildSelectorBar(), BorderLayout.NORTH);
 
-        JPanel tables = new JPanel(new GridBagLayout());
-        tables.setOpaque(false);
+        group.setOpaque(false);
         GridBagConstraints at = new GridBagConstraints();
-        at.fill = GridBagConstraints.BOTH;
-        at.weightx = 1.0;
-        at.insets = new Insets(0, 0, 0, 10);
+        at.gridy = 0;
         at.gridx = 0;
-        tables.add(buildHalf(0, outPutts, outScore, "Out"), at);
+        at.insets = new Insets(0, 0, 0, FRAME_GAP);
+        outFrame = buildHalf(0, outPutts, outScore, "Out");
+        group.add(outFrame, at);
         at.gridx = 1;
-        tables.add(buildHalf(NINE, inPutts, inScore, "In"), at);
+        inFrame = buildHalf(NINE, inPutts, inScore, "In");
+        group.add(inFrame, at);
         at.gridx = 2;
-        at.weightx = 0.0;
         at.insets = new Insets(0, 0, 0, 0);
-        tables.add(buildCountColumn(), at);
-        JPanel tablesTop = new JPanel(new BorderLayout());
-        tablesTop.setOpaque(false);
-        tablesTop.add(tables, BorderLayout.NORTH);
-        add(tablesTop, BorderLayout.CENTER);
-
-        JPanel south = new JPanel(new BorderLayout(0, 6));
-        south.setOpaque(false);
-        south.add(buildBottomForm(), BorderLayout.CENTER);
-        south.add(buildNavRow(), BorderLayout.SOUTH);
-        add(south, BorderLayout.SOUTH);
+        resultsFrame = buildResultsColumn();
+        group.add(resultsFrame, at);
+        at.gridy = 1;
+        at.gridx = 0;
+        at.gridwidth = 3;
+        at.fill = GridBagConstraints.HORIZONTAL;
+        at.insets = new Insets(DETAILS_GAP, 0, 0, 0);
+        detailsFrame = buildDetails();
+        group.add(detailsFrame, at);
+        at.gridy = 2;
+        at.fill = GridBagConstraints.NONE;
+        at.insets = new Insets(NAV_GAP, 0, 0, 0);
+        navRow = buildNavRow();
+        group.add(navRow, at);
+        JPanel middle = new JPanel(new GridBagLayout());
+        middle.setOpaque(false);
+        middle.add(group, new GridBagConstraints());
+        add(middle, BorderLayout.CENTER);
 
         wireActions();
         setFocusTraversalPolicyProvider(true);
@@ -289,9 +350,7 @@ public final class RoundPage extends Page
     private JTextField entryField(boolean isScore, int hole)
     {
         JTextField field = new JTextField(3);
-        field.setHorizontalAlignment(SwingConstants.CENTER);
-        field.setFont(Theme.font(Font.BOLD, 15f));
-        field.setPreferredSize(new Dimension(54, ROW_HEIGHT));
+        makeCell(field, COLUMN_WIDTHS[isScore ? SCORE_COL : PUTT_COL], CELL_FONT);
         Consumer<Character> markerKey = isScore ? null : letter -> toggleMarker(hole, letter);
         ((AbstractDocument) field.getDocument()).setDocumentFilter(new EntryFilter(isScore, () -> updating,
                 () -> SwingUtilities.invokeLater(() -> field.transferFocus()), markerKey));
@@ -333,12 +392,158 @@ public final class RoundPage extends Page
     }
 
     /*
+     * hairlines(): the thin spreadsheet lines of a cell: one under it and one on its right.
+     */
+    private static Border hairlines()
+    {
+        return BorderFactory.createMatteBorder(0, 0, 1, 1, Theme.GRID_LINE);
+    }
+
+    /*
+     * fixSize(part, width): makes a cell exactly one row tall and the given width.
+     * Passed in:  part - the cell, width - its width in pixels
+     * Passed out: nothing
+     */
+    private static void fixSize(JComponent part, int width)
+    {
+        Dimension size = new Dimension(width, ROW_HEIGHT);
+        part.setPreferredSize(size);
+        part.setMinimumSize(size);
+    }
+
+    /*
+     * put(sheet, part, col, row, width): adds one cell to a grid, touching its neighbours (no gaps).
+     * Passed in:  sheet - the panel, part - the cell, col/row - where, width - columns it spans
+     * Passed out: nothing
+     */
+    private static void put(JPanel sheet, JComponent part, int col, int row, int width)
+    {
+        GridBagConstraints at = new GridBagConstraints();
+        at.gridx = col;
+        at.gridy = row;
+        at.gridwidth = width;
+        at.fill = GridBagConstraints.BOTH;
+        sheet.add(part, at);
+    }
+
+    /*
+     * textCell(text, face, size, width): a cell that only shows text: a heading, a hole number, or Out / In.
+     * Passed in:  text - what it shows, face - its colour, size - font size, width - its width
+     * Passed out: the cell
+     */
+    private static JLabel textCell(String text, Color face, float size, int width)
+    {
+        JLabel label = new JLabel(text, SwingConstants.CENTER);
+        label.setFont(Theme.font(Font.BOLD, size));
+        label.setOpaque(true);
+        label.setBackground(face);
+        label.setBorder(hairlines());
+        fixSize(label, width);
+        return label;
+    }
+
+    /*
+     * valueCell(box, width, size): makes a calculated box a flat grey cell with hairlines.
+     * Passed in:  box - the box, width - its width, size - font size
+     * Passed out: nothing
+     */
+    private static void valueCell(ValueBox box, int width, float size)
+    {
+        box.setFlat(true);
+        box.setFont(Theme.font(Font.BOLD, size));
+        box.setHorizontalAlignment(SwingConstants.CENTER);
+        box.setBorder(hairlines());
+        fixSize(box, width);
+    }
+
+    /*
+     * tagCell(text): a wood caption tag (86 x 20) centred in a see-through 90 x 22 cell.
+     * Passed in:  text - the caption
+     * Passed out: the cell
+     */
+    private static JPanel tagCell(String text)
+    {
+        WoodTag tag = new WoodTag(text);
+        Dimension tagSize = new Dimension(TAG_WIDTH, TAG_HEIGHT);
+        tag.setPreferredSize(tagSize);
+        tag.setMinimumSize(tagSize);
+        JPanel cell = new JPanel(new GridBagLayout());
+        cell.setOpaque(false);
+        cell.add(tag, new GridBagConstraints());
+        fixSize(cell, CAPTION_CELL_WIDTH);
+        return cell;
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | makeCell(field, width, size)                                             |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Turns a text box into a spreadsheet cell: no sunken box, bold centred    |
+     | text, exactly one row tall, with the thin cell lines. While the cursor   |
+     | is in a cell that can be typed in, it gets a 2 px gold outline and a     |
+     | cream fill (see showFace).                                               |
+     |                                                                          |
+     | Passed in:  field - the box                                              |
+     |             width - its width in pixels                                  |
+     |             size  - the font size                                        |
+     | Passed out: nothing                                                      |
+     +--------------------------------------------------------------------------+
+     */
+    private void makeCell(JTextField field, int width, float size)
+    {
+        field.setColumns(0);
+        field.setBorder(hairlines());
+        field.setFont(Theme.font(Font.BOLD, size));
+        field.setHorizontalAlignment(SwingConstants.CENTER);
+        fixSize(field, width);
+        field.addFocusListener(new FocusAdapter()
+        {
+            @Override
+            public void focusGained(FocusEvent event)
+            {
+                cursorCell = field;
+                showFace(field);
+            }
+
+            @Override
+            public void focusLost(FocusEvent event)
+            {
+                if (cursorCell == field)
+                {
+                    cursorCell = null;
+                }
+                showFace(field);
+            }
+        });
+    }
+
+    /*
+     * checkCell(box, width): makes a Fwy or Sand check box a table cell: the picture shrunk to 18 x 18 and centred, hairlines, and a face set by showCheckFaces.
+     * Passed in:  box - the check box, width - its width
+     * Passed out: nothing
+     */
+    private static void checkCell(ImageCheckBox box, int width)
+    {
+        box.setPictureSize(CHECK_PICTURE);
+        box.setOpaque(true);
+        box.setBackground(Color.WHITE);
+        box.setBorder(hairlines());
+        fixSize(box, width);
+    }
+
+    /*
      +--------------------------------------------------------------------------+
      | buildHalf(firstHole, puttTotal, scoreTotal, totalLabel)                  |
      +--------------------------------------------------------------------------+
      | Purpose:                                                                 |
-     | Builds one hole-by-hole table (Out or In) inside a wooden frame:         |
-     | a heading row, nine hole rows and a totals row.                          |
+     | Builds one hole-by-hole table (Out or In) inside a wooden frame that     |
+     | hugs it. The table is spreadsheet style: borderless cells 22 px tall,    |
+     | 1 px hairlines under and right of every cell, no gaps, 2 px of white     |
+     | round the cells. A grey heading row (Hole, Par, Score, Putt, Fwy,        |
+     | Sand), nine hole rows (hole number on white, par grey, score and putt    |
+     | cells, the two check boxes) and a total row with grey cells under        |
+     | Score and Putt.                                                          |
      |                                                                          |
      | Passed in:  firstHole  - 0 for holes 1-9, 9 for holes 10-18              |
      |             puttTotal  - box for the putts total of this half            |
@@ -351,67 +556,40 @@ public final class RoundPage extends Page
     {
         JPanel grid = new JPanel(new GridBagLayout());
         grid.setBackground(Color.WHITE);
-        grid.setBorder(BorderFactory.createEmptyBorder(4, 4, 4, 4));
-        GridBagConstraints at = new GridBagConstraints();
-        at.insets = new Insets(1, 2, 1, 2);
-        at.fill = GridBagConstraints.HORIZONTAL;
-        String[] headings = {"Hole", "Par", "Score", "Putt", "Fwy", "Sand"};
-        for (int col = 0; col < headings.length; col = col + 1)
+        grid.setBorder(BorderFactory.createEmptyBorder(CELL_PAD, CELL_PAD, CELL_PAD, CELL_PAD));
+        for (int col = 0; col < HEADINGS.length; col = col + 1)
         {
-            at.gridx = col;
-            at.gridy = 0;
-            JLabel heading = new JLabel(headings[col], SwingConstants.CENTER);
-            heading.setFont(Theme.font(Font.BOLD, 13f));
-            heading.setOpaque(true);
-            heading.setBackground(Theme.FIELD_FACE);
-            grid.add(heading, at);
+            put(grid, textCell(HEADINGS[col], Theme.FIELD_FACE, HEADING_FONT, COLUMN_WIDTHS[col]), col, 0, 1);
         }
         for (int row = 0; row < NINE; row = row + 1)
         {
             int hole = firstHole + row;
-            at.weighty = 1.0;
-            at.gridy = row + 1;
-            holeLabels[hole] = new JLabel(Integer.toString(hole + 1), SwingConstants.CENTER);
-            holeLabels[hole].setFont(Theme.font(Font.BOLD, 15f));
+            holeLabels[hole] = textCell(Integer.toString(hole + 1), Color.WHITE, CELL_FONT, COLUMN_WIDTHS[HOLE_COL]);
             parBoxes[hole] = new ValueBox();
-            parBoxes[hole].setHorizontalAlignment(SwingConstants.CENTER);
-            parBoxes[hole].setPreferredSize(new Dimension(38, ROW_HEIGHT));
+            valueCell(parBoxes[hole], COLUMN_WIDTHS[PAR_COL], CELL_FONT);
             fairwayChecks[hole] = new ImageCheckBox();
             fairwayChecks[hole].setOnChange(() -> recalc());
+            checkCell(fairwayChecks[hole], COLUMN_WIDTHS[FWY_COL]);
             sandChecks[hole] = new ImageCheckBox();
             sandChecks[hole].setOnChange(() -> recalc());
+            checkCell(sandChecks[hole], COLUMN_WIDTHS[SAND_COL]);
             puttFields[hole] = entryField(false, hole);
             scoreFields[hole] = entryField(true, hole);
-            at.gridx = 0;
-            grid.add(holeLabels[hole], at);
-            at.gridx = 1;
-            grid.add(parBoxes[hole], at);
-            at.gridx = 2;
-            grid.add(scoreFields[hole], at);
-            at.gridx = 3;
-            grid.add(puttFields[hole], at);
-            at.gridx = 4;
-            grid.add(fairwayChecks[hole], at);
-            at.gridx = 5;
-            grid.add(sandChecks[hole], at);
+            put(grid, holeLabels[hole], HOLE_COL, row + 1, 1);
+            put(grid, parBoxes[hole], PAR_COL, row + 1, 1);
+            put(grid, scoreFields[hole], SCORE_COL, row + 1, 1);
+            put(grid, puttFields[hole], PUTT_COL, row + 1, 1);
+            put(grid, fairwayChecks[hole], FWY_COL, row + 1, 1);
+            put(grid, sandChecks[hole], SAND_COL, row + 1, 1);
         }
-        at.weighty = 0.0;
-        at.gridy = NINE + 1;
-        at.gridx = 0;
-        at.gridwidth = 2;
-        JLabel total = new JLabel(totalLabel, SwingConstants.RIGHT);
-        total.setFont(Theme.font(Font.BOLD, 16f));
-        grid.add(total, at);
-        at.gridwidth = 1;
-        for (ValueBox box : new ValueBox[] {puttTotal, scoreTotal})
-        {
-            box.setHorizontalAlignment(SwingConstants.CENTER);
-            box.setPreferredSize(new Dimension(48, ROW_HEIGHT));
-        }
-        at.gridx = 2;
-        grid.add(scoreTotal, at);
-        at.gridx = 3;
-        grid.add(puttTotal, at);
+        int totalRow = NINE + 1;
+        put(grid, textCell(totalLabel, Color.WHITE, CELL_FONT, COLUMN_WIDTHS[HOLE_COL] + COLUMN_WIDTHS[PAR_COL]), HOLE_COL, totalRow, 2);
+        valueCell(scoreTotal, COLUMN_WIDTHS[SCORE_COL], CELL_FONT);
+        valueCell(puttTotal, COLUMN_WIDTHS[PUTT_COL], CELL_FONT);
+        put(grid, scoreTotal, SCORE_COL, totalRow, 1);
+        put(grid, puttTotal, PUTT_COL, totalRow, 1);
+        put(grid, textCell("", Color.WHITE, CELL_FONT, COLUMN_WIDTHS[FWY_COL]), FWY_COL, totalRow, 1);
+        put(grid, textCell("", Color.WHITE, CELL_FONT, COLUMN_WIDTHS[SAND_COL]), SAND_COL, totalRow, 1);
         WoodFrame frame = new WoodFrame();
         frame.add(grid, BorderLayout.CENTER);
         return frame;
@@ -419,94 +597,102 @@ public final class RoundPage extends Page
 
     /*
      +--------------------------------------------------------------------------+
-     | buildCountColumn()                                                       |
+     | buildResultsColumn()                                                     |
      +--------------------------------------------------------------------------+
      | Purpose:                                                                 |
-     | The wooden column on the right: the course rating and slope, then how    |
-     | many eagles, birdies, pars, bogeys, double bogeys and others the         |
-     | round has.                                                               |
+     | The wooden column right of the In table. It has the same wood border     |
+     | and 2 px padding as the hole tables and the same 22 px rows, so it is    |
+     | exactly as tall and its rows line up with theirs, but the teak shows     |
+     | through inside instead of white. A blank row level with the headings,    |
+     | nine caption and value rows level with the holes (Rating, Eagles,        |
+     | Birdies, Pars, Bogeys, DBogeys, Others, 18-Hole Diff, Index After), and  |
+     | a blank row level with the Out / In totals.                              |
      |                                                                          |
      | Passed in:  nothing                                                      |
      | Passed out: the framed column                                            |
      +--------------------------------------------------------------------------+
      */
-    private WoodFrame buildCountColumn()
+    private WoodFrame buildResultsColumn()
     {
         JPanel column = new JPanel(new GridBagLayout());
         column.setOpaque(false);
-        GridBagConstraints at = new GridBagConstraints();
-        at.gridx = 0;
-        at.fill = GridBagConstraints.HORIZONTAL;
-        at.insets = new Insets(0, 0, 0, 0);
-        at.gridy = 0;
-        column.add(new WoodTag("Rating"), at);
-        at.gridy = 1;
-        at.insets = new Insets(0, 0, 6, 0);
-        ratingBox.setHorizontalAlignment(SwingConstants.CENTER);
-        ratingBox.setPreferredSize(new Dimension(104, ROW_HEIGHT));
-        column.add(ratingBox, at);
+        column.setBorder(BorderFactory.createEmptyBorder(CELL_PAD, CELL_PAD, CELL_PAD, CELL_PAD));
+        List<String> captions = new ArrayList<>();
+        List<ValueBox> values = new ArrayList<>();
+        captions.add("Rating");
+        values.add(ratingBox);
         for (int lp = 0; lp < RESULT_BUCKETS; lp = lp + 1)
         {
-            at.gridy = 2 + 2 * lp;
-            at.insets = new Insets(0, 0, 0, 0);
-            column.add(new WoodTag(RESULT_NAMES[lp]), at);
             resultBoxes[lp] = new ValueBox();
-            resultBoxes[lp].setHorizontalAlignment(SwingConstants.CENTER);
-            resultBoxes[lp].setPreferredSize(new Dimension(104, ROW_HEIGHT));
-            at.gridy = 3 + 2 * lp;
-            at.insets = new Insets(0, 0, 6, 0);
-            column.add(resultBoxes[lp], at);
+            captions.add(RESULT_NAMES[lp]);
+            values.add(resultBoxes[lp]);
         }
+        captions.add("18-Hole Diff");
+        values.add(differentialBox);
+        captions.add("Index After");
+        values.add(indexBox);
+        Dimension rowSize = new Dimension(CAPTION_CELL_WIDTH + RESULT_VALUE_WIDTH, ROW_HEIGHT);
+        put(column, (JComponent) Box.createRigidArea(rowSize), 0, 0, 2);
+        for (int row = 0; row < captions.size(); row = row + 1)
+        {
+            valueCell(values.get(row), RESULT_VALUE_WIDTH, VALUE_FONT);
+            put(column, tagCell(captions.get(row)), 0, row + 1, 1);
+            put(column, values.get(row), 1, row + 1, 1);
+        }
+        put(column, (JComponent) Box.createRigidArea(rowSize), 0, captions.size() + 1, 2);
         WoodFrame frame = new WoodFrame();
         frame.add(column, BorderLayout.CENTER);
         return frame;
     }
 
     /*
-     * addPair(form, tag, box, row, column): puts a wood caption and its value box side by side in the bottom form.
-     * Passed in:  form - the panel, tag - caption text, box - the box, row/column - grid position
+     * addPair(form, tag, box, row, column): puts a wood caption and its value cell side by side in the details frame, 3 px apart, with 14 px before the next column.
+     * Passed in:  form - the panel, tag - caption text, box - the cell, row/column - grid position
      * Passed out: nothing
      */
     private void addPair(JPanel form, String tag, JComponent box, int row, int column)
     {
+        int top = (row == 0 ? 0 : DETAIL_ROW_GAP);
         GridBagConstraints at = new GridBagConstraints();
         at.gridy = row;
-        at.fill = GridBagConstraints.HORIZONTAL;
-        at.insets = new Insets(1, 3, 1, 0);
         at.gridx = column * 2;
-        at.weightx = 0.0;
-        form.add(new WoodTag(tag), at);
+        at.insets = new Insets(top, 0, 0, PAIR_GAP);
+        WoodTag caption = new WoodTag(tag);
+        Dimension tagSize = new Dimension(TAG_WIDTH, TAG_HEIGHT);
+        caption.setPreferredSize(tagSize);
+        caption.setMinimumSize(tagSize);
+        form.add(caption, at);
         at.gridx = column * 2 + 1;
-        at.insets = new Insets(1, 0, 1, 12);
+        at.insets = new Insets(top, 0, 0, COLUMN_GAP);
         form.add(box, at);
     }
 
     /*
      +--------------------------------------------------------------------------+
-     | buildBottomForm()                                                        |
+     | buildDetails()                                                           |
      +--------------------------------------------------------------------------+
      | Purpose:                                                                 |
-     | The wooden form under the tables. Left: the date and the round's score   |
-     | and putts. Middle: fairways, sand saves, greens in regulation and        |
-     | two-putts for this round. Right: the 18-hole differential and the        |
-     | index after the round, then the Save and Cancel buttons.                 |
+     | The wooden frame under the tables, as wide as the tables and results     |
+     | column together, with the teak showing inside. Three columns of          |
+     | captions and values: Date, Score, Putts; Fairway, Sand Saves, Greens In  |
+     | Reg; 2-Putt. At the right end, Save above Cancel (entering or editing)   |
+     | or Edit above Close (looking at a saved round).                          |
      |                                                                          |
      | Passed in:  nothing                                                      |
      | Passed out: the framed form                                              |
      +--------------------------------------------------------------------------+
      */
-    private WoodFrame buildBottomForm()
+    private WoodFrame buildDetails()
     {
         JPanel form = new JPanel(new GridBagLayout());
         form.setOpaque(false);
-        dateField.setHorizontalAlignment(SwingConstants.CENTER);
-        dateField.setFont(Theme.font(Font.BOLD, 14f));
+        form.setBorder(BorderFactory.createEmptyBorder(6, 8, 6, 8));
+        makeCell(dateField, DATE_WIDTH, VALUE_FONT);
         dateField.setToolTipText("The date played, as 2026-10-22 or 10/22/2026");
         dateField.getDocument().addDocumentListener(new ChangeWatcher(() -> recalc()));
-        for (ValueBox box : new ValueBox[] {scoreBox, puttsBox, fairwayBox, sandBox, girBox, twoPuttBox, differentialBox, indexBox})
+        for (ValueBox box : new ValueBox[] {scoreBox, puttsBox, fairwayBox, sandBox, girBox, twoPuttBox})
         {
-            box.setHorizontalAlignment(SwingConstants.CENTER);
-            box.setPreferredSize(new Dimension(84, ROW_HEIGHT));
+            valueCell(box, DETAIL_VALUE_WIDTH, VALUE_FONT);
         }
         addPair(form, "Date", dateField, 0, 0);
         addPair(form, "Score", scoreBox, 1, 0);
@@ -514,29 +700,30 @@ public final class RoundPage extends Page
         addPair(form, "Fairway", fairwayBox, 0, 1);
         addPair(form, "Sand Saves", sandBox, 1, 1);
         addPair(form, "Greens In Reg", girBox, 2, 1);
-        addPair(form, "2-Putt", twoPuttBox, 3, 1);
-        addPair(form, "18-Hole Diff", differentialBox, 0, 2);
-        addPair(form, "Index After", indexBox, 1, 2);
-        saveButton.setPreferredSize(new Dimension(110, 32));
-        editButton.setPreferredSize(new Dimension(110, 32));
+        addPair(form, "2-Putt", twoPuttBox, 0, 2);
+        Dimension buttonSize = new Dimension(BUTTON_WIDTH, BUTTON_HEIGHT);
+        for (WoodButton button : new WoodButton[] {saveButton, editButton, cancelButton})
+        {
+            button.setPreferredSize(buttonSize);
+            button.setMinimumSize(buttonSize);
+        }
         editButton.setToolTipText("Open this round for editing");
-        cancelButton.setPreferredSize(new Dimension(110, 32));
-        GridBagConstraints at = new GridBagConstraints();
-        at.gridx = 6;
-        at.gridy = 0;
-        at.gridheight = 4;
-        at.weightx = 1.0;
-        at.anchor = GridBagConstraints.EAST;
         JPanel buttons = new JPanel(new GridBagLayout());
         buttons.setOpaque(false);
         GridBagConstraints inside = new GridBagConstraints();
         inside.gridy = 0;
-        inside.insets = new Insets(0, 0, 8, 0);
+        inside.insets = new Insets(0, 0, BUTTON_GAP, 0);
         buttons.add(saveButton, inside);
         buttons.add(editButton, inside);
         inside.gridy = 1;
         inside.insets = new Insets(0, 0, 0, 0);
         buttons.add(cancelButton, inside);
+        GridBagConstraints at = new GridBagConstraints();
+        at.gridx = 6;
+        at.gridy = 0;
+        at.gridheight = 3;
+        at.weightx = 1.0;
+        at.anchor = GridBagConstraints.EAST;
         form.add(buttons, at);
         WoodFrame frame = new WoodFrame();
         frame.add(form, BorderLayout.CENTER);
@@ -544,15 +731,14 @@ public final class RoundPage extends Page
     }
 
     /*
-     * buildNavRow(): the First / Previous / Next / Last arrows, set in from the left so they clear the version text.
+     * buildNavRow(): the First / Previous / Next / Last arrows in one row, 8 px apart.
      * Passed in:  nothing
      * Passed out: the row
      */
     private JPanel buildNavRow()
     {
-        JPanel row = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        JPanel row = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 0));
         row.setOpaque(false);
-        row.setBorder(BorderFactory.createEmptyBorder(0, NAV_INDENT, 0, 0));
         row.add(firstButton);
         row.add(previousButton);
         row.add(nextButton);
@@ -926,6 +1112,9 @@ public final class RoundPage extends Page
             puttFields[hole].setEditable(typing);
             sandChecks[hole].setEnabled(played && typing);
             fairwayChecks[hole].setEnabled(played && typing && tee.pars()[hole] != 3);
+            Color checkFace = ((played && typing) ? Color.WHITE : Theme.FIELD_FACE);
+            fairwayChecks[hole].setBackground(checkFace);
+            sandChecks[hole].setBackground(checkFace);
             if (!played)
             {
                 boolean wasUpdating = updating;
@@ -1297,11 +1486,8 @@ public final class RoundPage extends Page
      | mark(field, bad)                                                         |
      +--------------------------------------------------------------------------+
      | Purpose:                                                                 |
-     | Gives a box its face. A box you can type in is white, so it looks like   |
-     | a place to type. A box that cannot be typed in (everything when you      |
-     | are looking at a saved round, or a hole that is not being played) is     |
-     | the grey of the calculated boxes, so it looks like a display. A box      |
-     | with something wrong in it is pink.                                      |
+     | Records whether a box has something wrong in it and gives it its face    |
+     | (see showFace).                                                          |
      |                                                                          |
      | Passed in:  field - the box                                              |
      |             bad   - true for pink                                        |
@@ -1310,8 +1496,58 @@ public final class RoundPage extends Page
      */
     private void mark(JTextField field, boolean bad)
     {
-        boolean typing = mode != Mode.VIEW && field.isEnabled() && field.isEditable();
-        field.setBackground(bad ? Theme.FIELD_ERROR : (typing ? Color.WHITE : Theme.FIELD_FACE));
+        if (bad)
+        {
+            wrongFields.add(field);
+        }
+        else
+        {
+            wrongFields.remove(field);
+        }
+        showFace(field);
+    }
+
+    /*
+     * canType(field): whether a box can be typed in now: not while looking at a saved round, nor on a hole that is not being played.
+     */
+    private boolean canType(JTextField field)
+    {
+        return mode != Mode.VIEW && field.isEnabled() && field.isEditable();
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | showFace(field)                                                          |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Gives a box its face. A box you can type in is white, so it looks like   |
+     | a place to type, and cream with a gold outline while the cursor is in    |
+     | it. A box that cannot be typed in (everything when you are looking at    |
+     | a saved round, or a hole that is not being played) is the grey of the    |
+     | calculated boxes, so it looks like a display. A box with something       |
+     | wrong in it is pink.                                                     |
+     |                                                                          |
+     | Passed in:  field - the box                                              |
+     | Passed out: nothing                                                      |
+     +--------------------------------------------------------------------------+
+     */
+    private void showFace(JTextField field)
+    {
+        boolean atCursor = field == cursorCell && canType(field);
+        Color face = (canType(field) ? Color.WHITE : Theme.FIELD_FACE);
+        if (atCursor)
+        {
+            face = Theme.FIELD_FOCUS;
+        }
+        if (wrongFields.contains(field))
+        {
+            face = Theme.FIELD_ERROR;
+        }
+        field.setBackground(face);
+        if (field != pccField)
+        {
+            field.setBorder(atCursor ? CURSOR_OUTLINE : hairlines());
+        }
     }
 
     /*

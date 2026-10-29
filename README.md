@@ -97,6 +97,12 @@ are in place and say "not built yet" in the footer.
   digit; a score from 2 to 9 moves on at once, and a 1 waits for a second digit (a hole in one, or 10 or
   more) or Enter. In a Putt box, F ticks or unticks Fwy and S does the same for Sand, like the letters on a
   scorecard. They are optional; the boxes can be clicked.
+- **The round page** looks like the course page: the Out and In tables are spreadsheet-style grids in
+  wood frames, with a wood results column beside them (rating, eagles to others, differential, index
+  after) and a wood details frame under them (date, totals, fairways, sand saves, greens, two-putts, and
+  the buttons). The whole group is centred on the photo with the arrows under it.
+- **See the whole picture:** on any screen, press and hold the mouse on the yellow "Golf Analyst"
+  version text at the bottom left. Everything but the photo disappears until you let go.
 - **Hover:** the text on every wood button turns red when the mouse is over it, as in the earlier
   versions, and the round Home / Help / Info / arrow buttons light up with a red ring.
 - **Info and Help** (the round buttons at the top right) open that screen's text in its own window.
