@@ -1,4 +1,4 @@
-# GolfAnalyst v4.20 (Java) - notes for Claude
+# GolfAnalyst v4.21 (Java) - notes for Claude
 
 A single-golfer golf statistics program with a Swing window. Ported from HyperCard (1991) to Excel/VBA to Java.
 Courses and rounds live in two plain tab-separated text files. Written for one user who tests on Windows.
@@ -150,7 +150,8 @@ Courses and rounds live in two plain tab-separated text files. Written for one u
 ## Status and backlog
 Built: Home, round entry, saved-round viewer with the Show (course/tee) filter, Info/Help, New Course (v4.10: adds
 a course or more tees to one; up to four tees at once; v4.11: wood-frame look, copy arrow, live checking), the
-sample-data title/footer and save question, styled Help/Info windows, Edit Round and Edit Course (both v4.20).
+sample-data title/footer and save question, styled Help/Info windows, Edit Round and Edit Course (both v4.20), the New Course style round page
+and the press-and-hold peek on the version text (v4.21).
 Not built (buttons are in place and say "not built yet"): Import, Clear, Stats Board, Analyzer, Best Round, Print.
 Not built either: deleting a round or a tee, renaming a course or changing its zip.
 - **Edit Course** (built, v4.20): no separate button. On New Course, typing a saved course's name and zip loads its

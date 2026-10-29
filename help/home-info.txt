@@ -82,3 +82,5 @@ Golf Analyst v4.10: Added the New Course screen, so courses and up to four sets 
 Golf Analyst v4.11: The New Course screen now looks like the round screen, with each set of tees in its own wooden frame. An arrow on the first tee copies its pars and handicap numbers into the empty cells of the other tees. Everything is checked as you type, and Save comes on only when the course is ready to save.
 
 Golf Analyst v4.20: Added Edit Round, so a saved round can be fixed right on the screen instead of in the rounds file. Saved courses can be fixed the same way from New Course. Only what you changed is rewritten, and a copy of the file as it was is kept in rounds.tsv.bak or courses.tsv.bak. The Help and Info windows now show headings and bold labels.
+
+Golf Analyst v4.21: The round screen now looks like the New Course screen, with the holes in neat grids inside wooden frames, a wooden column beside them for the rating and the round's figures, and the totals and buttons in a wooden frame underneath, all centred on the photo. Press and hold the yellow Golf Analyst text at the bottom left of any screen to see the whole photo.
