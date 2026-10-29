@@ -604,7 +604,8 @@ public final class Handicap
      | 20 differentials, recalculates the index, and applies the soft and       |
      | hard caps once a Low Index exists. Nine-hole rounds played before        |
      | the first index exists are held back and resolved when it does.          |
-     | Rounds on a nine that has no rating are skipped.                         |
+     | Rounds on a nine that has no rating are skipped, and so are historical   |
+     | rounds (kept only to look back at).                                      |
      |                                                                          |
      | Passed in:  allRounds - every round, in any order                        |
      |             tees      - course/tees keyed by id                          |
@@ -626,7 +627,7 @@ public final class Handicap
         for (Round round : rounds)
         {
             Tee tee = tees.get(round.teeId());
-            if (tee == null || !tee.isRated(round.startHole(), round.holes()))
+            if (tee == null || round.historical() || !tee.isRated(round.startHole(), round.holes()))
             {
                 continue;
             }

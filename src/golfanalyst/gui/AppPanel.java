@@ -2,6 +2,7 @@ package golfanalyst.gui;
 
 import golfanalyst.DataStore;
 import golfanalyst.Problem;
+import golfanalyst.Stats;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.Font;
@@ -114,7 +115,7 @@ public final class AppPanel extends JPanel implements Shell
     }
 
     /*
-     * startStatus(note): the message shown when the program opens: a count of problems found, or the note and how many rounds loaded.
+     * startStatus(note): the message shown when the program opens: a count of problems found, or the note and how many rounds loaded (and how many of them are historical).
      * Passed in:  note - a note to show first (may be empty)
      * Passed out: the message
      */
@@ -126,7 +127,9 @@ public final class AppPanel extends JPanel implements Shell
         {
             return sample + problems + " problem(s) found in the data files - click here to see them.";
         }
-        String loaded = store.dataset().rounds().size() + " rounds loaded.";
+        int allRounds = store.dataset().rounds().size();
+        int historical = allRounds - Stats.current(store.dataset().rounds()).size();
+        String loaded = allRounds + " rounds loaded" + (historical > 0 ? " (" + historical + " historical)." : ".");
         return sample + (note.isEmpty() ? "Ready.  " + loaded : note + "  " + loaded);
     }
 

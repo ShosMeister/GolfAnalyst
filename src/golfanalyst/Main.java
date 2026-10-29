@@ -78,8 +78,14 @@ public final class Main
                 ? first.date().compareTo(second.date()) : Integer.compare(first.id(), second.id()));
 
         Handicap.Result handicap = Handicap.compute(data.rounds(), tees);
-        printHome(handicap, Stats.summarize(byDate, tees), byDate, tees);
-        printCourseStats(byDate, tees);
+        List<Round> current = Stats.current(byDate);
+        if (current.size() < byDate.size())
+        {
+            System.out.println((byDate.size() - current.size()) + " historical round(s) kept but not counted in the handicap or the statistics.");
+            System.out.println();
+        }
+        printHome(handicap, Stats.summarize(current, tees), current, tees);
+        printCourseStats(current, tees);
         printHistory(handicap);
         printRecord(handicap);
     }
@@ -95,8 +101,8 @@ public final class Main
      | with an 18-hole one.                                                     |
      |                                                                          |
      | Passed in:  handicap - the handicap Result                               |
-     |             all      - statistics over every round                       |
-     |             byDate   - all rounds, oldest first                          |
+     |             all      - statistics over those rounds                      |
+     |             byDate   - rounds that are not historical, oldest first      |
      |             tees     - course/tees keyed by id                           |
      | Passed out: nothing (prints)                                             |
      +--------------------------------------------------------------------------+
@@ -146,7 +152,7 @@ public final class Main
      | Prints the Stats view: one line of statistics for every course/tee       |
      | that has been played, with 18-hole and 9-hole results side by side.      |
      |                                                                          |
-     | Passed in:  byDate - all rounds, oldest first                            |
+     | Passed in:  byDate - rounds that are not historical, oldest first        |
      |             tees   - course/tees keyed by id                             |
      | Passed out: nothing (prints)                                             |
      +--------------------------------------------------------------------------+

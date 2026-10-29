@@ -26,6 +26,8 @@ Save: Puts your changes in rounds.tsv in place of the round as it was. Only that
 
 Cancel: Goes back to the round as it was, without saving.
 
+A historical round stays historical when you fix it: it is still left out of your handicap and your statistics.
+
 # The arrows and the bar at the bottom
 
 The four arrows still step through your rounds. If you have changed something and not saved it, the program asks "Discard your changes?" before it moves, and so do Cancel and the Home button. The bar along the bottom tells you what is still missing or wrong.

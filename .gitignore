@@ -2,3 +2,7 @@ target/
 out/
 data/
 *.bak
+
+# the user's own exports from the Excel version (personal data)
+GolfAnalyst_v302AM.txt
+GolfAnalyst_Courses.txt

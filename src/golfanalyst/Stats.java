@@ -1,5 +1,6 @@
 package golfanalyst;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -41,6 +42,7 @@ import java.util.Map;
  |                                                                          |
  | Public Methods:                                                          |
  | summarize(rounds, tees) - calculates a Summary                           |
+ | current(rounds)         - the rounds that are not historical             |
  | pct(part, whole)        - safe percentage (NaN if whole is 0)            |
  | isGreenInRegulation(...), isSandSave(...) - the calculated rules         |
  +--------------------------------------------------------------------------+
@@ -183,6 +185,24 @@ public final class Stats
             return 5;
         }
         return overPar + 2;
+    }
+
+    /*
+     * current(rounds): the rounds that are not historical, which are the ones the statistics are about.
+     * Passed in:  rounds - any rounds
+     * Passed out: a new list without the historical ones, in the same order
+     */
+    public static List<Round> current(List<Round> rounds)
+    {
+        List<Round> kept = new ArrayList<>();
+        for (Round round : rounds)
+        {
+            if (!round.historical())
+            {
+                kept.add(round);
+            }
+        }
+        return kept;
     }
 
     /*

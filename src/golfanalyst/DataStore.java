@@ -93,7 +93,7 @@ public final class DataStore
         dataset = DataLoader.load(dir);
         Map<Integer, Tee> tees = dataset.teeMap();
         handicap = Handicap.compute(dataset.rounds(), tees);
-        overall = Stats.summarize(dataset.rounds(), tees);
+        overall = Stats.summarize(Stats.current(dataset.rounds()), tees);
         List<Round> sorted = new ArrayList<>(dataset.rounds());
         sorted.sort(Comparator.comparing(Round::date).thenComparingInt(Round::id));
         roundsByDate = sorted;
@@ -124,7 +124,7 @@ public final class DataStore
     }
 
     /*
-     * overall(): statistics over every round.
+     * overall(): statistics over every round that is not historical.
      */
     public Stats.Summary overall()
     {
@@ -132,7 +132,7 @@ public final class DataStore
     }
 
     /*
-     * roundsByDate(): every round, oldest first (ties broken by round id).
+     * roundsByDate(): every round, historical ones included, oldest first (ties broken by round id).
      */
     public List<Round> roundsByDate()
     {

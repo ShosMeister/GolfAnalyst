@@ -32,6 +32,10 @@ Look at your four percentages: Fairways Hit, Greens In Reg, Sand Saves and Two-P
 
 For example, I know, from using this program, that my weakness is my short game. How? Simple, my Two-Putt percentage is always 90+ but my Greens In Reg is always under 20%. That tells me that if I could get to the green in regulation, I'd be making par almost all of the time.
 
+# Old rounds
+
+Rounds too old to count toward today's handicap can still be kept, so nothing is lost. In rounds.tsv in your data folder, put a Y in the Historical column of each old round. You can still step through them with Rounds, but they are left out of your Handicap Index and your statistics. Close the program and open it again after editing the file.
+
 # Seeing the whole picture
 
 Every screen has its own photo behind it. To see all of it, press and hold the mouse button on the yellow Golf Analyst text at the bottom left. The boxes and buttons disappear until you let go, and nothing you type while holding it goes anywhere.

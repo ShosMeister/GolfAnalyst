@@ -1,4 +1,4 @@
-# GolfAnalyst v4.22 (Java)
+# GolfAnalyst v4.30 (Java)
 
 Golf Analyst with its window. It has the one-window layout of the earlier versions: a wood header
 with Home, Help and Info buttons that stays the same on every screen, a status footer that stays
@@ -165,12 +165,15 @@ round, 9 for a nine-hole round).
 **rounds.tsv**: one row per round. `RoundID` must be unique.
 
     RoundID  TeeID  Date  Scores  Putts  Fairways  Sand          (required)
-    Holes  PCC                                                     (optional)
+    Holes  PCC  Historical                                         (optional)
 
 `Holes` is blank for a whole tee (18 holes, or the nine holes of a nine-hole course), `F` for
 the front nine or `B` for the back nine of an 18-hole tee. Scores, Putts and the four flag
 columns (Fairways, Sand) need one value per hole played. Dates can be `2026-10-22` or
-`10/22/2026`. Flags are 1 for yes and 0 for no. PCC (normally 0) is the day's Playing Conditions Calculation. Totals are
+`10/22/2026`. Flags are 1 for yes and 0 for no. PCC (normally 0) is the day's Playing Conditions Calculation.
+`Historical` is `Y` for an old round kept only to look back at: it can be stepped through in
+Rounds (marked historical) but is left out of the handicap and the statistics. Blank or `N` is
+an ordinary round. Totals are
 never stored; they are always calculated, so the file cannot disagree with itself.
 
 **Putts** count only strokes taken while the ball is on the putting green, with any club. A

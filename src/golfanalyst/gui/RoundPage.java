@@ -222,6 +222,8 @@ public final class RoundPage extends Page
     private String filterCourse = null;
     private int filterTeeId = -1;
     private int viewedRoundId = -1;
+    private boolean viewedHistorical = false;
+    static final String HISTORICAL_NOTE = " Historical: kept to look back at, not in your handicap or statistics.";
     private boolean updating = false;
     private int playedStart = 0;
     private int playedCount = HOLES;
@@ -1210,6 +1212,7 @@ public final class RoundPage extends Page
         setMode(Mode.NEW);
         viewIndex = -1;
         viewedRoundId = -1;
+        viewedHistorical = false;
         fillTeeChoices(-1);
         rebuildFilter();
         rebuildHolesChoices(selectedTee());
@@ -1272,6 +1275,7 @@ public final class RoundPage extends Page
         setMode(Mode.VIEW);
         viewIndex = index;
         viewedRoundId = round.id();
+        viewedHistorical = round.historical();
         fillTeeChoices(round.teeId());
         rebuildHolesChoices(tee);
         int choice = 0;
@@ -1295,7 +1299,8 @@ public final class RoundPage extends Page
         updating = false;
         updateNav();
         recalc();
-        shell.setStatus("Round " + (positionShown() + 1) + " of " + shown.size() + filterDescription());
+        shell.setStatus("Round " + (positionShown() + 1) + " of " + shown.size() + filterDescription()
+                + (viewedHistorical ? "." + HISTORICAL_NOTE : ""));
         shell.refreshTitle();
     }
 
@@ -1747,7 +1752,8 @@ public final class RoundPage extends Page
      | Fills the 18-hole differential and index-after boxes. For a saved        |
      | round they come from the handicap history. For a round being             |
      | entered, the history is replayed with this round added (without          |
-     | saving it), so you can see what it will do to your index.                |
+     | saving it), so you can see what it will do to your index. A historical   |
+     | round has no differential: the box says "historical".                    |
      |                                                                          |
      | Passed in:  ready - true when every played hole is complete and valid    |
      |             date  - the typed date (null if not valid)                   |
@@ -1758,6 +1764,12 @@ public final class RoundPage extends Page
     private void showProjection(boolean ready, LocalDate date, Integer pcc)
     {
         Handicap.Entry entry = null;
+        if (mode != Mode.NEW && viewedHistorical)
+        {
+            differentialBox.setValue("historical");
+            indexBox.setValue("-");
+            return;
+        }
         if (mode == Mode.VIEW)
         {
             for (Handicap.Entry candidate : shell.store().handicap().entries())
@@ -1789,6 +1801,7 @@ public final class RoundPage extends Page
      | Purpose:                                                                 |
      | Turns the typed values into a Round. Only the holes being played are     |
      | included. Call it only when every played hole is complete and valid.     |
+     | A historical round being edited stays historical.                        |
      |                                                                          |
      | Passed in:  id   - the id the round will have                            |
      |             date - the date played                                       |
@@ -1811,7 +1824,8 @@ public final class RoundPage extends Page
             fairway[lp] = fairwayChecks[hole].isSelected() && tee.pars()[hole] != 3;
             sand[lp] = sandChecks[hole].isSelected();
         }
-        return new Round(id, tee.id(), date, pcc, playedStart, playedCount, scores, putts, fairway, sand);
+        boolean historical = mode == Mode.EDIT && viewedHistorical;
+        return new Round(id, tee.id(), date, pcc, playedStart, playedCount, scores, putts, fairway, sand, historical);
     }
 
     /*

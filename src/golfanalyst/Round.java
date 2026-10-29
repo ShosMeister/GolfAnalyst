@@ -26,6 +26,10 @@ import java.time.LocalDate;
  | fairway    - true where the tee shot finished in the fairway             |
  | sand       - true where the player played a shot from a bunker           |
  | (all per-hole arrays have one entry for each hole played)                |
+ | historical - true for an old round kept only to look back at: it is      |
+ |              shown with the others but left out of the handicap and the  |
+ |              statistics (the Historical column, Y). A Round made without |
+ |              it is not historical.                                       |
  |                                                                          |
  | Greens in regulation and sand saves are deliberately not stored. They    |
  | are worked out from the score, the putts, the par and the sand flag      |
@@ -43,8 +47,17 @@ import java.time.LocalDate;
  */
 public record Round(int id, int teeId, LocalDate date, int pcc, int startHole, int holes,
                     int[] scores, int[] putts,
-                    boolean[] fairway, boolean[] sand)
+                    boolean[] fairway, boolean[] sand, boolean historical)
 {
+
+    /*
+     * Round(..., sand): a round that is not historical, which is every round typed in on the screen.
+     */
+    public Round(int id, int teeId, LocalDate date, int pcc, int startHole, int holes,
+                 int[] scores, int[] putts, boolean[] fairway, boolean[] sand)
+    {
+        this(id, teeId, date, pcc, startHole, holes, scores, putts, fairway, sand, false);
+    }
 
     /*
      * totalScore(): adds up the strokes on every hole played (the gross score).

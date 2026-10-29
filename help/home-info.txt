@@ -8,13 +8,17 @@ Handicap Index: Your current USGA Handicap Index. It follows the rules of the Wo
 
 Low Index: The lowest index you had during the last 365 days. The rules use it to stop your index from climbing too quickly. It only exists once you have 20 rounds on record.
 
-Total Rounds, 18-Hole Rounds and 9-Hole Rounds: How many rounds you have saved. A nine-hole round counts as a round of its own. It is not added to another nine to make an 18.
+Total Rounds, 18-Hole Rounds and 9-Hole Rounds: How many rounds you have saved. A nine-hole round counts as a round of its own. It is not added to another nine to make an 18. Historical rounds are not counted here.
 
 Rounds Used: How many of the rounds on record count toward your index, out of how many there are (up to 20), for example 8 of 20.
 
+# Historical rounds
+
+A historical round is an old round kept only to look back at, such as the rounds brought over from the Excel version. When you step through your rounds it says "historical" in the 18-Hole Diff box, and the bar at the bottom says so too. It does not count toward your Handicap Index or in any of the numbers on this screen.
+
 # The Golfer's Stats section (right)
 
-These are the numbers that help you find the weak spot in your game. They use every round you have saved and are not course specific. The Stats Board will show them course by course. All of the percentages are rounded to one decimal place.
+These are the numbers that help you find the weak spot in your game. They use every round you have saved, apart from historical ones, and are not course specific. The Stats Board will show them course by course. All of the percentages are rounded to one decimal place.
 
 Name: Your name, kept in settings.txt in your data folder.
 
@@ -86,3 +90,5 @@ Golf Analyst v4.20: Added Edit Round, so a saved round can be fixed right on the
 Golf Analyst v4.21: The round screen now looks like the New Course screen, with the holes in neat grids inside wooden frames, a wooden column beside them for the rating and the round's figures, and the totals and buttons in a wooden frame underneath, all centred on the photo. Press and hold the yellow Golf Analyst text at the bottom left of any screen to see the whole photo.
 
 Golf Analyst v4.22: The Help and Info windows now have to be closed before you can go back to the screen behind them, so the help you are reading always belongs to the screen you are on.
+
+Golf Analyst v4.30: Old rounds can be kept as historical rounds. You can still look back at them in Rounds, but they are left out of your Handicap Index and your statistics, so those show how you play today.

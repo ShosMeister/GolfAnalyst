@@ -1,4 +1,4 @@
-# GolfAnalyst v4.22 (Java) - notes for Claude
+# GolfAnalyst v4.30 (Java) - notes for Claude
 
 A single-golfer golf statistics program with a Swing window. Ported from HyperCard (1991) to Excel/VBA to Java.
 Courses and rounds live in two plain tab-separated text files. Written for one user who tests on Windows.
@@ -82,7 +82,12 @@ Courses and rounds live in two plain tab-separated text files. Written for one u
 - Data files (tab separated, header row, columns found by name, `#` comments, per-hole values comma separated in one
   cell): `courses.tsv` (TeeID, Course, City, State, Zip, Tee, Holes, Rating, Slope, Yardage, Pars, StrokeIndex,
   FrontRating, FrontSlope, BackRating, BackSlope) and `rounds.tsv` (RoundID, TeeID, Date, Holes, PCC, Scores, Putts,
-  Fairways, Sand). `Holes` in rounds is blank, F or B. One golfer; the name is in `data/settings.txt`.
+  Fairways, Sand, Historical). `Holes` in rounds is blank, F or B. One golfer; the name is in `data/settings.txt`.
+- Historical rounds (v4.30): `Historical` = Y (optional column; blank or N otherwise) marks an old round kept only to
+  look back at. `Round.historical()`; `Handicap.compute` skips them; statistics use `Stats.current(rounds)` (Home,
+  `DataStore.overall`, the text reports); the viewer shows them with "historical" in the 18-Hole Diff box and a footer
+  note; Edit keeps the flag; Home's round counts leave them out; the start-up message says how many there are. The
+  user's 2005 rounds from the Excel version are historical: too old for today's handicap, but not to be lost.
 - Courses: never copy ratings, slopes, front/back nine ratings or yardage from one tee to another (the Excel version
   did; invented ratings spoil the handicap). The only copy allowed is the user pressing the arrow on the FIRST tee,
   which fills its pars and stroke index into EMPTY par/SI cells of the other three tees (never overwrites). A tee
@@ -152,7 +157,7 @@ Courses and rounds live in two plain tab-separated text files. Written for one u
 Built: Home, round entry, saved-round viewer with the Show (course/tee) filter, Info/Help, New Course (v4.10: adds
 a course or more tees to one; up to four tees at once; v4.11: wood-frame look, copy arrow, live checking), the
 sample-data title/footer and save question, styled Help/Info windows, Edit Round and Edit Course (both v4.20), the New Course style round page
-and the press-and-hold peek on the version text (v4.21).
+and the press-and-hold peek on the version text (v4.21), modal Help/Info windows (v4.22), historical rounds (v4.30).
 Not built (buttons are in place and say "not built yet"): Import, Clear, Stats Board, Analyzer, Best Round, Print.
 Not built either: deleting a round or a tee, renaming a course or changing its zip.
 - **Edit Course** (built, v4.20): no separate button. On New Course, typing a saved course's name and zip loads its

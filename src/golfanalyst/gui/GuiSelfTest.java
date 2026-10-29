@@ -46,6 +46,8 @@ import javax.swing.JTextField;
  |   the photo, and the white / cream / grey faces in each mode             |
  | - The peek: holding the mouse on the version text hides the controls     |
  |   and the keyboard until it is let go                                    |
+ | - Historical rounds: shown and marked in the viewer, kept historical     |
+ |   when edited, left out of the Home counts                               |
  |                                                                          |
  | How to run:                                                              |
  |   java -cp out golfanalyst.gui.App --selftest                            |
@@ -719,6 +721,7 @@ public final class GuiSelfTest
         checkRoundEditing(page, store, shell, temp);
         checkRoundLook(page);
         checkPeek();
+        checkHistoricalScreens();
         checkSampleSafeguard();
 
         List<Path> leftovers = new ArrayList<>();
@@ -1318,6 +1321,66 @@ public final class GuiSelfTest
     private static void sendMouse(Component target, int kind, int x, int y)
     {
         target.dispatchEvent(mouseEvent(target, kind, x, y));
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | checkHistoricalScreens()                                                 |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | A historical round on the screens, in a temporary data folder with the   |
+     | sample courses, one ordinary round and one historical round: the viewer  |
+     | shows it with "historical" for the differential and says so in the       |
+     | footer, Home counts only the ordinary round, the start-up message says   |
+     | how many are historical, and editing it keeps it historical.             |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing (throws IOException if a temporary file fails)       |
+     +--------------------------------------------------------------------------+
+     */
+    private static void checkHistoricalScreens() throws IOException
+    {
+        Path temp = Files.createTempDirectory("golfanalyst-historical-screens");
+        Files.copy(Path.of("sample-data", DataLoader.COURSES_FILE), temp.resolve(DataLoader.COURSES_FILE));
+        String fives = "5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5";
+        String twos = "2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2";
+        String zeros = "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0";
+        String rows = "RoundID\tTeeID\tDate\tHoles\tPCC\tScores\tPutts\tFairways\tSand\tHistorical\n"
+                + "1\t1\t2005-06-19\t\t\t" + fives + "\t" + twos + "\t" + zeros + "\t" + zeros + "\tY\n"
+                + "2\t1\t2026-03-01\t\t\t" + fives + "\t" + twos + "\t" + zeros + "\t" + zeros + "\t\n";
+        Path roundsFile = temp.resolve(DataLoader.ROUNDS_FILE);
+        Files.writeString(roundsFile, rows, StandardCharsets.UTF_8);
+        DataStore store = new DataStore(temp);
+        TestShell shell = new TestShell(store);
+        RoundPage page = new RoundPage(shell);
+        HomePage home = new HomePage(shell);
+
+        page.showRoundAt(0);
+        check("a historical round can be looked at", page.title().startsWith("00001:"));
+        check("its differential box says historical", page.differentialBox.getText().equals("historical")
+                && page.indexBox.getText().equals("-"));
+        check("the footer says it is historical", shell.status.endsWith(RoundPage.HISTORICAL_NOTE));
+        page.showRoundAt(1);
+        check("an ordinary round still shows its differential", !page.differentialBox.getText().equals("historical")
+                && !shell.status.contains("Historical"));
+
+        home.onShow();
+        check("Home counts only the ordinary round", home.totalRounds.getText().equals("1"));
+        AppPanel panel = new AppPanel(store, Path.of("help"), "");
+        check("the start-up message says how many rounds are historical",
+                panel.footer().status().contains("2 rounds loaded (1 historical)."));
+
+        page.showRoundAt(0);
+        page.editButton.doClick();
+        check("editing a historical round still says historical", page.differentialBox.getText().equals("historical"));
+        type(page.scoreFields[0], "6");
+        page.saveButton.doClick();
+        List<String> after = Files.readAllLines(roundsFile, StandardCharsets.UTF_8);
+        check("saving the edit keeps it historical in the file", after.get(1).startsWith("1\t1\t2005-06-19\t")
+                && after.get(1).contains("\t6,5,5,") && after.get(1).endsWith("\tY"));
+        check("after saving it is still shown as historical", page.differentialBox.getText().equals("historical")
+                && store.handicap().entries().size() == 1);
+        deleteFolder(temp);
     }
 
     /*

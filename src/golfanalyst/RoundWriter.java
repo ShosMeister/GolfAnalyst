@@ -42,7 +42,7 @@ public final class RoundWriter
     public static final String STANDARD_HEADER = "RoundID\tTeeID\tDate\tHoles\tPCC\tScores\tPutts\tFairways\tSand";
     public static final String BACKUP_SUFFIX = LineReplacer.BACKUP_SUFFIX;
     private static final Set<String> KNOWN_COLUMNS =
-            Set.of("roundid", "teeid", "date", "holes", "pcc", "scores", "putts", "fairways", "sand");
+            Set.of("roundid", "teeid", "date", "holes", "pcc", "scores", "putts", "fairways", "sand", "historical");
 
     private RoundWriter()
     {
@@ -110,6 +110,7 @@ public final class RoundWriter
             case "putts" -> joinNumbers(round.putts());
             case "fairways" -> joinFlags(round.fairway());
             case "sand" -> joinFlags(round.sand());
+            case "historical" -> (round.historical() ? "Y" : "");
             default -> "";
         };
     }

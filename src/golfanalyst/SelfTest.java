@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Stream;
 
 /*
@@ -554,6 +555,7 @@ public final class SelfTest
         {
             checkCourseFiles();
             checkRoundReplace();
+            checkHistorical();
         }
         catch (IOException failure)
         {
@@ -562,6 +564,85 @@ public final class SelfTest
 
         System.out.println(passedCount + " passed, " + failedCount + " failed");
         return failedCount == 0;
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | checkHistorical()                                                        |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Checks historical rounds (old rounds kept only to look back at): the     |
+     | optional Historical column loads Y, YES, N and blank and refuses         |
+     | anything else; a historical round is left out of the handicap and the    |
+     | statistics but stays among the loaded rounds; an unrated nine marked     |
+     | historical gives no warning; and editing a historical round keeps its    |
+     | Y in the file.                                                           |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing (throws IOException if a temporary file fails)       |
+     +--------------------------------------------------------------------------+
+     */
+    private static void checkHistorical() throws IOException
+    {
+        Tee tee = testTee(0, 0);
+        Map<Integer, Tee> tees = Map.of(1, tee);
+        String header = "RoundID\tTeeID\tDate\tHoles\tScores\tPutts\tFairways\tSand\tHistorical";
+        String twos = "2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2";
+        String zeros = "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0";
+        String eighty = "4,4,4,4,4,4,4,4,4,5,5,5,5,5,5,5,5,4";
+        String nineties = "5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,6";
+        String nine = "5,5,5,5,5,5,5,5,5";
+        String nineTwos = "2,2,2,2,2,2,2,2,2";
+        String nineZeros = "0,0,0,0,0,0,0,0,0";
+        List<String> lines = List.of(header,
+                roundRow(1, 1, "2005-06-19", "", eighty, twos, zeros, zeros) + "\tY",
+                roundRow(2, 1, "2005-06-26", "", eighty, twos, zeros, zeros) + "\tyes",
+                roundRow(3, 1, "2026-03-01", "", nineties, twos, zeros, zeros) + "\t",
+                roundRow(4, 1, "2026-03-02", "", nineties, twos, zeros, zeros) + "\tN",
+                roundRow(5, 1, "2026-03-03", "", nineties, twos, zeros, zeros) + "\tX",
+                roundRow(6, 1, "2005-07-04", "B", nine, nineTwos, nineZeros, nineZeros) + "\tY");
+        List<Problem> problems = new ArrayList<>();
+        List<Round> rounds = DataLoader.parseRounds(lines, tees, problems);
+        check("Historical Y and yes load as historical", rounds.get(0).historical() && rounds.get(1).historical());
+        check("Historical blank and N load as ordinary rounds", !rounds.get(2).historical() && !rounds.get(3).historical());
+        check("any other Historical value skips the row with an error", rounds.size() == 5
+                && problems.stream().anyMatch(problem -> problem.severity() == Problem.Severity.ERROR
+                        && problem.message().contains("Historical must be blank, Y or N")));
+        check("a historical nine with no rating gives no warning", rounds.get(4).historical()
+                && problems.stream().noneMatch(problem -> problem.message().contains("no back nine rating")));
+        check("rounds made without the flag are not historical", !roundOver(9, 0, "2026-01-01", tee).historical());
+
+        List<Round> current = Stats.current(rounds);
+        check("Stats.current leaves out the historical rounds", current.size() == 2
+                && current.get(0).id() == 3 && current.get(1).id() == 4);
+        Stats.Summary statistics = Stats.summarize(current, tees);
+        check("the statistics count only the ordinary rounds", statistics.rounds() == 2 && statistics.bestScore18() == 91);
+
+        Handicap.Result withHistory = Handicap.compute(rounds, tees);
+        Handicap.Result without = Handicap.compute(current, tees);
+        check("historical rounds are left out of the handicap", withHistory.entries().size() == 2
+                && withHistory.entries().stream().noneMatch(entry -> entry.round().historical()));
+        check("the index is the same with or without the historical rounds",
+                Objects.equals(withHistory.currentIndex(), without.currentIndex())
+                        && withHistory.currentDifferentials().equals(without.currentDifferentials()));
+
+        Path temp = Files.createTempDirectory("golfanalyst-historical-test");
+        Path roundsFile = temp.resolve(DataLoader.ROUNDS_FILE);
+        String original = header + "\r\n" + lines.get(1) + "\r\n" + lines.get(3) + "\r\n";
+        Files.writeString(roundsFile, original, StandardCharsets.UTF_8);
+        Round old = rounds.get(0);
+        int[] fixedScores = old.scores().clone();
+        fixedScores[0] = 3;
+        Round fixed = new Round(old.id(), old.teeId(), old.date(), old.pcc(), old.startHole(), old.holes(),
+                fixedScores, old.putts(), old.fairway(), old.sand(), true);
+        RoundWriter.replace(roundsFile, fixed, tee);
+        List<String> after = Files.readAllLines(roundsFile, StandardCharsets.UTF_8);
+        check("editing a historical round keeps its Y", after.get(1).startsWith("1\t1\t2005-06-19\t") && after.get(1).endsWith("\tY")
+                && after.get(1).contains("\t3,4,4,"));
+        check("editing it leaves the other round alone", after.get(2).equals(lines.get(3)));
+        Files.deleteIfExists(temp.resolve(DataLoader.ROUNDS_FILE + RoundWriter.BACKUP_SUFFIX));
+        Files.deleteIfExists(roundsFile);
+        Files.deleteIfExists(temp);
     }
 
     /*

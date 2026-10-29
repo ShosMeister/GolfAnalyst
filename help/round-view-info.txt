@@ -28,6 +28,8 @@ Eagles, Birdies, Pars, Bogeys, DBogeys, Others: How many holes of each kind the 
 
 Index After: What your Handicap Index was right after this round was added.
 
+Historical rounds: An old round kept only to look back at shows "historical" in the 18-Hole Diff box and a dash for Index After, and the bar at the bottom says it is historical. It is not part of your handicap or your statistics.
+
 # The frame under the tables
 
 Date, Score and Putts: When the round was played and its totals.

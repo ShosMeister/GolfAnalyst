@@ -280,7 +280,9 @@ public final class DataLoader
      | produce warnings: a fairway marked on a par 3, old Saves/GIR columns     |
      | that are being ignored, or a nine-hole round on a tee whose nine has     |
      | no rating (the round still counts in the statistics, but not toward      |
-     | the handicap).                                                           |
+     | the handicap). The optional Historical column marks an old round kept    |
+     | only to look back at: Y (or YES) for historical, blank or N for an       |
+     | ordinary round; anything else skips the row.                             |
      |                                                                          |
      | Passed in:  lines    - text lines of the file, header included           |
      |             tees     - known course/tees, keyed by TeeID                 |
@@ -392,7 +394,13 @@ public final class DataLoader
                     problems.add(warning(ROUNDS_FILE, lineNo, "fairway marked on par 3 hole(s) " + par3Fairways
                             + " - ignored, fairway % only counts par 4s and 5s"));
                 }
-                if (!tee.isRated(startHole, holesPlayed))
+                String historicalText = table.get(cells, "historical").toUpperCase(Locale.ROOT);
+                boolean historical = historicalText.equals("Y") || historicalText.equals("YES");
+                if (!historical && !historicalText.isEmpty() && !historicalText.equals("N") && !historicalText.equals("NO"))
+                {
+                    throw new RowError("Historical must be blank, Y or N, found '" + historicalText + "'");
+                }
+                if (!historical && !tee.isRated(startHole, holesPlayed))
                 {
                     problems.add(warning(ROUNDS_FILE, lineNo, "tee " + teeId + " has no "
                             + (startHole == 0 ? "front" : "back")
@@ -400,7 +408,7 @@ public final class DataLoader
                 }
                 idLine.put(id, lineNo);
                 loaded.add(new Round(id, teeId, date, pcc, startHole, holesPlayed, scores, putts,
-                        fairway, sand));
+                        fairway, sand, historical));
             }
             catch (RowError problem)
             {
