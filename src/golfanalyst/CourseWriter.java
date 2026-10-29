@@ -55,7 +55,7 @@ public final class CourseWriter
     private static String joinNumbers(int[] values)
     {
         StringBuilder text = new StringBuilder();
-        for (int lp = 0; lp < values.length; lp++)
+        for (int lp = 0; lp < values.length; lp = lp + 1)
         {
             text.append(lp == 0 ? "" : ",").append(values[lp]);
         }
@@ -127,7 +127,7 @@ public final class CourseWriter
     public static String formatLine(Tee tee, String[] headerCells)
     {
         StringBuilder line = new StringBuilder();
-        for (int col = 0; col < headerCells.length; col++)
+        for (int col = 0; col < headerCells.length; col = col + 1)
         {
             if (col > 0)
             {

@@ -39,6 +39,7 @@ import java.util.Properties;
  | teeMap()                  - course/tees keyed by id                      |
  | nextRoundId()             - an unused round id                           |
  | addRound(round)           - adds a round to rounds.tsv and reloads       |
+ | replaceRound(round)       - saves an edited round (backup first), reloads|
  | nextTeeId()               - an unused tee id                             |
  | teesForCourse(name, zip)  - the tees a course already has                |
  | addTees(tees)             - adds tees to courses.tsv and reloads         |
@@ -183,6 +184,32 @@ public final class DataStore
     }
 
     /*
+     +--------------------------------------------------------------------------+
+     | replaceRound(round)                                                      |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Saves an edited round: its line in rounds.tsv (the one with the same     |
+     | RoundID) is replaced and nothing else in the file changes; the file as   |
+     | it was is kept in rounds.tsv.bak (see RoundWriter.replace). Then         |
+     | everything is loaded and calculated again.                               |
+     |                                                                          |
+     | Passed in:  round - the edited round, with the id of the saved one       |
+     | Passed out: nothing (throws IOException if the tee is unknown, the       |
+     |             round is not in the file, or the file cannot be written)     |
+     +--------------------------------------------------------------------------+
+     */
+    public void replaceRound(Round round) throws IOException
+    {
+        Tee tee = teeMap().get(round.teeId());
+        if (tee == null)
+        {
+            throw new IOException("TeeID " + round.teeId() + " is not in " + DataLoader.COURSES_FILE);
+        }
+        RoundWriter.replace(dir.resolve(DataLoader.ROUNDS_FILE), round, tee);
+        reload();
+    }
+
+    /*
      * nextTeeId(): an id no course/tee uses yet, one more than the highest.
      * Passed in:  nothing
      * Passed out: the new id (1 if there are no tees)
@@ -260,8 +287,9 @@ public final class DataStore
      +--------------------------------------------------------------------------+
      | Purpose:                                                                 |
      | Works out what the handicap would show for a round that has not          |
-     | been saved yet, by replaying the history with the round added. The       |
-     | draft's id must not be used by any saved round (see nextRoundId).        |
+     | been saved yet, by replaying the history with the round added. If a      |
+     | saved round has the draft's id (a round being edited), the draft takes   |
+     | its place instead of being counted twice.                                |
      |                                                                          |
      | Passed in:  draft - the round being entered                              |
      | Passed out: the history line for that round, or null if it cannot be     |
@@ -271,6 +299,7 @@ public final class DataStore
     public Handicap.Entry project(Round draft)
     {
         List<Round> all = new ArrayList<>(dataset.rounds());
+        all.removeIf(saved -> saved.id() == draft.id());
         all.add(draft);
         Handicap.Result result = Handicap.compute(all, teeMap());
         for (Handicap.Entry entry : result.entries())

@@ -52,7 +52,7 @@ public class WoodTag extends JComponent
         float size = getFont().getSize2D();
         while (size > 10f && canvas.getFontMetrics().stringWidth(text) > getWidth() - 8)
         {
-            size -= 1f;
+            size = size - 1f;
             canvas.setFont(getFont().deriveFont(size));
         }
         Theme.drawCentered(canvas, text, 0, 0, getWidth(), getHeight(), Theme.TAG_TEXT, Theme.TAG_TEXT_SHADOW);

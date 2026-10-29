@@ -14,6 +14,8 @@ To add the round, press New Round. Fill it in from your scorecard and press Save
 
 To look back at your rounds, press Rounds. It opens at your most recent round and the arrows at the bottom step through the others. You can limit it to one course, or one set of tees, with the Show box.
 
+To fix a round you have saved, press Edit Round. Step to the round with the arrows, press Edit, change what you need and press Save. Only that round is changed, and a copy of your rounds file as it was is kept in rounds.tsv.bak, just in case.
+
 To change the name, click it in the Golfer's Stats section, type the name and press OK.
 
 # Adding a course

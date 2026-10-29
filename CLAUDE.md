@@ -1,4 +1,4 @@
-# GolfAnalyst v4.11 (Java) - notes for Claude
+# GolfAnalyst v4.20 (Java) - notes for Claude
 
 A single-golfer golf statistics program with a Swing window. Ported from HyperCard (1991) to Excel/VBA to Java.
 Courses and rounds live in two plain tab-separated text files. Written for one user who tests on Windows.
@@ -43,6 +43,11 @@ Courses and rounds live in two plain tab-separated text files. Written for one u
 - Every page that writes to the files calls `Shell.readyToSave()` first. On `sample-data` it asks "This is the sample
   data. Create your own data folder first?" (Yes makes an empty `data/` beside it and saves nothing; No saves there;
   Cancel saves nothing). Dialogs go through `AppPanel`'s asker so tests can answer them.
+- Changing an existing line (an edited round) goes through `RoundWriter.replace`: it copies the file to
+  `<file>.bak` first, splices in only that line (same ID; columns the program does not know keep their value),
+  leaves every other character of the file as it was, and writes via a temporary file. Then the store reloads.
+- A page with unsaved changes overrides `Page.canLeave()` to ask "Discard your changes?" (`Shell.askYesNo`); the
+  Home button, the arrows and Cancel all go through it.
 
 ## The user's code style (strict; apply to everything, including edits)
 - A large comment block at the start of every class and function: what it does, what is passed in, what is passed
@@ -55,6 +60,9 @@ Courses and rounds live in two plain tab-separated text files. Written for one u
 - Loop counters: never `i`, `j`, `k`. Use `lp`, then `lp1`, `lp2` when nested. Use `row`, `col`, `hole`, `x`, `y`
   when the loop walks something with a real name.
 - Constants in ALL_CAPS. Variables in mixedCase with meaningful names (no single letters).
+- No shorthand assignments: never `x++`, `x--`, `++x`, `x += y`, `x -= y` (and the like). Write them out:
+  `x = x + 1`, `total = total + score`, including in `for` loops (`lp = lp + 1`) and lambdas. The user finds the
+  shorthand easy to overlook when reading. Put brackets round a right-hand side that has a `? :` in it.
 - For a simple fix, tell the user the file name and line numbers so they can edit it themselves instead of
   rebuilding a package.
 
@@ -89,6 +97,10 @@ Courses and rounds live in two plain tab-separated text files. Written for one u
 - Round entry: columns Hole, Par, Score, Putt, Fwy, Sand. Digits only. Cursor goes down all scores (hole 9 to 10
   included) then down all putts. A score 2-9 or a putt moves on at once; a lone 1 in a score waits (ace or 10+).
   In a Putt box F and S tick Fwy and Sand (their scorecard notation).
+- Edit Round: Home's Edit Round opens the round viewer at the latest round; the viewer has an Edit button (where
+  Save sits when entering). Edit mode keeps Course/tee and Holes locked and opens date, PCC, scores, putts, Fwy and
+  Sand; the header says "Edit 00031:Sample Links:White"; help files `round-edit-*`. Save replaces only that round
+  (backup in `rounds.tsv.bak`) and shows it read-only again; Cancel goes back to it as it was.
 - New Course looks like the Round page: course bar (light panel, ordinary boxed text fields) on top; below, a
   centred row of five `WoodFrame`s 14 px apart over the photo (not stretched): a caption frame (WoodTags Tee name,
   Rating / Slope, Front 9, Back 9, Yards / Par, Hole, then hole numbers 14 pt bold) and one frame per tee. All
@@ -106,7 +118,7 @@ Courses and rounds live in two plain tab-separated text files. Written for one u
 - Home buttons: data entry on the left, viewing on the right:
   left New Course, New Round, Edit Round, Import, Clear; right Rounds, Stats Board, Analyzer, Best Round, Print.
 - Help: the i button says WHAT is on the screen; the ? button says HOW to use it. Files in `help/`
-  (`home-*`, `round-new-*`, `round-view-*`, `course-*`). Update them with every feature. Keep the user's friendly
+  (`home-*`, `round-new-*`, `round-view-*`, `round-edit-*`, `course-*`). Update them with every feature. Keep the user's friendly
   voice. The files stay plain text: the first line is the window title; a line starting with "# " is a section
   heading (put "# " in front of every new section heading); "Label: text" (colon within 45 characters, no period
   before it) shows the label in bold; "3. First sentence. More" shows the first sentence in bold
@@ -117,10 +129,10 @@ Courses and rounds live in two plain tab-separated text files. Written for one u
 ## Status and backlog
 Built: Home, round entry, saved-round viewer with the Show (course/tee) filter, Info/Help, New Course (v4.10: adds
 a course or more tees to one; up to four tees at once; v4.11: wood-frame look, copy arrow, live checking), the
-sample-data title/footer and save question.
-Not built (buttons are in place and say "not built yet"): Edit Round, Import, Clear, Stats Board, Analyzer,
-Best Round, Print. Changing an existing course or tee is not built either (the user edits `courses.tsv` by hand).
-- **Edit Round**: needs replacing one line of `rounds.tsv` without disturbing comments or other lines.
+sample-data title/footer and save question, styled Help/Info windows, Edit Round (v4.20).
+Not built (buttons are in place and say "not built yet"): Import, Clear, Stats Board, Analyzer, Best Round, Print.
+Not built either: changing an existing course or tee (the user edits `courses.tsv` by hand; reuse the
+`RoundWriter.replace` approach for `courses.tsv`), and deleting a round.
 - **Clear**: always ask twice and make a dated backup of the files first; it is how the program is reset for a
   different golfer.
 - **Import**: bulk rounds and/or courses from the program's own tab-separated format; show what will be added and

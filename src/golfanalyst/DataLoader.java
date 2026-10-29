@@ -165,7 +165,7 @@ public final class DataLoader
 
         Map<Integer, Integer> idLine = new HashMap<>();
         Set<String> courseTeeNames = new HashSet<>();
-        for (int row = 0; row < table.rows.size(); row++)
+        for (int row = 0; row < table.rows.size(); row = row + 1)
         {
             String[] cells = table.rows.get(row);
             int lineNo = table.lineNos.get(row);
@@ -304,7 +304,7 @@ public final class DataLoader
         }
 
         Map<Integer, Integer> idLine = new HashMap<>();
-        for (int row = 0; row < table.rows.size(); row++)
+        for (int row = 0; row < table.rows.size(); row = row + 1)
         {
             String[] cells = table.rows.get(row);
             int lineNo = table.lineNos.get(row);
@@ -366,7 +366,7 @@ public final class DataLoader
 
                 int[] scores = intList(table.get(cells, "scores"), "Scores", holesPlayed, 1, 30);
                 int[] putts = intList(table.get(cells, "putts"), "Putts", holesPlayed, 0, 15);
-                for (int hole = 0; hole < holesPlayed; hole++)
+                for (int hole = 0; hole < holesPlayed; hole = hole + 1)
                 {
                     if (putts[hole] >= scores[hole])
                     {
@@ -378,7 +378,7 @@ public final class DataLoader
                 boolean[] sand = flagList(table.get(cells, "sand"), "Sand", holesPlayed);
 
                 List<Integer> par3Fairways = new ArrayList<>();
-                for (int hole = 0; hole < holesPlayed; hole++)
+                for (int hole = 0; hole < holesPlayed; hole = hole + 1)
                 {
                     int par = tee.pars()[startHole + hole];
                     int holeNumber = startHole + hole + 1;
@@ -480,7 +480,7 @@ public final class DataLoader
     private static Table parseTable(List<String> lines, String file, List<String> required, List<Problem> problems)
     {
         Table table = null;
-        for (int lp = 0; lp < lines.size(); lp++)
+        for (int lp = 0; lp < lines.size(); lp = lp + 1)
         {
             String rawLine = lines.get(lp);
             if (rawLine.isBlank() || rawLine.trim().startsWith("#"))
@@ -491,7 +491,7 @@ public final class DataLoader
             if (table == null)
             {
                 table = new Table();
-                for (int col = 0; col < cells.length; col++)
+                for (int col = 0; col < cells.length; col = col + 1)
                 {
                     table.columns.putIfAbsent(normalize(cells[col]), col);
                 }
@@ -649,7 +649,7 @@ public final class DataLoader
             throw new RowError(name + " needs " + count + " comma-separated values, found " + found);
         }
         int[] values = new int[count];
-        for (int hole = 0; hole < count; hole++)
+        for (int hole = 0; hole < count; hole = hole + 1)
         {
             String part = parts[hole].trim();
             try
@@ -680,7 +680,7 @@ public final class DataLoader
     {
         int[] values = intList(text, name, count, 0, 1);
         boolean[] flags = new boolean[count];
-        for (int hole = 0; hole < count; hole++)
+        for (int hole = 0; hole < count; hole = hole + 1)
         {
             flags[hole] = values[hole] == 1;
         }

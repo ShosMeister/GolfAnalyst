@@ -61,12 +61,19 @@ import javax.swing.text.DocumentFilter;
  | differential and the index after the round from the rules. Fairways are  |
  | not counted on par 3s, so that box is switched off for them.             |
  |                                                                          |
- | Two modes:                                                               |
+ | Three modes:                                                             |
  | NEW  - the boxes are open for typing; Save adds the round to rounds.tsv  |
  | VIEW - a saved round is shown read-only; the four arrow buttons step     |
  |        through the saved rounds (First, Previous, Next, Last). The       |
  |        Show drop-down limits them to one course, one course and its      |
- |        tees, or all rounds.                                              |
+ |        tees, or all rounds. The Edit button opens the round for editing. |
+ | EDIT - the saved round on show is open for fixing: date, PCC, scores,    |
+ |        putts, Fwy and Sand (the course/tee and holes stay locked). Save  |
+ |        replaces only its line in rounds.tsv (same RoundID; the file as   |
+ |        it was is kept in rounds.tsv.bak) and shows it again read-only;   |
+ |        Cancel goes back to it unchanged. Leaving with unsaved changes    |
+ |        (Cancel, the arrows or the Home button) asks "Discard your        |
+ |        changes?" first.                                                  |
  |                                                                          |
  | A round can be 18 holes, the front nine or the back nine of an 18-hole   |
  | course, or a nine-hole course. Holes not being played are greyed.        |
@@ -75,6 +82,7 @@ import javax.swing.text.DocumentFilter;
  | showNew()          - starts a new round                                  |
  | showRoundAt(index) - shows a saved round (0 is the oldest)               |
  | showLatest()       - shows the newest saved round, or a new round if none|
+ | canLeave()         - asks before leaving a round with unsaved changes    |
  +--------------------------------------------------------------------------+
  */
 @SuppressWarnings({"serial", "this-escape"})
@@ -94,7 +102,7 @@ public final class RoundPage extends Page
 
     private enum Mode
     {
-        NEW, VIEW
+        NEW, VIEW, EDIT
     }
 
     /**
@@ -144,7 +152,9 @@ public final class RoundPage extends Page
     final ValueBox twoPuttBox = new ValueBox();
     final ValueBox differentialBox = new ValueBox();
     final ValueBox indexBox = new ValueBox();
+    static final String DISCARD_QUESTION = "Discard your changes?";
     final WoodButton saveButton = new WoodButton("Save");
+    final WoodButton editButton = new WoodButton("Edit");
     final WoodButton cancelButton = new WoodButton("Cancel");
     final JComboBox<FilterItem> filterCombo = new JComboBox<>();
     final JLabel filterLabel = new JLabel("Show:");
@@ -163,6 +173,7 @@ public final class RoundPage extends Page
     private boolean updating = false;
     private int playedStart = 0;
     private int playedCount = HOLES;
+    private String editStart = "";
 
     /*
      +--------------------------------------------------------------------------+
@@ -345,7 +356,7 @@ public final class RoundPage extends Page
         at.insets = new Insets(1, 2, 1, 2);
         at.fill = GridBagConstraints.HORIZONTAL;
         String[] headings = {"Hole", "Par", "Score", "Putt", "Fwy", "Sand"};
-        for (int col = 0; col < headings.length; col++)
+        for (int col = 0; col < headings.length; col = col + 1)
         {
             at.gridx = col;
             at.gridy = 0;
@@ -355,7 +366,7 @@ public final class RoundPage extends Page
             heading.setBackground(Theme.FIELD_FACE);
             grid.add(heading, at);
         }
-        for (int row = 0; row < NINE; row++)
+        for (int row = 0; row < NINE; row = row + 1)
         {
             int hole = firstHole + row;
             at.weighty = 1.0;
@@ -434,7 +445,7 @@ public final class RoundPage extends Page
         ratingBox.setHorizontalAlignment(SwingConstants.CENTER);
         ratingBox.setPreferredSize(new Dimension(104, ROW_HEIGHT));
         column.add(ratingBox, at);
-        for (int lp = 0; lp < RESULT_BUCKETS; lp++)
+        for (int lp = 0; lp < RESULT_BUCKETS; lp = lp + 1)
         {
             at.gridy = 2 + 2 * lp;
             at.insets = new Insets(0, 0, 0, 0);
@@ -507,6 +518,8 @@ public final class RoundPage extends Page
         addPair(form, "18-Hole Diff", differentialBox, 0, 2);
         addPair(form, "Index After", indexBox, 1, 2);
         saveButton.setPreferredSize(new Dimension(110, 32));
+        editButton.setPreferredSize(new Dimension(110, 32));
+        editButton.setToolTipText("Open this round for editing");
         cancelButton.setPreferredSize(new Dimension(110, 32));
         GridBagConstraints at = new GridBagConstraints();
         at.gridx = 6;
@@ -520,6 +533,7 @@ public final class RoundPage extends Page
         inside.gridy = 0;
         inside.insets = new Insets(0, 0, 8, 0);
         buttons.add(saveButton, inside);
+        buttons.add(editButton, inside);
         inside.gridy = 1;
         inside.insets = new Insets(0, 0, 0, 0);
         buttons.add(cancelButton, inside);
@@ -586,7 +600,8 @@ public final class RoundPage extends Page
         nextButton.addActionListener(event -> goTo(positionShown() + 1));
         lastButton.addActionListener(event -> goTo(shown.size() - 1));
         saveButton.addActionListener(event -> save());
-        cancelButton.addActionListener(event -> shell.goHome());
+        editButton.addActionListener(event -> startEdit());
+        cancelButton.addActionListener(event -> cancel());
     }
 
     // ------------------------------------------------------------ focus order
@@ -633,7 +648,7 @@ public final class RoundPage extends Page
         }
         for (JTextField[] column : new JTextField[][] {scoreFields, puttFields})
         {
-            for (int hole = 0; hole < HOLES; hole++)
+            for (int hole = 0; hole < HOLES; hole = hole + 1)
             {
                 if (usable(column[hole]))
                 {
@@ -641,7 +656,7 @@ public final class RoundPage extends Page
                 }
             }
         }
-        Component[] after = {dateField, saveButton, cancelButton, firstButton, previousButton, nextButton, lastButton};
+        Component[] after = {dateField, saveButton, editButton, cancelButton, firstButton, previousButton, nextButton, lastButton};
         for (Component component : after)
         {
             if (usable(component))
@@ -657,7 +672,7 @@ public final class RoundPage extends Page
      */
     private Component focusOrderFirstEntry()
     {
-        for (int hole = 0; hole < HOLES; hole++)
+        for (int hole = 0; hole < HOLES; hole = hole + 1)
         {
             if (usable(scoreFields[hole]))
             {
@@ -753,7 +768,7 @@ public final class RoundPage extends Page
     // ------------------------------------------------------------------- titles
 
     /*
-     * title(): "New Round" while entering, or "00006:Jacksons Chase:Beginner" for a saved round.
+     * title(): "New Round" while entering, "00006:Jacksons Chase:Beginner" for a saved round, and "Edit 00006:Jacksons Chase:Beginner" while editing it.
      */
     @Override
     public String title()
@@ -764,16 +779,17 @@ public final class RoundPage extends Page
         }
         Round round = shell.store().roundsByDate().get(viewIndex);
         Tee tee = shell.store().teeMap().get(round.teeId());
-        return String.format("%05d:%s:%s", round.id(), tee.courseName(), tee.teeName());
+        String name = String.format("%05d:%s:%s", round.id(), tee.courseName(), tee.teeName());
+        return mode == Mode.EDIT ? "Edit " + name : name;
     }
 
     /*
-     * helpKey(): the start of the help file names: round-new-info.txt and round-new-help.txt while entering a round, round-view-info.txt and round-view-help.txt while looking at saved ones.
+     * helpKey(): the start of the help file names: round-new while entering a round, round-view while looking at saved ones, round-edit while editing one (each with -info.txt and -help.txt).
      */
     @Override
     public String helpKey()
     {
-        return mode == Mode.NEW ? "round-new" : "round-view";
+        return mode == Mode.NEW ? "round-new" : (mode == Mode.EDIT ? "round-edit" : "round-view");
     }
 
     /*
@@ -897,8 +913,8 @@ public final class RoundPage extends Page
             playedStart = NINE;
             playedCount = NINE;
         }
-        boolean typing = mode == Mode.NEW;
-        for (int hole = 0; hole < HOLES; hole++)
+        boolean typing = mode != Mode.VIEW;
+        for (int hole = 0; hole < HOLES; hole = hole + 1)
         {
             boolean onTee = tee != null && hole < tee.holes();
             boolean played = onTee && hole >= playedStart && hole < playedStart + playedCount;
@@ -925,7 +941,7 @@ public final class RoundPage extends Page
                 fairwayChecks[hole].setSelected(false);
             }
         }
-        for (int hole = 0; hole < HOLES; hole++)
+        for (int hole = 0; hole < HOLES; hole = hole + 1)
         {
             mark(scoreFields[hole], false);
             mark(puttFields[hole], false);
@@ -952,7 +968,7 @@ public final class RoundPage extends Page
     {
         boolean wasUpdating = updating;
         updating = true;
-        for (int hole = 0; hole < HOLES; hole++)
+        for (int hole = 0; hole < HOLES; hole = hole + 1)
         {
             scoreFields[hole].setText("");
             puttFields[hole].setText("");
@@ -963,19 +979,20 @@ public final class RoundPage extends Page
     }
 
     /*
-     * setMode(newMode): switches between typing (NEW) and looking (VIEW): which controls are open and what the buttons say.
-     * Passed in:  newMode - NEW or VIEW
+     * setMode(newMode): switches between typing a new round (NEW), looking (VIEW) and editing a saved round (EDIT): which controls are open and which buttons show. The course/tee and holes can only be chosen for a new round.
+     * Passed in:  newMode - NEW, VIEW or EDIT
      * Passed out: nothing
      */
     private void setMode(Mode newMode)
     {
         mode = newMode;
-        boolean typing = newMode == Mode.NEW;
-        teeCombo.setEnabled(typing);
-        holesCombo.setEnabled(typing);
+        boolean typing = newMode != Mode.VIEW;
+        teeCombo.setEnabled(newMode == Mode.NEW);
+        holesCombo.setEnabled(newMode == Mode.NEW);
         pccField.setEditable(typing);
         dateField.setEditable(typing);
         saveButton.setVisible(typing);
+        editButton.setVisible(!typing);
         filterLabel.setVisible(!typing);
         filterCombo.setVisible(!typing);
         cancelButton.setText(typing ? "Cancel" : "Close");
@@ -1078,7 +1095,7 @@ public final class RoundPage extends Page
         pccField.setText(Integer.toString(round.pcc()));
         clearEntries();
         applyHoles();
-        for (int lp = 0; lp < round.holes(); lp++)
+        for (int lp = 0; lp < round.holes(); lp = lp + 1)
         {
             int hole = round.startHole() + lp;
             scoreFields[hole].setText(Integer.toString(round.scores()[lp]));
@@ -1149,7 +1166,7 @@ public final class RoundPage extends Page
             int courseTotal = 0;
             for (int count : course.getValue().values())
             {
-                courseTotal += count;
+                courseTotal = courseTotal + count;
             }
             if (course.getValue().size() > 1)
             {
@@ -1195,7 +1212,7 @@ public final class RoundPage extends Page
     {
         shown.clear();
         List<Round> rounds = shell.store().roundsByDate();
-        for (int lp = 0; lp < rounds.size(); lp++)
+        for (int lp = 0; lp < rounds.size(); lp = lp + 1)
         {
             Round round = rounds.get(lp);
             Tee tee = shell.store().teeMap().get(round.teeId());
@@ -1223,7 +1240,7 @@ public final class RoundPage extends Page
      */
     private void goTo(int position)
     {
-        if (position >= 0 && position < shown.size())
+        if (position >= 0 && position < shown.size() && canLeave())
         {
             showRoundAt(shown.get(position));
         }
@@ -1254,7 +1271,7 @@ public final class RoundPage extends Page
     {
         int size = shown.size();
         boolean has = size > 0;
-        boolean viewing = mode == Mode.VIEW;
+        boolean viewing = mode != Mode.NEW;
         int position = positionShown();
         firstButton.setEnabled(has && (!viewing || position > 0));
         previousButton.setEnabled(has && (!viewing || position > 0));
@@ -1293,7 +1310,7 @@ public final class RoundPage extends Page
      */
     private void mark(JTextField field, boolean bad)
     {
-        boolean typing = mode == Mode.NEW && field.isEnabled() && field.isEditable();
+        boolean typing = mode != Mode.VIEW && field.isEnabled() && field.isEditable();
         field.setBackground(bad ? Theme.FIELD_ERROR : (typing ? Color.WHITE : Theme.FIELD_FACE));
     }
 
@@ -1370,20 +1387,20 @@ public final class RoundPage extends Page
         int[] halfComplete = new int[2];
         int[] results = new int[RESULT_BUCKETS];
         String problem = null;
-        for (int hole = 0; hole < HOLES; hole++)
+        for (int hole = 0; hole < HOLES; hole = hole + 1)
         {
             mark(scoreFields[hole], false);
             mark(puttFields[hole], false);
         }
-        for (int hole = playedStart; hole < playedStart + playedCount; hole++)
+        for (int hole = playedStart; hole < playedStart + playedCount; hole = hole + 1)
         {
             int par = tee.pars()[hole];
             if (par >= 4)
             {
-                fairwayChances++;
+                fairwayChances = fairwayChances + 1;
                 if (fairwayChecks[hole].isSelected())
                 {
-                    fairwayHits++;
+                    fairwayHits = fairwayHits + 1;
                 }
             }
             Integer score = number(scoreFields[hole]);
@@ -1414,26 +1431,26 @@ public final class RoundPage extends Page
                         : problem;
                 continue;
             }
-            complete++;
+            complete = complete + 1;
             int half = hole < NINE ? 0 : 1;
-            halfComplete[half]++;
-            scoreSums[half] += score;
-            puttSums[half] += putts;
+            halfComplete[half] = halfComplete[half] + 1;
+            scoreSums[half] = scoreSums[half] + score;
+            puttSums[half] = puttSums[half] + putts;
             if (Stats.isGreenInRegulation(par, score, putts))
             {
-                girCount++;
+                girCount = girCount + 1;
             }
             if (putts <= 2)
             {
-                twoPuttCount++;
+                twoPuttCount = twoPuttCount + 1;
             }
-            results[Stats.resultBucket(score - par)]++;
+            results[Stats.resultBucket(score - par)] = results[Stats.resultBucket(score - par)] + 1;
             if (sandChecks[hole].isSelected())
             {
-                sandShots++;
+                sandShots = sandShots + 1;
                 if (Stats.isSandSave(par, score))
                 {
-                    sandSaves++;
+                    sandSaves = sandSaves + 1;
                 }
             }
         }
@@ -1449,7 +1466,7 @@ public final class RoundPage extends Page
         sandBox.setValue(sandShots > 0 ? sandSaves + " / " + sandShots : "-");
         girBox.setValue(any ? girCount + " / " + complete : "-");
         twoPuttBox.setValue(any ? twoPuttCount + " / " + complete : "-");
-        for (int lp = 0; lp < RESULT_BUCKETS; lp++)
+        for (int lp = 0; lp < RESULT_BUCKETS; lp = lp + 1)
         {
             resultBoxes[lp].setValue(any ? Integer.toString(results[lp]) : "");
         }
@@ -1460,7 +1477,7 @@ public final class RoundPage extends Page
         mark(pccField, pcc == null);
         mark(dateField, date == null);
         showProjection(ready, date, pcc);
-        if (mode == Mode.NEW)
+        if (mode != Mode.VIEW)
         {
             saveButton.setEnabled(ready);
             if (problem != null)
@@ -1517,7 +1534,7 @@ public final class RoundPage extends Page
         }
         else if (ready)
         {
-            entry = shell.store().project(buildRound(shell.store().nextRoundId(), date, pcc));
+            entry = shell.store().project(buildRound(mode == Mode.EDIT ? viewedRoundId : shell.store().nextRoundId(), date, pcc));
         }
         if (entry == null)
         {
@@ -1550,7 +1567,7 @@ public final class RoundPage extends Page
         int[] putts = new int[playedCount];
         boolean[] fairway = new boolean[playedCount];
         boolean[] sand = new boolean[playedCount];
-        for (int lp = 0; lp < playedCount; lp++)
+        for (int lp = 0; lp < playedCount; lp = lp + 1)
         {
             int hole = playedStart + lp;
             scores[lp] = Integer.parseInt(scoreFields[hole].getText().trim());
@@ -1584,10 +1601,18 @@ public final class RoundPage extends Page
         {
             return;
         }
-        Round round = buildRound(shell.store().nextRoundId(), date, pcc);
+        boolean editing = mode == Mode.EDIT;
+        Round round = buildRound(editing ? viewedRoundId : shell.store().nextRoundId(), date, pcc);
         try
         {
-            shell.store().addRound(round);
+            if (editing)
+            {
+                shell.store().replaceRound(round);
+            }
+            else
+            {
+                shell.store().addRound(round);
+            }
         }
         catch (IOException failure)
         {
@@ -1599,14 +1624,101 @@ public final class RoundPage extends Page
         filterTeeId = -1;
         rebuildFilter();
         List<Round> rounds = shell.store().roundsByDate();
-        for (int lp = 0; lp < rounds.size(); lp++)
+        for (int lp = 0; lp < rounds.size(); lp = lp + 1)
         {
             if (rounds.get(lp).id() == round.id())
             {
                 showRoundAt(lp);
-                shell.setStatus("Round saved.  Round " + (positionShown() + 1) + " of " + shown.size() + ".");
+                shell.setStatus((editing ? "Changes saved; the file as it was is in rounds.tsv.bak." : "Round saved.")
+                        + "  Round " + (positionShown() + 1) + " of " + shown.size() + ".");
             }
         }
+    }
+
+    /*
+     * entries(): everything that can be changed while editing, as one piece of text, so changes can be spotted by comparing it with how it was when editing began.
+     * Passed in:  nothing
+     * Passed out: the text
+     */
+    private String entries()
+    {
+        StringBuilder text = new StringBuilder(dateField.getText()).append('|').append(pccField.getText());
+        for (int hole = 0; hole < HOLES; hole = hole + 1)
+        {
+            text.append('|').append(scoreFields[hole].getText()).append(',').append(puttFields[hole].getText())
+                    .append(',').append(fairwayChecks[hole].isSelected()).append(',').append(sandChecks[hole].isSelected());
+        }
+        return text.toString();
+    }
+
+    /*
+     * hasChanges(): whether a round being edited has been changed since Edit was pressed.
+     */
+    boolean hasChanges()
+    {
+        return mode == Mode.EDIT && !entries().equals(editStart);
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | startEdit()                                                              |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | What the Edit button does: opens the saved round on show for editing.    |
+     | The date, PCC, scores, putts, Fwy and Sand open for typing; the          |
+     | course/tee and holes stay locked. The header says "Edit ..." and the     |
+     | cursor goes to the first score.                                          |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing                                                      |
+     +--------------------------------------------------------------------------+
+     */
+    private void startEdit()
+    {
+        if (mode != Mode.VIEW || viewIndex < 0)
+        {
+            return;
+        }
+        updating = true;
+        setMode(Mode.EDIT);
+        applyHoles();
+        updating = false;
+        editStart = entries();
+        updateNav();
+        recalc();
+        shell.setStatus("Editing this round. Change what you need and press Save, or Cancel to leave it as it was.");
+        shell.refreshTitle();
+        Component first = focusOrderFirstEntry();
+        if (first != null)
+        {
+            SwingUtilities.invokeLater(() -> first.requestFocusInWindow());
+        }
+    }
+
+    /*
+     * cancel(): what Cancel / Close does: while editing, goes back to the saved round as it was (asking first if anything was changed); otherwise back Home.
+     */
+    private void cancel()
+    {
+        if (mode != Mode.EDIT)
+        {
+            shell.goHome();
+        }
+        else if (canLeave())
+        {
+            showRoundAt(viewIndex);
+        }
+    }
+
+    /*
+     * canLeave(): while a round being edited has unsaved changes, asks "Discard your changes?"; Yes lets the window or the arrows move away.
+     * Passed in:  nothing
+     * Passed out: true when it is all right to leave
+     */
+    @Override
+    public boolean canLeave()
+    {
+        return !hasChanges() || shell.askYesNo(DISCARD_QUESTION);
     }
 
     // ------------------------------------------------------------ small helpers

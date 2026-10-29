@@ -44,4 +44,4 @@ Index After: What your Handicap Index was right after this round was added.
 
 The arrows are First, Previous, Next and Last round, within whatever you chose in Show. An arrow is greyed out when there is nowhere to go. The bar along the bottom says which round you are on and how many there are in your choice, for example Round 3 of 12.
 
-Close goes back to the Home screen.
+Edit opens the round on show so you can fix it. Close goes back to the Home screen.

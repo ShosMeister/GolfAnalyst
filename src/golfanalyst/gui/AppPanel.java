@@ -45,7 +45,8 @@ import javax.swing.SwingUtilities;
  | navigate(pageName)  - shows a page                                       |
  | windowTitle()       - the text for the window's title bar                |
  | the Shell methods   - store, setStatus, refreshTitle, goHome, newRound,  |
- |                       browseRounds, newCourse, readyToSave               |
+ |                       browseRounds, editRound, newCourse, readyToSave,   |
+ |                       askYesNo                                           |
  +--------------------------------------------------------------------------+
  */
 @SuppressWarnings({"serial", "this-escape"})
@@ -103,7 +104,7 @@ public final class AppPanel extends JPanel implements Shell
         add(center, BorderLayout.CENTER);
         add(footer, BorderLayout.SOUTH);
 
-        header.homeButton().addActionListener(event -> goHome());
+        header.homeButton().addActionListener(event -> leaveForHome());
         header.helpButton().addActionListener(event -> showHelp(false));
         header.infoButton().addActionListener(event -> showHelp(true));
         footer.setStatusClickAction(() -> showProblems());
@@ -271,6 +272,44 @@ public final class AppPanel extends JPanel implements Shell
     }
 
     /*
+     * leaveForHome(): what the Home button does: goes Home, unless the page on show has unsaved changes and the answer to "Discard your changes?" is No.
+     */
+    private void leaveForHome()
+    {
+        if (pages.get(current).canLeave())
+        {
+            goHome();
+        }
+    }
+
+    /*
+     * editRound(): shows the round viewer at the latest round, with its Edit button, or says there is nothing to edit yet.
+     */
+    @Override
+    public void editRound()
+    {
+        if (store.roundsByDate().isEmpty())
+        {
+            setStatus("There are no saved rounds to edit yet.");
+            return;
+        }
+        roundPage.showLatest();
+        navigate(ROUND);
+        setStatus("Find the round with the arrows or the Show box, then press Edit.");
+    }
+
+    /*
+     * askYesNo(question): asks a Yes / No question in a small window over this one (closing it counts as No).
+     * Passed in:  question - the words to ask
+     * Passed out: true for Yes
+     */
+    @Override
+    public boolean askYesNo(String question)
+    {
+        return asker.applyAsInt(question) == JOptionPane.YES_OPTION;
+    }
+
+    /*
      * newCourse(): shows the New Course page, empty.
      */
     @Override
@@ -332,14 +371,14 @@ public final class AppPanel extends JPanel implements Shell
     }
 
     /*
-     * askOnScreen(question): asks a Yes / No / Cancel question in a small window over this one.
+     * askOnScreen(question): asks a question in a small window over this one: Yes / No / Cancel for the sample-data question, Yes / No for anything else.
      * Passed in:  question - the words to ask
      * Passed out: JOptionPane.YES_OPTION, NO_OPTION or CANCEL_OPTION (closing the window counts as Cancel)
      */
     private int askOnScreen(String question)
     {
-        int answer = JOptionPane.showConfirmDialog(this, question, "Golf Analyst", JOptionPane.YES_NO_CANCEL_OPTION,
-                JOptionPane.QUESTION_MESSAGE);
+        int buttons = question.equals(SAMPLE_QUESTION) ? JOptionPane.YES_NO_CANCEL_OPTION : JOptionPane.YES_NO_OPTION;
+        int answer = JOptionPane.showConfirmDialog(this, question, "Golf Analyst", buttons, JOptionPane.QUESTION_MESSAGE);
         return answer == JOptionPane.CLOSED_OPTION ? JOptionPane.CANCEL_OPTION : answer;
     }
 

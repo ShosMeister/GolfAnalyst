@@ -228,57 +228,57 @@ public final class Stats
             }
             if (round.isNineHole())
             {
-                rounds9++;
-                scoreSum9 += round.totalScore();
-                puttSum9 += round.totalPutts();
+                rounds9 = rounds9 + 1;
+                scoreSum9 = scoreSum9 + round.totalScore();
+                puttSum9 = puttSum9 + round.totalPutts();
                 bestScore9 = Math.min(bestScore9, round.totalScore());
             }
             else
             {
-                rounds18++;
-                scoreSum18 += round.totalScore();
-                puttSum18 += round.totalPutts();
+                rounds18 = rounds18 + 1;
+                scoreSum18 = scoreSum18 + round.totalScore();
+                puttSum18 = puttSum18 + round.totalPutts();
                 bestScore18 = Math.min(bestScore18, round.totalScore());
             }
-            for (int hole = 0; hole < round.holes(); hole++)
+            for (int hole = 0; hole < round.holes(); hole = hole + 1)
             {
                 int par = tee.pars()[round.startHole() + hole];
                 int score = round.scores()[hole];
-                holesPlayed++;
+                holesPlayed = holesPlayed + 1;
                 if (par >= MIN_PAR_FOR_FAIRWAY)
                 {
-                    fairwayChances++;
+                    fairwayChances = fairwayChances + 1;
                     if (round.fairway()[hole])
                     {
-                        fairwayHits++;
+                        fairwayHits = fairwayHits + 1;
                     }
                 }
                 if (isGreenInRegulation(par, score, round.putts()[hole]))
                 {
-                    girHits++;
+                    girHits = girHits + 1;
                 }
                 if (round.putts()[hole] <= MAX_PUTTS_FOR_TWO_PUTT)
                 {
-                    twoPuttOrFewer++;
+                    twoPuttOrFewer = twoPuttOrFewer + 1;
                 }
                 if (round.sand()[hole])
                 {
-                    sandShots++;
+                    sandShots = sandShots + 1;
                     if (isSandSave(par, score))
                     {
-                        sandSaves++;
+                        sandSaves = sandSaves + 1;
                     }
                 }
                 if (par < FIRST_PAR_TYPE + PAR_TYPES)
                 {
-                    parScoreSum[par - FIRST_PAR_TYPE] += score;
-                    parHoleCount[par - FIRST_PAR_TYPE]++;
+                    parScoreSum[par - FIRST_PAR_TYPE] = parScoreSum[par - FIRST_PAR_TYPE] + score;
+                    parHoleCount[par - FIRST_PAR_TYPE] = parHoleCount[par - FIRST_PAR_TYPE] + 1;
                 }
-                resultCounts[resultBucket(score - par)]++;
+                resultCounts[resultBucket(score - par)] = resultCounts[resultBucket(score - par)] + 1;
             }
         }
         double[] parAverage = new double[PAR_TYPES];
-        for (int lp = 0; lp < PAR_TYPES; lp++)
+        for (int lp = 0; lp < PAR_TYPES; lp = lp + 1)
         {
             parAverage[lp] = parHoleCount[lp] == 0 ? Double.NaN : parScoreSum[lp] / parHoleCount[lp];
         }

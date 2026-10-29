@@ -1,0 +1,21 @@
+Editing a Round - Help
+
+Typed a 5 where you meant a 4? Here is how to put it right.
+
+1. Find the round. Press Edit Round on the Home screen (or Rounds) and use the arrows at the bottom to step to the round. The Show box at the top can narrow it down to one course or one set of tees.
+
+2. Press Edit. The title at the top now starts with Edit, and the boxes you can change turn white. The course, the tees and the holes stay as they are.
+
+3. Make your changes. Click the box you want and type over it. The cursor moves on just like it does when you enter a round, and the F and S keys still tick Fwy and Sand. Everything at the bottom and on the right is worked out again as you type, including what the round does to your handicap.
+
+4. Press Save. Only this round's line in rounds.tsv is replaced. Your other rounds and any notes in the file are left alone. Your handicap and statistics are worked out again straight away.
+
+Changed your mind? Press Cancel and the round goes back to how it was.
+
+# A few things worth knowing
+
+A safety copy: Every time you save an edit, the file as it was is copied to rounds.tsv.bak in your data folder. If an edit went wrong, close the program, copy rounds.tsv.bak over rounds.tsv, and open the program again. Only the last copy is kept, so do this before you save another edit.
+
+Leaving with unsaved changes: If you press an arrow, Cancel or the Home button after changing something, the program asks "Discard your changes?" Say No to go back and press Save, or Yes to leave the round as it was.
+
+The wrong course: The course and tees cannot be changed here. If you entered a round on the wrong course, enter it again on the right one. Deleting a round is not built yet, so for now remove the wrong one by deleting its line from rounds.tsv with a text editor (the program tells you if a line is wrong).

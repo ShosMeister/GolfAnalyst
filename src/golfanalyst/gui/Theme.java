@@ -72,7 +72,7 @@ public final class Theme
     public static final int ICON_SIZE = 56;
     public static final int NAV_ICON_SIZE = 46;
     /** The version. The second pair of digits: .0x is a bug fix, .x0 is a new feature. */
-    public static final String VERSION = "4.11";
+    public static final String VERSION = "4.20";
     public static final String VERSION_TEXT = "Golf Analyst v" + VERSION;
     /** The picture stretched across the header. Change this name to use a different wood. */
     public static final String HEADER_WOOD = "Wood_Light.gif";
@@ -232,7 +232,7 @@ public final class Theme
         Color light = new Color(255, 255, 255, 120);
         Color dark = new Color(0, 0, 0, 140);
         graphics.setStroke(new BasicStroke(1f));
-        for (int edge = 0; edge < 2; edge++)
+        for (int edge = 0; edge < 2; edge = edge + 1)
         {
             graphics.setColor(raised ? light : dark);
             graphics.drawLine(edge, edge, width - 1 - edge, edge);

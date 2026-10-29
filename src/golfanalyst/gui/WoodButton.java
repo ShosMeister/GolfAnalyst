@@ -94,7 +94,7 @@ public class WoodButton extends JButton
         float size = getFont().getSize2D();
         while (size > 11f && canvas.getFontMetrics().stringWidth(getText()) > getWidth() - 16)
         {
-            size -= 1f;
+            size = size - 1f;
             canvas.setFont(getFont().deriveFont(size));
         }
         Color color = !isEnabled() ? Theme.TEXT_DISABLED : (hover ? Theme.TEXT_HOVER : Theme.TEXT_LIGHT);

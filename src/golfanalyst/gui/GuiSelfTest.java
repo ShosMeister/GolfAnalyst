@@ -75,6 +75,8 @@ public final class GuiSelfTest
         private String status = "";
         private String lastPage = "";
         private int windowCalls = 0;
+        private final List<String> asked = new ArrayList<>();
+        private boolean answerYes = true;
 
         TestShell(DataStore store)
         {
@@ -96,7 +98,7 @@ public final class GuiSelfTest
         @Override
         public void setStatus(String text)
         {
-            windowCalls++;
+            windowCalls = windowCalls + 1;
             status = text;
         }
 
@@ -106,7 +108,7 @@ public final class GuiSelfTest
         @Override
         public void refreshTitle()
         {
-            windowCalls++;
+            windowCalls = windowCalls + 1;
         }
 
         /*
@@ -115,7 +117,7 @@ public final class GuiSelfTest
         @Override
         public void goHome()
         {
-            windowCalls++;
+            windowCalls = windowCalls + 1;
             lastPage = "home";
         }
 
@@ -125,7 +127,7 @@ public final class GuiSelfTest
         @Override
         public void newRound()
         {
-            windowCalls++;
+            windowCalls = windowCalls + 1;
             lastPage = "new";
         }
 
@@ -135,7 +137,7 @@ public final class GuiSelfTest
         @Override
         public void browseRounds()
         {
-            windowCalls++;
+            windowCalls = windowCalls + 1;
             lastPage = "browse";
         }
 
@@ -145,7 +147,7 @@ public final class GuiSelfTest
         @Override
         public void newCourse()
         {
-            windowCalls++;
+            windowCalls = windowCalls + 1;
             lastPage = "course";
         }
 
@@ -155,8 +157,29 @@ public final class GuiSelfTest
         @Override
         public boolean readyToSave()
         {
-            windowCalls++;
+            windowCalls = windowCalls + 1;
             return true;
+        }
+
+        /*
+         * editRound(): remembers that Edit Round was asked for.
+         */
+        @Override
+        public void editRound()
+        {
+            windowCalls = windowCalls + 1;
+            lastPage = "edit";
+        }
+
+        /*
+         * askYesNo(question): remembers the question and gives the answer the test has set.
+         */
+        @Override
+        public boolean askYesNo(String question)
+        {
+            windowCalls = windowCalls + 1;
+            asked.add(question);
+            return answerYes;
         }
     }
 
@@ -169,11 +192,11 @@ public final class GuiSelfTest
     {
         if (ok)
         {
-            passedCount++;
+            passedCount = passedCount + 1;
         }
         else
         {
-            failedCount++;
+            failedCount = failedCount + 1;
             System.out.println("FAIL  " + name);
         }
     }
@@ -288,7 +311,7 @@ public final class GuiSelfTest
         }
         catch (IOException | RuntimeException failure)
         {
-            failedCount++;
+            failedCount = failedCount + 1;
             System.out.println("FAIL  the test stopped with an error: " + failure);
             failure.printStackTrace(System.out);
         }
@@ -337,7 +360,7 @@ public final class GuiSelfTest
         page.showNew();
         check("a new round starts with Save off", !page.saveButton.isEnabled());
         int[] pars = {4, 3, 5, 4, 4, 3, 5, 4, 4, 4, 3, 5, 4, 4, 3, 5, 4, 4};
-        for (int hole = 0; hole < 18; hole++)
+        for (int hole = 0; hole < 18; hole = hole + 1)
         {
             check("hole " + (hole + 1) + " shows its par from the course", page.parBoxes[hole].getText().equals(Integer.toString(pars[hole])));
             type(page.puttFields[hole], "2");
@@ -414,7 +437,7 @@ public final class GuiSelfTest
         // Typing rules for the putts and score boxes: digits only, one digit moves on, a lone 1 in a score waits
         int[] advances = new int[1];
         javax.swing.text.PlainDocument puttDoc = new javax.swing.text.PlainDocument();
-        puttDoc.setDocumentFilter(new RoundPage.EntryFilter(false, () -> false, () -> advances[0]++, null));
+        puttDoc.setDocumentFilter(new RoundPage.EntryFilter(false, () -> false, () -> advances[0] = advances[0] + 1, null));
         try
         {
             puttDoc.insertString(0, "x", null);
@@ -430,7 +453,7 @@ public final class GuiSelfTest
 
             advances[0] = 0;
             javax.swing.text.PlainDocument scoreDoc = new javax.swing.text.PlainDocument();
-            scoreDoc.setDocumentFilter(new RoundPage.EntryFilter(true, () -> false, () -> advances[0]++, null));
+            scoreDoc.setDocumentFilter(new RoundPage.EntryFilter(true, () -> false, () -> advances[0] = advances[0] + 1, null));
             scoreDoc.insertString(0, "q", null);
             scoreDoc.insertString(0, "-", null);
             check("letters and signs cannot be typed in a score box", scoreDoc.getLength() == 0 && advances[0] == 0);
@@ -447,7 +470,7 @@ public final class GuiSelfTest
             check("a digit typed into a full score box starts it over", scoreDoc.getText(0, scoreDoc.getLength()).equals("9") && advances[0] == 3);
 
             javax.swing.text.PlainDocument loadingDoc = new javax.swing.text.PlainDocument();
-            loadingDoc.setDocumentFilter(new RoundPage.EntryFilter(false, () -> true, () -> advances[0]++, null));
+            loadingDoc.setDocumentFilter(new RoundPage.EntryFilter(false, () -> true, () -> advances[0] = advances[0] + 1, null));
             advances[0] = 0;
             loadingDoc.insertString(0, "12", null);
             check("a saved round's values load as they are, with no moving on", loadingDoc.getText(0, loadingDoc.getLength()).equals("12") && advances[0] == 0);
@@ -460,7 +483,7 @@ public final class GuiSelfTest
         // The F and S keys in a putts box tick Fwy and Sand, like the notation on a scorecard
         StringBuilder letters = new StringBuilder();
         javax.swing.text.PlainDocument letterDoc = new javax.swing.text.PlainDocument();
-        letterDoc.setDocumentFilter(new RoundPage.EntryFilter(false, () -> false, () -> advances[0]++, letter -> letters.append(letter)));
+        letterDoc.setDocumentFilter(new RoundPage.EntryFilter(false, () -> false, () -> advances[0] = advances[0] + 1, letter -> letters.append(letter)));
         try
         {
             letterDoc.insertString(0, "f", null);
@@ -506,7 +529,7 @@ public final class GuiSelfTest
 
         // Wording: a score belongs to a hole; rounds are what the handicap counts
         for (String file : new String[] {"home-info.txt", "home-help.txt", "round-new-info.txt", "round-new-help.txt",
-                "round-view-info.txt", "round-view-help.txt", "course-info.txt", "course-help.txt"})
+                "round-view-info.txt", "round-view-help.txt", "round-edit-info.txt", "round-edit-help.txt", "course-info.txt", "course-help.txt"})
         {
             String helpText = Files.readString(Path.of("help", file));
             check(file + " does not call a round a score", !helpText.contains("Scores Used") && !helpText.contains("20 scores")
@@ -524,7 +547,7 @@ public final class GuiSelfTest
         check("the Show drop-down is visible when looking at rounds", page.filterCombo.isVisible());
         RoundPage.FilterItem riverbend = null;
         RoundPage.FilterItem linksAllTees = null;
-        for (int lp = 0; lp < page.filterCombo.getItemCount(); lp++)
+        for (int lp = 0; lp < page.filterCombo.getItemCount(); lp = lp + 1)
         {
             RoundPage.FilterItem item = page.filterCombo.getItemAt(lp);
             if (item.label().startsWith("Riverbend GC"))
@@ -542,8 +565,8 @@ public final class GuiSelfTest
         int linksRounds = 0;
         for (Round round : store.roundsByDate())
         {
-            riverbendRounds += round.teeId() == riverbend.teeId() ? 1 : 0;
-            linksRounds += (round.teeId() == 1 || round.teeId() == 2) ? 1 : 0;
+            riverbendRounds = riverbendRounds + (round.teeId() == riverbend.teeId() ? 1 : 0);
+            linksRounds = linksRounds + ((round.teeId() == 1 || round.teeId() == 2) ? 1 : 0);
         }
         page.filterCombo.setSelectedItem(riverbend);
         check("choosing a tee shows a round on that tee", page.title().contains("Riverbend GC"));
@@ -553,7 +576,7 @@ public final class GuiSelfTest
         while (page.nextButton.isEnabled())
         {
             page.nextButton.doClick();
-            steps++;
+            steps = steps + 1;
             allRiverbend = allRiverbend && page.title().contains("Riverbend GC");
         }
         check("the arrows step through only that tee's rounds", steps == riverbendRounds && allRiverbend);
@@ -564,7 +587,7 @@ public final class GuiSelfTest
         while (page.nextButton.isEnabled())
         {
             page.nextButton.doClick();
-            steps++;
+            steps = steps + 1;
         }
         check("an all-tees choice steps through every tee of the course", steps == linksRounds);
         page.filterCombo.setSelectedIndex(0);
@@ -573,7 +596,7 @@ public final class GuiSelfTest
         while (page.nextButton.isEnabled())
         {
             page.nextButton.doClick();
-            steps++;
+            steps = steps + 1;
         }
         check("all rounds steps through every saved round", steps == store.roundsByDate().size());
 
@@ -582,7 +605,7 @@ public final class GuiSelfTest
         check("while entering, the round help files are the entry ones", page.helpKey().equals("round-new"));
         page.showLatest();
         check("while looking, the round help files are the viewing ones", page.helpKey().equals("round-view"));
-        for (String key : new String[] {"home", "round-new", "round-view", "course"})
+        for (String key : new String[] {"home", "round-new", "round-view", "round-edit", "course"})
         {
             for (String kind : new String[] {"info", "help"})
             {
@@ -595,7 +618,7 @@ public final class GuiSelfTest
         page.showNew();
         page.holesCombo.setSelectedIndex(1);
         check("front nine switches the back nine off", !page.scoreFields[10].isEnabled() && page.scoreFields[0].isEnabled());
-        for (int hole = 0; hole < 9; hole++)
+        for (int hole = 0; hole < 9; hole = hole + 1)
         {
             type(page.puttFields[hole], "2");
             type(page.scoreFields[hole], Integer.toString(pars[hole] + 1));
@@ -617,7 +640,7 @@ public final class GuiSelfTest
 
         // A bad date and a bad PCC
         page.showNew();
-        for (int hole = 0; hole < 18; hole++)
+        for (int hole = 0; hole < 18; hole = hole + 1)
         {
             type(page.puttFields[hole], "2");
             type(page.scoreFields[hole], Integer.toString(pars[hole] + 1));
@@ -657,6 +680,26 @@ public final class GuiSelfTest
         check("the course page asks for the name and zip first", panel.footer().status().contains("5-digit zip"));
         panel.coursePage().cancelButton.doClick();
         check("Cancel on the course page goes back to Home", panel.header().title().equals("Golf Analyst Stats Home"));
+        ((WoodButton) findByText(panel, "Edit Round")).doClick();
+        check("Edit Round opens the newest round with its Edit button", panel.header().title().matches("\\d{5}:.+:.+")
+                && panel.roundPage().editButton.isVisible() && panel.footer().status().contains("press Edit"));
+        panel.roundPage().editButton.doClick();
+        check("pressing Edit puts Edit in the header", panel.header().title().startsWith("Edit "));
+        RoundPage windowRounds = panel.roundPage();
+        int editHole = windowStore.roundsByDate().get(windowStore.roundsByDate().size() - 1).startHole();
+        type(windowRounds.puttFields[editHole], "0");
+        List<String> windowAsked = new ArrayList<>();
+        panel.setAsker(question ->
+        {
+            windowAsked.add(question);
+            return javax.swing.JOptionPane.NO_OPTION;
+        });
+        ((IconButton) findByTip(panel, "Home")).doClick();
+        check("the Home button with unsaved changes asks first, and No stays",
+                windowAsked.equals(List.of("Discard your changes?")) && panel.header().title().startsWith("Edit "));
+        panel.setAsker(question -> javax.swing.JOptionPane.YES_OPTION);
+        ((IconButton) findByTip(panel, "Home")).doClick();
+        check("answering Yes goes Home", panel.header().title().equals("Golf Analyst Stats Home"));
         check("your own data: the window title does not say sample", !panel.windowTitle().contains("SAMPLE"));
         check("your own data: saving does not ask the sample question", panel.readyToSave());
         deleteFolder(windowTemp);
@@ -664,6 +707,7 @@ public final class GuiSelfTest
         checkCourseTyping();
         checkHelpFormatter();
         checkCoursePage(coursePage, store, shell, temp);
+        checkRoundEditing(page, store, shell, temp);
         checkSampleSafeguard();
 
         List<Path> leftovers = new ArrayList<>();
@@ -690,7 +734,7 @@ public final class GuiSelfTest
         {
             walk.forEach(paths::add);
         }
-        for (int lp = paths.size() - 1; lp >= 0; lp--)
+        for (int lp = paths.size() - 1; lp >= 0; lp = lp - 1)
         {
             Files.deleteIfExists(paths.get(lp));
         }
@@ -715,7 +759,7 @@ public final class GuiSelfTest
     {
         advances[0] = 0;
         javax.swing.text.PlainDocument doc = new javax.swing.text.PlainDocument();
-        doc.setDocumentFilter(new CoursePage.BoxFilter(kind, () -> nine, () -> false, () -> advances[0]++));
+        doc.setDocumentFilter(new CoursePage.BoxFilter(kind, () -> nine, () -> false, () -> advances[0] = advances[0] + 1));
         try
         {
             for (char key : keys.toCharArray())
@@ -815,11 +859,107 @@ public final class GuiSelfTest
         page.teeNameFields[tee].setText(name);
         page.ratingFields[tee].setText(rating);
         page.slopeFields[tee].setText(slope);
-        for (int hole = 0; hole < pars.length; hole++)
+        for (int hole = 0; hole < pars.length; hole = hole + 1)
         {
             page.parFields[tee][hole].setText(Integer.toString(pars[hole]));
             page.indexFields[tee][hole].setText(Integer.toString(index[hole]));
         }
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | checkRoundEditing(page, store, shell, temp)                              |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Editing a saved round on a copy of the sample data: the Edit button,     |
+     | what opens and what stays locked, the "Edit ..." title and help files,   |
+     | "Discard your changes?" on the arrows and Cancel (No stays, Yes          |
+     | leaves), and Save: only that round's line changes, the comments and      |
+     | every other line are untouched, rounds.tsv.bak holds the file as it      |
+     | was, and the totals are recalculated.                                    |
+     |                                                                          |
+     | Passed in:  page  - the round screen built on the test shell             |
+     |             store - the test data store, shell - the test shell          |
+     |             temp  - the temporary data folder                            |
+     | Passed out: nothing (throws IOException if the data cannot be read)      |
+     +--------------------------------------------------------------------------+
+     */
+    private static void checkRoundEditing(RoundPage page, DataStore store, TestShell shell, Path temp) throws IOException
+    {
+        Path roundsFile = temp.resolve(DataLoader.ROUNDS_FILE);
+        Path backup = temp.resolve(DataLoader.ROUNDS_FILE + golfanalyst.RoundWriter.BACKUP_SUFFIX);
+        int last = store.roundsByDate().size() - 1;
+        Round original = store.roundsByDate().get(last);
+        page.showRoundAt(last);
+        check("a saved round shows Edit and no Save", page.editButton.isVisible() && !page.saveButton.isVisible());
+        check("looking at a round asks nothing on leaving", page.canLeave());
+
+        page.editButton.doClick();
+        String prefix = String.format("Edit %05d:", original.id());
+        check("the title says it is edit mode", page.title().startsWith(prefix));
+        check("edit mode has its own help files", page.helpKey().equals("round-edit"));
+        int hole = original.startHole();
+        check("edit mode keeps the course/tee and holes locked", !page.teeCombo.isEnabled() && !page.holesCombo.isEnabled());
+        check("edit mode opens the date, PCC, scores, putts and Sand", page.dateField.isEditable() && page.pccField.isEditable()
+                && page.scoreFields[hole].isEditable() && page.puttFields[hole].isEditable() && page.sandChecks[hole].isEnabled());
+        check("edit mode shows Save and Cancel, not Edit", page.saveButton.isVisible() && !page.editButton.isVisible()
+                && page.cancelButton.getText().equals("Cancel"));
+        check("the round's numbers are loaded for editing", page.scoreFields[hole].getText().equals(Integer.toString(original.scores()[0])));
+        shell.asked.clear();
+        check("with nothing changed, leaving asks nothing", page.canLeave() && shell.asked.isEmpty());
+
+        int newScore = original.scores()[0] + 1;
+        type(page.scoreFields[hole], Integer.toString(newScore));
+        check("a change is noticed", page.hasChanges());
+        shell.answerYes = false;
+        page.previousButton.doClick();
+        check("an arrow with unsaved changes asks \"Discard your changes?\"", shell.asked.contains("Discard your changes?"));
+        check("answering No stays on the edit", page.title().startsWith(prefix));
+        page.cancelButton.doClick();
+        check("Cancel with unsaved changes asks too, and No stays", page.title().startsWith(prefix) && shell.asked.size() == 2);
+
+        List<String> before = Files.readAllLines(roundsFile, StandardCharsets.UTF_8);
+        String beforeText = Files.readString(roundsFile, StandardCharsets.UTF_8);
+        int roundsBefore = store.roundsByDate().size();
+        check("an edited round that checks out can be saved", page.saveButton.isEnabled());
+        page.saveButton.doClick();
+        List<String> after = Files.readAllLines(roundsFile, StandardCharsets.UTF_8);
+        int changedLines = 0;
+        boolean othersUntouched = before.size() == after.size();
+        for (int lp = 0; othersUntouched && lp < before.size(); lp = lp + 1)
+        {
+            if (!before.get(lp).equals(after.get(lp)))
+            {
+                changedLines = changedLines + 1;
+                othersUntouched = before.get(lp).startsWith(original.id() + "\t") && after.get(lp).startsWith(original.id() + "\t");
+            }
+        }
+        check("saving changes only that round's line, with the same RoundID", othersUntouched && changedLines == 1);
+        check("the comments in rounds.tsv are untouched", after.get(0).equals(before.get(0)) && after.get(0).startsWith("#"));
+        check("the backup holds rounds.tsv as it was", Files.exists(backup)
+                && Files.readString(backup, StandardCharsets.UTF_8).equals(beforeText));
+        Round saved = null;
+        for (Round round : store.roundsByDate())
+        {
+            saved = round.id() == original.id() ? round : saved;
+        }
+        check("after saving everything is reloaded with the new score", saved != null && saved.scores()[0] == newScore
+                && saved.totalScore() == original.totalScore() + 1 && store.roundsByDate().size() == roundsBefore);
+        check("after saving the round is shown read-only again", !page.title().startsWith("Edit") && page.editButton.isVisible());
+        check("the footer says the changes were saved and where the backup is", shell.status.startsWith("Changes saved")
+                && shell.status.contains("rounds.tsv.bak"));
+        check("the edited file loads with no errors", DataLoader.load(temp).errorCount() == 0);
+
+        page.editButton.doClick();
+        type(page.puttFields[hole], "0");
+        shell.answerYes = true;
+        String fileNow = Files.readString(roundsFile, StandardCharsets.UTF_8);
+        page.previousButton.doClick();
+        check("answering Yes discards the changes and moves on", !page.title().startsWith("Edit")
+                && Files.readString(roundsFile, StandardCharsets.UTF_8).equals(fileNow));
+        page.editButton.doClick();
+        page.cancelButton.doClick();
+        check("Cancel with nothing changed goes back to the round", !page.title().startsWith("Edit") && page.editButton.isVisible());
     }
 
     /*
@@ -890,12 +1030,12 @@ public final class GuiSelfTest
         check("help window: a label is bold", javax.swing.text.StyleConstants.isBold(label));
 
         for (String file : new String[] {"home-info.txt", "home-help.txt", "round-new-info.txt", "round-new-help.txt",
-                "round-view-info.txt", "round-view-help.txt", "course-info.txt", "course-help.txt"})
+                "round-view-info.txt", "round-view-help.txt", "round-edit-info.txt", "round-edit-help.txt", "course-info.txt", "course-help.txt"})
         {
             String text = Files.readString(Path.of("help", file));
             List<HelpFormatter.Piece> filePieces = HelpFormatter.pieces(text);
             boolean hasHeading = filePieces.stream().anyMatch(piece -> piece.style() == HelpFormatter.Style.HEADING);
-            check(file + ": has its section headings marked", hasHeading || file.equals("round-view-help.txt"));
+            check(file + ": has its section headings marked", hasHeading);
             check(file + ": no # is shown", filePieces.stream().noneMatch(piece -> piece.text().startsWith("#")));
             check(file + ": the title is not repeated", !filePieces.get(0).text().equals(HelpFormatter.title(text)));
         }
@@ -946,7 +1086,7 @@ public final class GuiSelfTest
         int[] pars = {4, 3, 5, 4, 4, 3, 5, 4, 4, 4, 3, 5, 4, 4, 3, 5, 4, 4};
         int[] index = new int[18];
         int[] reversed = new int[18];
-        for (int hole = 0; hole < 18; hole++)
+        for (int hole = 0; hole < 18; hole = hole + 1)
         {
             index[hole] = hole + 1;
             reversed[hole] = 18 - hole;
@@ -956,7 +1096,7 @@ public final class GuiSelfTest
         check("there are five frames: captions and four tees", page.framesRow.getComponentCount() == 5);
         check("the caption frame is 136 x 526", page.framesRow.getComponent(0).getPreferredSize().equals(new java.awt.Dimension(136, 526)));
         boolean teeSizes = true;
-        for (int lp = 1; lp < 5; lp++)
+        for (int lp = 1; lp < 5; lp = lp + 1)
         {
             teeSizes = teeSizes && page.framesRow.getComponent(lp).getPreferredSize().equals(new java.awt.Dimension(134, 526));
         }
@@ -1088,7 +1228,7 @@ public final class GuiSelfTest
         check("the copy arrow says which tees it filled", shell.status.equals("Copied the pars and stroke index of Ladies into the empty cells of"
                 + " Beginner, Intermediate, Expert. Check any holes that differ on the card."));
         boolean copied = true;
-        for (int hole = 0; hole < 18; hole++)
+        for (int hole = 0; hole < 18; hole = hole + 1)
         {
             copied = copied && page.parFields[1][hole].getText().equals(Integer.toString(pars[hole]))
                     && page.indexFields[3][hole].getText().equals(Integer.toString(index[hole]));
@@ -1197,7 +1337,7 @@ public final class GuiSelfTest
         // A round asks the same question
         ((WoodButton) findByText(panel, "New Round")).doClick();
         RoundPage roundPage = panel.roundPage();
-        for (int hole = 0; hole < 18; hole++)
+        for (int hole = 0; hole < 18; hole = hole + 1)
         {
             type(roundPage.puttFields[hole], "2");
             type(roundPage.scoreFields[hole], "6");

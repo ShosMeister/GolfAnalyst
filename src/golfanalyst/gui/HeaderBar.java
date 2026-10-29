@@ -167,7 +167,7 @@ public final class HeaderBar extends JPanel
             canvas.setFont(Theme.font(Font.BOLD | Font.ITALIC, size));
             while (size > 14f && canvas.getFontMetrics().stringWidth(text) > getWidth() - PADDING)
             {
-                size -= 1f;
+                size = size - 1f;
                 canvas.setFont(Theme.font(Font.BOLD | Font.ITALIC, size));
             }
             Theme.drawCentered(canvas, text, 0, MARGIN, getWidth(), fieldHeight, Color.WHITE, true);

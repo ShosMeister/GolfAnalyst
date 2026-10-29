@@ -1,4 +1,4 @@
-# GolfAnalyst v4.11 (Java)
+# GolfAnalyst v4.20 (Java)
 
 Golf Analyst with its window. It has the one-window layout of the earlier versions: a wood header
 with Home, Help and Info buttons that stays the same on every screen, a status footer that stays
@@ -58,8 +58,16 @@ Pages so far: **Home** (handicap, statistics and the buttons), **Round** (enter 
 or look back through saved ones with the four arrow buttons, limited to one course or set of tees with the
 Show box) and **New Course** (a course and up to four sets of tees). The Home buttons are in two columns:
 data entry on the left (New Course, New Round, Edit Round, Import, Clear) and viewing on the right (Rounds,
-Stats Board, Analyzer, Best Round, Print). Only New Course, New Round and Rounds work so far; the others are
-in place and say "not built yet" in the footer.
+Stats Board, Analyzer, Best Round, Print). New Course, New Round, Edit Round and Rounds work so far; the others
+are in place and say "not built yet" in the footer.
+
+- **Editing a round:** Edit Round on the Home screen opens the saved rounds at the latest one. Step to the
+  round with the arrows (or narrow them with the Show box) and press Edit. The date, PCC, scores, putts,
+  Fwy and Sand open for changing; the course/tee and holes stay locked. The header says "Edit 00031:...".
+  Save replaces only that round's line in `rounds.tsv` (same RoundID; comments, other rounds and any
+  columns of your own are left exactly as they were) and the handicap and statistics are worked out again.
+  Before each save the file as it was is copied to `rounds.tsv.bak`, so a bad edit can be undone by copying
+  it back. Cancel, the arrows and the Home button ask "Discard your changes?" if anything was changed.
 
 - **Entering a course:** the page looks like the round page: a centred row of wood frames over the
   photo, captions down the left frame and one frame per tee, with spreadsheet-style cells (the cell with
@@ -88,7 +96,8 @@ in place and say "not built yet" in the footer.
 - **Info and Help** (the round buttons at the top right) open that screen's text in its own window.
   The text lives in plain files in the `help` folder: `home-info.txt` and `home-help.txt`, then
   `round-new-info.txt` and `round-new-help.txt` while you are entering a round,
-  `round-view-info.txt` and `round-view-help.txt` while you are looking at saved ones, and
+  `round-view-info.txt` and `round-view-help.txt` while you are looking at saved ones,
+  `round-edit-info.txt` and `round-edit-help.txt` while you are editing one, and
   `course-info.txt` and `course-help.txt` on the New Course screen.
   The first line of a file is the window title; blank lines separate paragraphs. Edit them with any
   text editor; nothing needs rebuilding. The files stay plain text, and a few simple marks give the

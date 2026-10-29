@@ -60,7 +60,8 @@ public class WoodPanel extends JPanel
     public void addRow(String labelText, JComponent field)
     {
         GridBagConstraints at = new GridBagConstraints();
-        at.gridy = nextRow++;
+        at.gridy = nextRow;
+        nextRow = nextRow + 1;
         at.insets = new Insets(4, 2, 4, 2);
         at.weighty = 1.0;
         at.gridx = 0;

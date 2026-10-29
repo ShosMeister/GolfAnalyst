@@ -56,7 +56,7 @@ public record Round(int id, int teeId, LocalDate date, int pcc, int startHole, i
         int total = 0;
         for (int holeScore : scores)
         {
-            total += holeScore;
+            total = total + holeScore;
         }
         return total;
     }
@@ -71,7 +71,7 @@ public record Round(int id, int teeId, LocalDate date, int pcc, int startHole, i
         int total = 0;
         for (int holePutts : putts)
         {
-            total += holePutts;
+            total = total + holePutts;
         }
         return total;
     }

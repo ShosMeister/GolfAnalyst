@@ -316,7 +316,7 @@ public final class Handicap
         int[] maxima = new int[holesPlayed];
         if (indexBefore == null)
         {
-            for (int hole = 0; hole < holesPlayed; hole++)
+            for (int hole = 0; hole < holesPlayed; hole = hole + 1)
             {
                 maxima[hole] = tee.pars()[startHole + hole] + NO_INDEX_OVER_PAR;
             }
@@ -334,7 +334,7 @@ public final class Handicap
                     tee.slopeFor(startHole, holesPlayed), tee.parFor(startHole, holesPlayed));
         }
         int[] ranks = tee.strokeRanksFor(startHole, holesPlayed);
-        for (int hole = 0; hole < holesPlayed; hole++)
+        for (int hole = 0; hole < holesPlayed; hole = hole + 1)
         {
             maxima[hole] = tee.pars()[startHole + hole] + NET_DOUBLE_BOGEY_OVER_PAR
                     + strokesReceived(courseHandicap, ranks[hole], holesPlayed);
@@ -360,9 +360,9 @@ public final class Handicap
     {
         int[] maxima = maxHoleScores(tee, round.startHole(), round.holes(), indexBefore);
         int total = 0;
-        for (int hole = 0; hole < round.holes(); hole++)
+        for (int hole = 0; hole < round.holes(); hole = hole + 1)
         {
-            total += Math.min(round.scores()[hole], maxima[hole]);
+            total = total + Math.min(round.scores()[hole], maxima[hole]);
         }
         return total;
     }
@@ -540,9 +540,9 @@ public final class Handicap
             default -> 0.0;
         };
         double total = 0;
-        for (int lp = 0; lp < countUsed; lp++)
+        for (int lp = 0; lp < countUsed; lp = lp + 1)
         {
-            total += ranked.get(lp);
+            total = total + ranked.get(lp);
         }
         return Math.min(round1(total / countUsed + adjustment), MAX_INDEX);
     }
@@ -654,7 +654,7 @@ public final class Handicap
             {
                 scoreDifferential = differential(adjustedGross, tee.rating(), tee.slope(), round.pcc());
             }
-            holesPosted += round.holes();
+            holesPosted = holesPosted + round.holes();
 
             Posted posted = new Posted(entries.size(), nineDifferential, scoreDifferential, pending);
             record.add(posted);
@@ -746,7 +746,7 @@ public final class Handicap
         {
             if (!item.pending)
             {
-                count++;
+                count = count + 1;
             }
         }
         return count;
@@ -769,13 +769,13 @@ public final class Handicap
     private static void applyEsr(List<Posted> record, double esr)
     {
         int adjusted = 0;
-        for (int lp = record.size() - 1; lp >= 0 && adjusted < RECORD_SIZE; lp--)
+        for (int lp = record.size() - 1; lp >= 0 && adjusted < RECORD_SIZE; lp = lp - 1)
         {
             Posted item = record.get(lp);
             if (!item.pending)
             {
                 item.value = round1(item.value + esr);
-                adjusted++;
+                adjusted = adjusted + 1;
             }
         }
     }
@@ -859,7 +859,7 @@ public final class Handicap
     {
         Double lowest = null;
         LocalDate windowStart = date.minusDays(LOW_INDEX_DAYS);
-        for (int lp = 0; lp < dates.size(); lp++)
+        for (int lp = 0; lp < dates.size(); lp = lp + 1)
         {
             if (dates.get(lp).isBefore(windowStart) || dates.get(lp).isAfter(date))
             {

@@ -48,4 +48,14 @@ public abstract class Page extends BackdropPanel
      * onShow(): refreshes the page each time it is shown.
      */
     public abstract void onShow();
+
+    /*
+     * canLeave(): whether the window may switch away from this page (the Home button); a page with unsaved changes asks first. Most pages always say yes.
+     * Passed in:  nothing
+     * Passed out: true to let the window leave
+     */
+    public boolean canLeave()
+    {
+        return true;
+    }
 }

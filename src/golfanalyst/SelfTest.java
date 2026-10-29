@@ -66,11 +66,11 @@ public final class SelfTest
     {
         if (ok)
         {
-            passedCount++;
+            passedCount = passedCount + 1;
         }
         else
         {
-            failedCount++;
+            failedCount = failedCount + 1;
             System.out.println("FAIL  " + name);
         }
     }
@@ -114,7 +114,7 @@ public final class SelfTest
     private static List<Double> oneToN(int count)
     {
         List<Double> list = new ArrayList<>();
-        for (int lp = 1; lp <= count; lp++)
+        for (int lp = 1; lp <= count; lp = lp + 1)
         {
             list.add((double) lp);
         }
@@ -140,7 +140,7 @@ public final class SelfTest
     {
         int[] pars = {4, 3, 5, 4, 4, 3, 5, 4, 4, 4, 3, 5, 4, 4, 3, 5, 4, 4};
         int[] strokeIndex = new int[Tee.HOLES];
-        for (int hole = 0; hole < Tee.HOLES; hole++)
+        for (int hole = 0; hole < Tee.HOLES; hole = hole + 1)
         {
             strokeIndex[hole] = hole + 1;
         }
@@ -169,7 +169,7 @@ public final class SelfTest
     {
         int[] scores = new int[Tee.HOLES];
         int[] putts = new int[Tee.HOLES];
-        for (int hole = 0; hole < Tee.HOLES; hole++)
+        for (int hole = 0; hole < Tee.HOLES; hole = hole + 1)
         {
             scores[hole] = tee.pars()[hole] + (hole < holesOverPar ? 1 : 0);
             putts[hole] = PLAIN_PUTTS;
@@ -201,7 +201,7 @@ public final class SelfTest
     {
         int[] scores = new int[Tee.NINE];
         int[] putts = new int[Tee.NINE];
-        for (int hole = 0; hole < Tee.NINE; hole++)
+        for (int hole = 0; hole < Tee.NINE; hole = hole + 1)
         {
             scores[hole] = tee.pars()[startHole + hole] + (hole < holesOverPar ? 1 : 0);
             putts[hole] = PLAIN_PUTTS;
@@ -323,7 +323,7 @@ public final class SelfTest
         // Stroke ranks within a nine
         int[] scrambledBack = {12, 16, 10, 18, 14, 11, 17, 13, 15};
         int[] scrambledIndex = new int[Tee.HOLES];
-        for (int hole = 0; hole < Tee.NINE; hole++)
+        for (int hole = 0; hole < Tee.NINE; hole = hole + 1)
         {
             scrambledIndex[hole] = hole + 1;
             scrambledIndex[Tee.NINE + hole] = scrambledBack[hole];
@@ -381,7 +381,7 @@ public final class SelfTest
         // Nine-hole rounds before any index exists: held until 54 holes are posted
         List<Round> nines = new ArrayList<>();
         int[] holesOver = {4, 3, 5, 2, 6, 3};
-        for (int lp = 0; lp < holesOver.length; lp++)
+        for (int lp = 0; lp < holesOver.length; lp = lp + 1)
         {
             nines.add(nineRound(lp + 1, 0, holesOver[lp], "2026-02-0" + (lp + 1), tee));
         }
@@ -403,12 +403,12 @@ public final class SelfTest
         // Net double bogey with no index yet: one hole 8 over par is cut back to par + 5
         int[] blowupScores = new int[Tee.HOLES];
         int[] blowupPutts = new int[Tee.HOLES];
-        for (int hole = 0; hole < Tee.HOLES; hole++)
+        for (int hole = 0; hole < Tee.HOLES; hole = hole + 1)
         {
             blowupScores[hole] = tee.pars()[hole];
             blowupPutts[hole] = PLAIN_PUTTS;
         }
-        blowupScores[0] += 8;
+        blowupScores[0] = blowupScores[0] + 8;
         boolean[] noFlags = new boolean[Tee.HOLES];
         Round blowup = new Round(9, 1, LocalDate.parse("2026-02-01"), 0, 0, Tee.HOLES, blowupScores, blowupPutts,
                 noFlags, noFlags);
@@ -451,7 +451,7 @@ public final class SelfTest
         int[] chipScores = new int[Tee.HOLES];
         int[] chipPutts = new int[Tee.HOLES];
         boolean[] chipSand = new boolean[Tee.HOLES];
-        for (int hole = 0; hole < Tee.HOLES; hole++)
+        for (int hole = 0; hole < Tee.HOLES; hole = hole + 1)
         {
             chipScores[hole] = tee.pars()[hole] + 1;
             chipPutts[hole] = PLAIN_PUTTS;
@@ -553,14 +553,100 @@ public final class SelfTest
         try
         {
             checkCourseFiles();
+            checkRoundReplace();
         }
         catch (IOException failure)
         {
-            check("the course file checks ran without error: " + failure, false);
+            check("the file checks ran without error: " + failure, false);
         }
 
         System.out.println(passedCount + " passed, " + failedCount + " failed");
         return failedCount == 0;
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | checkRoundReplace()                                                      |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Checks RoundWriter.replace on a file in a temporary folder that has      |
+     | comments, Windows line endings, an extra column of your own and three    |
+     | rounds: only the edited round's line changes (same RoundID, the extra    |
+     | column kept), every other character of the file stays as it was, the     |
+     | backup holds the file as it was, and a RoundID that is missing or on     |
+     | two lines is refused with the file left alone.                           |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing (throws IOException if a temporary file fails)       |
+     +--------------------------------------------------------------------------+
+     */
+    private static void checkRoundReplace() throws IOException
+    {
+        Path temp = Files.createTempDirectory("golfanalyst-replace-test");
+        Path rounds = temp.resolve(DataLoader.ROUNDS_FILE);
+        Path backup = temp.resolve(DataLoader.ROUNDS_FILE + RoundWriter.BACKUP_SUFFIX);
+        String nine = "5,5,5,5,5,5,5,5,5";
+        String twos = "2,2,2,2,2,2,2,2,2";
+        String zeros = "0,0,0,0,0,0,0,0,0";
+        String first = "1\t1\t2026-03-01\tF\t\t" + nine + "\t" + twos + "\t" + zeros + "\t" + zeros + "\tfirst note";
+        String second = "2\t1\t2026-03-02\tF\t\t" + nine + "\t" + twos + "\t" + zeros + "\t" + zeros + "\tkeep this note";
+        String third = "3\t1\t2026-03-03\tF\t\t" + nine + "\t" + twos + "\t" + zeros + "\t" + zeros + "\t";
+        String original = "# my rounds\r\n" + RoundWriter.STANDARD_HEADER + "\tNotes\r\n" + first + "\r\n# a comment between\r\n\r\n"
+                + second + "\r\n" + third + "\r\n";
+        Files.writeString(rounds, original, StandardCharsets.UTF_8);
+
+        Tee tee = testTee(35.0, 113);
+        int[] scores = {4, 5, 5, 5, 5, 5, 5, 5, 6};
+        int[] putts = {2, 2, 2, 2, 2, 2, 2, 2, 2};
+        boolean[] fairway = new boolean[Tee.NINE];
+        boolean[] sand = new boolean[Tee.NINE];
+        fairway[0] = true;
+        Round edited = new Round(2, 1, LocalDate.of(2026, 3, 9), 1, 0, Tee.NINE, scores, putts, fairway, sand);
+        RoundWriter.replace(rounds, edited, tee);
+        String after = Files.readString(rounds, StandardCharsets.UTF_8);
+        String newLine = "2\t1\t2026-03-09\tF\t1\t4,5,5,5,5,5,5,5,6\t" + twos + "\t1,0,0,0,0,0,0,0,0\t" + zeros + "\tkeep this note";
+        check("replacing a round changes only its line", after.equals(original.replace(second, newLine)));
+        check("the edited line keeps its RoundID and the column of your own", after.contains("\r\n" + newLine + "\r\n"));
+        check("comments, the other rounds and the Windows line endings are untouched", after.startsWith("# my rounds\r\n")
+                && after.contains("\r\n" + first + "\r\n# a comment between\r\n\r\n") && after.endsWith("\r\n" + third + "\r\n"));
+        check("the file as it was is kept in rounds.tsv.bak", Files.readString(backup, StandardCharsets.UTF_8).equals(original));
+        List<Problem> problems = new ArrayList<>();
+        Map<Integer, Tee> tees = Map.of(1, tee);
+        List<Round> reloaded = DataLoader.parseRounds(Files.readAllLines(rounds), tees, problems);
+        check("the edited file loads with no errors", reloaded.size() == 3
+                && problems.stream().noneMatch(problem -> problem.severity() == Problem.Severity.ERROR));
+
+        Round missing = new Round(99, 1, LocalDate.of(2026, 3, 9), 0, 0, Tee.NINE, scores, putts, fairway, sand);
+        boolean refused = false;
+        try
+        {
+            RoundWriter.replace(rounds, missing, tee);
+        }
+        catch (IOException expected)
+        {
+            refused = expected.getMessage().contains("not in");
+        }
+        check("a RoundID that is not in the file is refused", refused);
+        check("a refused edit leaves the file alone", Files.readString(rounds, StandardCharsets.UTF_8).equals(after));
+
+        Files.writeString(rounds, after + third + "\r\n", StandardCharsets.UTF_8);
+        Round twice = new Round(3, 1, LocalDate.of(2026, 3, 9), 0, 0, Tee.NINE, scores, putts, fairway, sand);
+        refused = false;
+        try
+        {
+            RoundWriter.replace(rounds, twice, tee);
+        }
+        catch (IOException expected)
+        {
+            refused = expected.getMessage().contains("more than one");
+        }
+        check("a RoundID on two lines is refused", refused);
+
+        for (Path file : List.of(rounds, backup))
+        {
+            Files.deleteIfExists(file);
+        }
+        Files.deleteIfExists(temp);
     }
 
     /*
@@ -600,7 +686,7 @@ public final class SelfTest
 
         int[] pars = {4, 3, 5, 4, 4, 3, 5, 4, 4, 4, 3, 5, 4, 4, 3, 5, 4, 4};
         int[] index = new int[Tee.HOLES];
-        for (int hole = 0; hole < Tee.HOLES; hole++)
+        for (int hole = 0; hole < Tee.HOLES; hole = hole + 1)
         {
             index[hole] = Tee.HOLES - hole;
         }
@@ -671,7 +757,7 @@ public final class SelfTest
         {
             walk.forEach(paths::add);
         }
-        for (int lp = paths.size() - 1; lp >= 0; lp--)
+        for (int lp = paths.size() - 1; lp >= 0; lp = lp - 1)
         {
             Files.deleteIfExists(paths.get(lp));
         }

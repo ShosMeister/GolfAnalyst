@@ -19,7 +19,9 @@ import golfanalyst.DataStore;
  | goHome()         - switches to the Home screen                           |
  | newRound()       - opens the round screen ready to enter a new round     |
  | browseRounds()   - opens the round screen at the latest saved round      |
+ | editRound()      - opens the round viewer ready to pick a round to edit  |
  | newCourse()      - opens the screen for adding a course and its tees     |
+ | askYesNo(question) - asks a Yes / No question                            |
  | readyToSave()    - asks, on the sample data, whether to save there       |
  +--------------------------------------------------------------------------+
  */
@@ -59,9 +61,21 @@ public interface Shell
     void browseRounds();
 
     /*
+     * editRound(): opens the round viewer at the latest round, with its Edit button, so a round can be picked and edited.
+     */
+    void editRound();
+
+    /*
      * newCourse(): opens the New Course screen, empty and ready to type in.
      */
     void newCourse();
+
+    /*
+     * askYesNo(question): asks a Yes / No question, for example "Discard your changes?".
+     * Passed in:  question - the words to ask
+     * Passed out: true for Yes
+     */
+    boolean askYesNo(String question);
 
     /*
      +--------------------------------------------------------------------------+

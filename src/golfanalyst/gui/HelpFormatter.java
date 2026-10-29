@@ -87,7 +87,7 @@ public final class HelpFormatter
     {
         List<Piece> pieces = new ArrayList<>();
         String[] lines = fileText.split("\\R", -1);
-        for (int lp = 1; lp < lines.length; lp++)
+        for (int lp = 1; lp < lines.length; lp = lp + 1)
         {
             String line = lines[lp].strip();
             if (line.isEmpty())
@@ -136,7 +136,7 @@ public final class HelpFormatter
         int digits = 0;
         while (digits < line.length() && Character.isDigit(line.charAt(digits)))
         {
-            digits++;
+            digits = digits + 1;
         }
         if (digits > 0 && line.startsWith(". ", digits))
         {

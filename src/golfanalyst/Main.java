@@ -123,7 +123,7 @@ public final class Main
         System.out.println("  Avg score by par   par 3: " + twoDecimals(all.parAverage()[0])
                 + "   par 4: " + twoDecimals(all.parAverage()[1]) + "   par 5: " + twoDecimals(all.parAverage()[2]));
         StringBuilder results = new StringBuilder("  Results            ");
-        for (int lp = 0; lp < all.distribution().length; lp++)
+        for (int lp = 0; lp < all.distribution().length; lp = lp + 1)
         {
             results.append(Stats.DIST_LABELS[lp]).append(' ').append(all.distribution()[lp])
                     .append(lp < all.distribution().length - 1 ? " | " : "");
@@ -210,7 +210,7 @@ public final class Main
             }
             if (entry.cap() != Handicap.Cap.NONE)
             {
-                note += (note.isEmpty() ? "" : "; ") + entry.cap() + " cap (uncapped "
+                note = note + (note.isEmpty() ? "" : "; ") + entry.cap() + " cap (uncapped "
                         + Handicap.format(entry.calculatedIndex()) + ")";
             }
             String differentialText = Double.isNaN(entry.differential()) ? "-"
@@ -241,20 +241,20 @@ public final class Main
         List<Double> current = handicap.currentDifferentials();
         int countUsed = Handicap.differentialsUsed(current.size());
         Integer[] lowestFirst = new Integer[current.size()];
-        for (int lp = 0; lp < lowestFirst.length; lp++)
+        for (int lp = 0; lp < lowestFirst.length; lp = lp + 1)
         {
             lowestFirst[lp] = lp;
         }
         Arrays.sort(lowestFirst, (first, second) -> Double.compare(current.get(first), current.get(second)));
         boolean[] counts = new boolean[current.size()];
-        for (int lp = 0; lp < countUsed; lp++)
+        for (int lp = 0; lp < countUsed; lp = lp + 1)
         {
             counts[lowestFirst[lp]] = true;
         }
 
         System.out.println("CURRENT SCORING RECORD: " + current.size() + " differential(s); lowest " + countUsed + " count");
         StringBuilder line = new StringBuilder("  ");
-        for (int lp = 0; lp < current.size(); lp++)
+        for (int lp = 0; lp < current.size(); lp = lp + 1)
         {
             line.append(String.format(Locale.ROOT, "%.1f%s ", current.get(lp), counts[lp] ? "*" : ""));
         }

@@ -269,12 +269,12 @@ public final class CoursePage extends Page
     private void buildFrames()
     {
         framesRow.setOpaque(false);
-        for (int hole = 0; hole < HOLES; hole++)
+        for (int hole = 0; hole < HOLES; hole = hole + 1)
         {
             holeRows.add(new ArrayList<>());
         }
         framesRow.add(buildCaptionFrame());
-        for (int tee = 0; tee < TEES; tee++)
+        for (int tee = 0; tee < TEES; tee = tee + 1)
         {
             framesRow.add(buildTeeFrame(tee));
         }
@@ -372,7 +372,7 @@ public final class CoursePage extends Page
     {
         JPanel sheet = new JPanel(new GridBagLayout());
         String[] captions = {"Tee name", "Rating / Slope", "Front 9", "Back 9", "Yards / Par", "Hole"};
-        for (int row = 0; row < captions.length; row++)
+        for (int row = 0; row < captions.length; row = row + 1)
         {
             WoodTag tag = captionTag(captions[row]);
             put(sheet, tag, 0, row, 1);
@@ -385,7 +385,7 @@ public final class CoursePage extends Page
                 backRow.add(tag);
             }
         }
-        for (int hole = 0; hole < HOLES; hole++)
+        for (int hole = 0; hole < HOLES; hole = hole + 1)
         {
             JLabel number = new JLabel(Integer.toString(hole + 1), SwingConstants.CENTER);
             number.setFont(Theme.font(Font.BOLD, NAME_FONT));
@@ -464,7 +464,7 @@ public final class CoursePage extends Page
 
         put(sheet, greyCell("Par", true), 0, 5, 1);
         put(sheet, greyCell("SI", false), 1, 5, 1);
-        for (int hole = 0; hole < HOLES; hole++)
+        for (int hole = 0; hole < HOLES; hole = hole + 1)
         {
             parFields[tee][hole] = numberCell(BoxFilter.Kind.PAR, true);
             parFields[tee][hole].getDocument().addDocumentListener(new ChangeWatcher(() -> updateTotals()));
@@ -548,7 +548,7 @@ public final class CoursePage extends Page
         Font font = Theme.font(Font.BOLD, size);
         while (size > SMALLEST_NAME_FONT && field.getFontMetrics(font).stringWidth(field.getText()) > room)
         {
-            size -= 1f;
+            size = size - 1f;
             font = Theme.font(Font.BOLD, size);
         }
         if (!font.equals(field.getFont()))
@@ -725,7 +725,7 @@ public final class CoursePage extends Page
         {
             part.setVisible(!nine);
         }
-        for (int hole = NINE; hole < HOLES; hole++)
+        for (int hole = NINE; hole < HOLES; hole = hole + 1)
         {
             for (JComponent part : holeRows.get(hole))
             {
@@ -827,16 +827,16 @@ public final class CoursePage extends Page
      */
     private void updateTotals()
     {
-        for (int tee = 0; tee < TEES; tee++)
+        for (int tee = 0; tee < TEES; tee = tee + 1)
         {
             int total = 0;
             boolean any = false;
-            for (int hole = 0; hole < playedHoles(); hole++)
+            for (int hole = 0; hole < playedHoles(); hole = hole + 1)
             {
                 String text = parFields[tee][hole].getText();
                 if (text.matches("[3-6]"))
                 {
-                    total += Integer.parseInt(text);
+                    total = total + Integer.parseInt(text);
                     any = true;
                 }
             }
@@ -863,7 +863,7 @@ public final class CoursePage extends Page
     {
         String first = teeNameFields[0].getText().trim().isEmpty() ? "the first tee" : teeNameFields[0].getText().trim();
         boolean anyToCopy = false;
-        for (int hole = 0; hole < playedHoles(); hole++)
+        for (int hole = 0; hole < playedHoles(); hole = hole + 1)
         {
             anyToCopy = anyToCopy || !parFields[0][hole].getText().isEmpty() || !indexFields[0][hole].getText().isEmpty();
         }
@@ -874,10 +874,10 @@ public final class CoursePage extends Page
         }
         List<String> filled = new ArrayList<>();
         updating = true;
-        for (int tee = 1; tee < TEES; tee++)
+        for (int tee = 1; tee < TEES; tee = tee + 1)
         {
             boolean got = false;
-            for (int hole = 0; hole < playedHoles(); hole++)
+            for (int hole = 0; hole < playedHoles(); hole = hole + 1)
             {
                 for (JTextField[][] column : new JTextField[][][] {parFields, indexFields})
                 {
@@ -994,7 +994,7 @@ public final class CoursePage extends Page
     {
         List<Component> order = new ArrayList<>();
         List<Component> candidates = new ArrayList<>(List.of(courseField, zipField, cityField, stateField));
-        for (int tee = 0; tee < TEES; tee++)
+        for (int tee = 0; tee < TEES; tee = tee + 1)
         {
             candidates.addAll(teeBoxes(tee));
         }
@@ -1131,7 +1131,7 @@ public final class CoursePage extends Page
         {
             field.setText("");
         }
-        for (int tee = 0; tee < TEES; tee++)
+        for (int tee = 0; tee < TEES; tee = tee + 1)
         {
             teeNameFields[tee].setText(DEFAULT_TEE_NAMES[tee]);
         }
@@ -1209,7 +1209,7 @@ public final class CoursePage extends Page
         {
             names.add(tee.teeName().trim().toLowerCase(Locale.ROOT));
         }
-        for (int tee = 0; tee < TEES; tee++)
+        for (int tee = 0; tee < TEES; tee = tee + 1)
         {
             String name = teeNameFields[tee].getText().trim();
             if (hasRating(tee) && !name.isEmpty() && !names.add(name.toLowerCase(Locale.ROOT)))
@@ -1222,7 +1222,7 @@ public final class CoursePage extends Page
                 return mistake(ratingFields[tee], teeLabel(tee) + ": the rating must be more than 0.");
             }
             int[] usedOn = new int[HOLES + 1];
-            for (int hole = 0; hole < playedHoles(); hole++)
+            for (int hole = 0; hole < playedHoles(); hole = hole + 1)
             {
                 String text = indexFields[tee][hole].getText();
                 if (text.isEmpty())
@@ -1286,7 +1286,7 @@ public final class CoursePage extends Page
             names.add(tee.teeName().trim().toLowerCase(Locale.ROOT));
         }
         boolean anyRated = false;
-        for (int tee = 0; tee < TEES; tee++)
+        for (int tee = 0; tee < TEES; tee = tee + 1)
         {
             if (!hasRating(tee))
             {
@@ -1365,7 +1365,7 @@ public final class CoursePage extends Page
             return problem;
         }
         int[] usedOn = new int[HOLES + 1];
-        for (int hole = 0; hole < playedHoles(); hole++)
+        for (int hole = 0; hole < playedHoles(); hole = hole + 1)
         {
             String where = label + ", hole " + (hole + 1) + ": ";
             String par = parFields[tee][hole].getText();
@@ -1378,7 +1378,7 @@ public final class CoursePage extends Page
                 return mistake(parFields[tee][hole], where + "the par must be 3, 4, 5 or 6.");
             }
         }
-        for (int hole = 0; hole < playedHoles(); hole++)
+        for (int hole = 0; hole < playedHoles(); hole = hole + 1)
         {
             String where = label + ", hole " + (hole + 1) + ": ";
             String text = indexFields[tee][hole].getText();
@@ -1456,7 +1456,7 @@ public final class CoursePage extends Page
     private int[] numbers(JTextField[] fields)
     {
         int[] values = new int[playedHoles()];
-        for (int hole = 0; hole < values.length; hole++)
+        for (int hole = 0; hole < values.length; hole = hole + 1)
         {
             values[hole] = Integer.parseInt(fields[hole].getText());
         }
@@ -1502,7 +1502,7 @@ public final class CoursePage extends Page
         String state = model == null ? stateField.getText().trim() : model.state();
         String zip = model == null ? zipField.getText() : model.zip();
         List<Tee> tees = new ArrayList<>();
-        for (int tee = 0; tee < TEES; tee++)
+        for (int tee = 0; tee < TEES; tee = tee + 1)
         {
             if (!hasRating(tee))
             {
@@ -1525,7 +1525,7 @@ public final class CoursePage extends Page
     private List<String> skippedTees()
     {
         List<String> skipped = new ArrayList<>();
-        for (int tee = 0; tee < TEES; tee++)
+        for (int tee = 0; tee < TEES; tee = tee + 1)
         {
             if (hasRating(tee))
             {
@@ -1589,7 +1589,7 @@ public final class CoursePage extends Page
         String message = "Added " + tees.size() + (tees.size() == 1 ? " tee" : " tees") + " for " + tees.get(0).courseName() + ".";
         if (!skipped.isEmpty())
         {
-            message += "  " + String.join(", ", skipped) + (skipped.size() == 1 ? " was skipped because it has" : " were skipped because they have")
+            message = message + "  " + String.join(", ", skipped) + (skipped.size() == 1 ? " was skipped because it has" : " were skipped because they have")
                     + " no rating.";
         }
         shell.goHome();

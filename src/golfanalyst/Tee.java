@@ -81,9 +81,9 @@ public record Tee(int id, String courseName, String city, String state, String z
     public int parFor(int startHole, int holesPlayed)
     {
         int total = 0;
-        for (int hole = startHole; hole < startHole + holesPlayed; hole++)
+        for (int hole = startHole; hole < startHole + holesPlayed; hole = hole + 1)
         {
-            total += pars[hole];
+            total = total + pars[hole];
         }
         return total;
     }
@@ -154,14 +154,14 @@ public record Tee(int id, String courseName, String city, String state, String z
     public int[] strokeRanksFor(int startHole, int holesPlayed)
     {
         int[] ranks = new int[holesPlayed];
-        for (int hole = 0; hole < holesPlayed; hole++)
+        for (int hole = 0; hole < holesPlayed; hole = hole + 1)
         {
             int rank = 1;
-            for (int otherHole = 0; otherHole < holesPlayed; otherHole++)
+            for (int otherHole = 0; otherHole < holesPlayed; otherHole = otherHole + 1)
             {
                 if (strokeIndex[startHole + otherHole] < strokeIndex[startHole + hole])
                 {
-                    rank++;
+                    rank = rank + 1;
                 }
             }
             ranks[hole] = rank;

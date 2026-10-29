@@ -4,26 +4,36 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /*
  +--------------------------------------------------------------------------+
  | RoundWriter                                                              |
  +--------------------------------------------------------------------------+
  | Purpose:                                                                 |
- | Adds a new round to rounds.tsv. The line is written in the column        |
- | order of the file's own header row, so a file whose columns you have     |
- | rearranged, or that has extra columns of your own, stays intact. A       |
- | column the program does not know is left blank. If the file does not     |
- | exist, or has no header row yet, the standard header is written first.   |
- | Existing lines and comments are never touched; the new line is only      |
- | added at the end.                                                        |
+ | Adds a new round to rounds.tsv, or replaces the line of a round that     |
+ | was edited. The line is written in the column order of the file's own    |
+ | header row, so a file whose columns you have rearranged, or that has     |
+ | extra columns of your own, stays intact. A column the program does not   |
+ | know is left blank on a new line, and keeps what it had on a replaced    |
+ | line. If the file does not exist, or has no header row yet, the          |
+ | standard header is written first. Other lines and comments are never     |
+ | touched: a new line is only added at the end, and a replaced line is     |
+ | swapped in place with every other character of the file left as it       |
+ | was. Before a line is replaced, the file as it was is copied to          |
+ | rounds.tsv.bak, so a bad edit can be undone by hand.                     |
  |                                                                          |
  | Constants:                                                               |
  | STANDARD_HEADER - the header used when a file has none                   |
+ | BACKUP_SUFFIX   - added to the file name for the backup copy (".bak")    |
  |                                                                          |
  | Public Methods:                                                          |
  | append(file, round, tee)            - adds one round to the file         |
+ | replace(file, round, tee)           - replaces the line of one round     |
  | formatLine(round, tee, headerCells) - builds the tab-separated line      |
  | holesText(round, tee)               - the Holes column text              |
  +--------------------------------------------------------------------------+
@@ -32,6 +42,9 @@ public final class RoundWriter
 {
 
     public static final String STANDARD_HEADER = "RoundID\tTeeID\tDate\tHoles\tPCC\tScores\tPutts\tFairways\tSand";
+    public static final String BACKUP_SUFFIX = ".bak";
+    private static final Set<String> KNOWN_COLUMNS =
+            Set.of("roundid", "teeid", "date", "holes", "pcc", "scores", "putts", "fairways", "sand");
 
     private RoundWriter()
     {
@@ -59,7 +72,7 @@ public final class RoundWriter
     private static String joinNumbers(int[] values)
     {
         StringBuilder text = new StringBuilder();
-        for (int lp = 0; lp < values.length; lp++)
+        for (int lp = 0; lp < values.length; lp = lp + 1)
         {
             text.append(lp == 0 ? "" : ",").append(values[lp]);
         }
@@ -74,7 +87,7 @@ public final class RoundWriter
     private static String joinFlags(boolean[] flags)
     {
         StringBuilder text = new StringBuilder();
-        for (int lp = 0; lp < flags.length; lp++)
+        for (int lp = 0; lp < flags.length; lp = lp + 1)
         {
             text.append(lp == 0 ? "" : ",").append(flags[lp] ? 1 : 0);
         }
@@ -120,7 +133,7 @@ public final class RoundWriter
     public static String formatLine(Round round, Tee tee, String[] headerCells)
     {
         StringBuilder line = new StringBuilder();
-        for (int col = 0; col < headerCells.length; col++)
+        for (int col = 0; col < headerCells.length; col = col + 1)
         {
             if (col > 0)
             {
@@ -195,5 +208,126 @@ public final class RoundWriter
         }
         Files.writeString(file, addition.toString(), StandardCharsets.UTF_8,
                 StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | replace(file, round, tee)                                                |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Replaces the line of an edited round: the one line whose RoundID is the  |
+     | round's id. The new line follows the header's column order; a column     |
+     | the program does not know keeps what was in it. Everything else in the   |
+     | file (other lines, comments, blank lines, line endings) is left exactly  |
+     | as it was. First the file is copied to rounds.tsv.bak; the new file is   |
+     | then written to a temporary file next to it and swapped in, so a         |
+     | failure part way cannot leave a half-written rounds.tsv.                 |
+     |                                                                          |
+     | Passed in:  file  - the rounds.tsv path                                  |
+     |             round - the edited round, with the id of the saved one       |
+     |             tee   - the course/tee it was played on                      |
+     | Passed out: nothing (the file is changed); throws IOException if the     |
+     |             file has no header or no RoundID column, if no line (or      |
+     |             more than one) has that RoundID, or if it cannot be written  |
+     +--------------------------------------------------------------------------+
+     */
+    public static void replace(Path file, Round round, Tee tee) throws IOException
+    {
+        String text = Files.readString(file, StandardCharsets.UTF_8);
+        String[] headerCells = findHeader(text);
+        if (headerCells == null)
+        {
+            throw new IOException(file.getFileName() + " has no header row");
+        }
+        int idColumn = -1;
+        for (int col = 0; col < headerCells.length; col = col + 1)
+        {
+            if (DataLoader.normalize(headerCells[col]).equals("roundid") && idColumn < 0)
+            {
+                idColumn = col;
+            }
+        }
+        if (idColumn < 0)
+        {
+            throw new IOException(file.getFileName() + " has no RoundID column");
+        }
+
+        int lineStart = text.startsWith("﻿") ? 1 : 0;
+        int foundStart = -1;
+        int foundEnd = -1;
+        boolean headerSeen = false;
+        Matcher breaks = Pattern.compile("\\R").matcher(text);
+        while (lineStart <= text.length())
+        {
+            int lineEnd = breaks.find(lineStart) ? breaks.start() : text.length();
+            String line = text.substring(lineStart, lineEnd);
+            if (!line.isBlank() && !line.trim().startsWith("#"))
+            {
+                if (headerSeen && sameId(line, idColumn, round.id()))
+                {
+                    if (foundStart >= 0)
+                    {
+                        throw new IOException("RoundID " + round.id() + " is on more than one line of " + file.getFileName());
+                    }
+                    foundStart = lineStart;
+                    foundEnd = lineEnd;
+                }
+                headerSeen = true;
+            }
+            if (lineEnd >= text.length())
+            {
+                break;
+            }
+            lineStart = breaks.end();
+        }
+        if (foundStart < 0)
+        {
+            throw new IOException("RoundID " + round.id() + " is not in " + file.getFileName());
+        }
+
+        String[] oldCells = text.substring(foundStart, foundEnd).split("\t", -1);
+        StringBuilder newLine = new StringBuilder();
+        for (int col = 0; col < headerCells.length; col = col + 1)
+        {
+            String column = DataLoader.normalize(headerCells[col]);
+            String cell = KNOWN_COLUMNS.contains(column) ? cellText(round, tee, column) : (col < oldCells.length ? oldCells[col] : "");
+            newLine.append(col > 0 ? "\t" : "").append(cell);
+        }
+        String result = text.substring(0, foundStart) + newLine + text.substring(foundEnd);
+
+        Path backup = file.resolveSibling(file.getFileName() + BACKUP_SUFFIX);
+        Files.copy(file, backup, StandardCopyOption.REPLACE_EXISTING);
+        Path temporary = file.resolveSibling(file.getFileName() + ".new");
+        Files.writeString(temporary, result, StandardCharsets.UTF_8);
+        try
+        {
+            Files.move(temporary, file, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+        }
+        catch (IOException notAtomic)
+        {
+            Files.move(temporary, file, StandardCopyOption.REPLACE_EXISTING);
+        }
+    }
+
+    /*
+     * sameId(line, idColumn, id): whether a data line holds the given RoundID.
+     * Passed in:  line - one line of the file, idColumn - where RoundID is, id - the id wanted
+     * Passed out: true if that cell is the id (a cell that is not a number never matches)
+     */
+    private static boolean sameId(String line, int idColumn, int id)
+    {
+        String[] cells = line.split("\t", -1);
+        if (idColumn >= cells.length)
+        {
+            return false;
+        }
+        try
+        {
+            return Integer.parseInt(cells[idColumn].trim()) == id;
+        }
+        catch (NumberFormatException notNumber)
+        {
+            return false;
+        }
     }
 }

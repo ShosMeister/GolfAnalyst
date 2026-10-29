@@ -38,7 +38,7 @@ On the left: New Course adds a course and its tees. New Round is the screen for 
 
 On the right: Rounds is the screen for looking at the rounds you have saved. Stats Board, Analyzer and Best Round show your statistics in more detail, and Print prints what you are looking at.
 
-Edit Round, Import, Clear, Stats Board, Analyzer, Best Round and Print are not built yet. They are in place and will be added.
+Import, Clear, Stats Board, Analyzer, Best Round and Print are not built yet. They are in place and will be added.
 
 # Across the top and bottom
 
@@ -78,3 +78,5 @@ Golf Analyst v4.00: Rewritten in Java so that it runs on Windows, Mac and Linux 
 Golf Analyst v4.10: Added the New Course screen, so courses and up to four sets of tees at a time are typed in instead of edited into courses.tsv by hand. The window now tells you when you are looking at the sample data, and offers to make your own data folder before anything is saved there.
 
 Golf Analyst v4.11: The New Course screen now looks like the round screen, with each set of tees in its own wooden frame. An arrow on the first tee copies its pars and stroke index into the empty cells of the other tees. Everything is checked as you type, and Save comes on only when the course is ready to save.
+
+Golf Analyst v4.20: Added Edit Round, so a saved round can be fixed right on the screen instead of in the rounds file. Only that round is changed, and a copy of the file as it was is kept in rounds.tsv.bak. The Help and Info windows now show headings and bold labels.
