@@ -2,13 +2,13 @@ New Course - Help
 
 Here is how to put a course in, straight from the scorecard. Have the card in front of you.
 
-The course
+# The course
 
 Type the name of the course and press Enter, then the 5-digit zip. If the course is already in the program, the bottom bar says so and lists the tees it has. Just fill in the new tees. Otherwise type the city and the state. If it is a nine-hole course, tick the Nine-hole course box before you start on the tees.
 
 You do not have to fuss over capitals. If you type the whole name in lower case or in capitals, the program gives each word a capital letter for you. If you mix them, it leaves them exactly as you typed them, so names like TPC Sawgrass or McDonough come out right.
 
-The tees
+# The tees
 
 Change the tee names to the ones on your card. Then for the first tee type the rating, the slope, the front and back nine ratings if your card has them, and the yardage if you like. Then go down the pars and down the stroke index numbers.
 
@@ -19,13 +19,13 @@ You hardly need to touch the mouse. The cursor moves on by itself as soon as a c
 - a rating moves on after the number after the point, so type 70.4 and you are on to the slope.
 Enter or Tab moves on too, and skips a cell you want to leave blank. The cursor goes down all the pars of a tee, then down all its stroke index numbers, then on to the next tee. The gold outline shows you where you are.
 
-The copy arrow
+# The copy arrow
 
 Most courses use the same pars, and often the same stroke index, for every set of tees. Once the first tee's pars and stroke index are in, press the arrow next to its name. They are copied into the other three tees, but only into cells that are still empty, so anything you already typed stays. Then just fix the few holes that differ on the card, and type each tee's own rating and slope, which are never copied. If the ladies' tees on your card have their own stroke index, type the men's tee in the first frame (rename it), copy, and then fix the ladies' column.
 
 A tee you do not fill in a rating for is simply left out, even if the arrow copied pars into it.
 
-Saving
+# Saving
 
 Watch the bar at the bottom: it always names the next thing to fill in, by tee and hole. If something is actually wrong, such as a stroke index used twice or a tee name the course already has, that cell turns pink straight away. A cell you just have not reached yet stays white. When everything is in order the bar says Ready to save and the Save button comes on. Press it, and you are back at Home with a message saying what was added. Now you can enter rounds on the new course.
 

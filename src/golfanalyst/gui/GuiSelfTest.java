@@ -37,6 +37,8 @@ import javax.swing.JTextField;
  | - New Course: every typing rule, the names rule, finding a course        |
  |   already there, each check on Save, the cursor order, adding tees to    |
  |   a course and saving a new nine-hole course                             |
+ | - Help text styling: headings, labels, numbered steps, the title line,   |
+ |   the styles that reach the window, and every real help file             |
  | - The sample-data safeguard: title, footer, and Yes / No / Cancel for    |
  |   both a course and a round                                              |
  |                                                                          |
@@ -660,6 +662,7 @@ public final class GuiSelfTest
         deleteFolder(windowTemp);
 
         checkCourseTyping();
+        checkHelpFormatter();
         checkCoursePage(coursePage, store, shell, temp);
         checkSampleSafeguard();
 
@@ -816,6 +819,85 @@ public final class GuiSelfTest
         {
             page.parFields[tee][hole].setText(Integer.toString(pars[hole]));
             page.indexFields[tee][hole].setText(Integer.toString(index[hole]));
+        }
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | checkHelpFormatter()                                                     |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | The help text styling: the title line is the window title and is not     |
+     | repeated; "# " makes a heading; a label up to its colon is bold; the     |
+     | first sentence of a numbered step is bold; anything else is plain; the   |
+     | styles and spacing that reach the window; and every real help file.      |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing (throws IOException if a help file cannot be read)   |
+     +--------------------------------------------------------------------------+
+     */
+    private static void checkHelpFormatter() throws IOException
+    {
+        String sample = "Golf Analyst Home - Info\n\n# The tees\n\nLow Index: The lowest index you had.\n"
+                + "1. Choose the course and tees. Open the list at the top.\n\nThis is the Home screen.\n";
+        List<HelpFormatter.Piece> pieces = HelpFormatter.pieces(sample);
+        check("help: the first line is the title", HelpFormatter.title(sample).equals("Golf Analyst Home - Info"));
+        check("help: the title is not repeated in the body", pieces.stream().noneMatch(piece -> piece.text().contains("Golf Analyst Home")));
+        check("help: blank lines are skipped, leaving six pieces", pieces.size() == 6);
+        check("help: \"# \" makes a heading and is not shown", pieces.get(0).equals(
+                new HelpFormatter.Piece("The tees", HelpFormatter.Style.HEADING, true)));
+        check("help: a label is bold up to and including its colon",
+                pieces.get(1).equals(new HelpFormatter.Piece("Low Index:", HelpFormatter.Style.BOLD, false))
+                        && pieces.get(2).equals(new HelpFormatter.Piece(" The lowest index you had.", HelpFormatter.Style.PLAIN, true)));
+        check("help: a numbered step has its first sentence in bold",
+                pieces.get(3).equals(new HelpFormatter.Piece("1. Choose the course and tees.", HelpFormatter.Style.BOLD, false))
+                        && pieces.get(4).equals(new HelpFormatter.Piece(" Open the list at the top.", HelpFormatter.Style.PLAIN, true)));
+        check("help: an ordinary paragraph is plain", pieces.get(5).equals(
+                new HelpFormatter.Piece("This is the Home screen.", HelpFormatter.Style.PLAIN, true)));
+        check("help: a colon after a period is not a label", HelpFormatter.pieces("T\nTwo rules to remember. Count: putts.\n").get(0).style()
+                == HelpFormatter.Style.PLAIN);
+        check("help: a colon after the first 45 characters is not a label", HelpFormatter.pieces(
+                "T\nThis line runs on for well over forty-five letters before: here\n").get(0).style() == HelpFormatter.Style.PLAIN);
+        check("help: a line starting with # but no space is not a heading",
+                HelpFormatter.pieces("T\n#notaheading\n").get(0).style() == HelpFormatter.Style.PLAIN);
+
+        javax.swing.text.DefaultStyledDocument document = new javax.swing.text.DefaultStyledDocument();
+        HelpWindow.fill(document, pieces);
+        javax.swing.text.AttributeSet heading = document.getCharacterElement(0).getAttributes();
+        check("help window: a heading is 18 pt bold, underlined, dark brown",
+                javax.swing.text.StyleConstants.getFontSize(heading) == 18 && javax.swing.text.StyleConstants.isBold(heading)
+                        && javax.swing.text.StyleConstants.isUnderline(heading)
+                        && javax.swing.text.StyleConstants.getForeground(heading).equals(Theme.HELP_HEADING));
+        javax.swing.text.AttributeSet headingParagraph = document.getParagraphElement(0).getAttributes();
+        check("help window: 16 px above a heading and 4 below",
+                javax.swing.text.StyleConstants.getSpaceAbove(headingParagraph) == 16f
+                        && javax.swing.text.StyleConstants.getSpaceBelow(headingParagraph) == 4f);
+        int plainAt = 0;
+        try
+        {
+            plainAt = document.getText(0, document.getLength()).indexOf("The lowest");
+        }
+        catch (javax.swing.text.BadLocationException unexpected)
+        {
+            check("help window: the text can be read back", false);
+        }
+        javax.swing.text.AttributeSet plain = document.getCharacterElement(plainAt).getAttributes();
+        check("help window: body text is 15 pt plain black", javax.swing.text.StyleConstants.getFontSize(plain) == 15
+                && !javax.swing.text.StyleConstants.isBold(plain) && javax.swing.text.StyleConstants.getForeground(plain).equals(java.awt.Color.BLACK));
+        check("help window: 9 px below a paragraph",
+                javax.swing.text.StyleConstants.getSpaceBelow(document.getParagraphElement(plainAt).getAttributes()) == 9f);
+        javax.swing.text.AttributeSet label = document.getCharacterElement(plainAt - 3).getAttributes();
+        check("help window: a label is bold", javax.swing.text.StyleConstants.isBold(label));
+
+        for (String file : new String[] {"home-info.txt", "home-help.txt", "round-new-info.txt", "round-new-help.txt",
+                "round-view-info.txt", "round-view-help.txt", "course-info.txt", "course-help.txt"})
+        {
+            String text = Files.readString(Path.of("help", file));
+            List<HelpFormatter.Piece> filePieces = HelpFormatter.pieces(text);
+            boolean hasHeading = filePieces.stream().anyMatch(piece -> piece.style() == HelpFormatter.Style.HEADING);
+            check(file + ": has its section headings marked", hasHeading || file.equals("round-view-help.txt"));
+            check(file + ": no # is shown", filePieces.stream().noneMatch(piece -> piece.text().startsWith("#")));
+            check(file + ": the title is not repeated", !filePieces.get(0).text().equals(HelpFormatter.title(text)));
         }
     }
 

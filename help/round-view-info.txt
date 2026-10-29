@@ -2,7 +2,7 @@ Looking at Your Rounds - Info
 
 This screen shows one saved round at a time, exactly as it was saved. Nothing on it can be changed, which is why every box is grey.
 
-At the top
+# At the top
 
 The title across the top is the round's ID number, the course and the tees, for example 00031:Sample Links:White.
 
@@ -14,17 +14,17 @@ Holes: Whether it was 18 holes, the front nine or the back nine. Holes that were
 
 PCC: The Playing Conditions Calculation that was used. It is almost always 0.
 
-The hole-by-hole tables
+# The hole-by-hole tables
 
 Hole, Par, Putt and Score are what they say. A check in Fwy means you hit the fairway from the tee on that hole. A check in Sand means you were in a bunker on that hole. Out and In are the totals for holes 1 to 9 and 10 to 18.
 
-The column on the right
+# The column on the right
 
 Rating: The Course Rating and the Slope Rating for the holes that were played. If it says "no rating" the round counts in your statistics but not in your handicap.
 
 Eagles, Birdies, Pars, Bogeys, DBogeys, Others: How many holes of each kind the round had. Others means triple bogey or worse.
 
-The form at the bottom
+# The form at the bottom
 
 Date, Score and Putts: When the round was played and its totals.
 
@@ -40,7 +40,7 @@ Greens In Reg: Holes where the strokes before your first putt (your score minus 
 
 Index After: What your Handicap Index was right after this round was added.
 
-The four arrows and the bar at the bottom
+# The four arrows and the bar at the bottom
 
 The arrows are First, Previous, Next and Last round, within whatever you chose in Show. An arrow is greyed out when there is nowhere to go. The bar along the bottom says which round you are on and how many there are in your choice, for example Round 3 of 12.
 

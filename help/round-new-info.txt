@@ -2,7 +2,7 @@ Entering a Round - Info
 
 This is the screen for entering a new round. The white boxes are the ones you type in. The grey boxes are worked out for you as you type and cannot be changed. To look back at rounds you have already saved, use the Rounds button on the Home screen instead.
 
-Across the top
+# Across the top
 
 Course / tee: The course and tees you played, with the ID number of that set of tees in front. Every set of tees has its own number. The list comes from the file courses.tsv.
 
@@ -10,7 +10,7 @@ Holes: 18 holes, the front nine or the back nine. A nine-hole course has only on
 
 PCC: The Playing Conditions Calculation for the day, from -1 to 3. It is almost always 0 and it is only used for the handicap. You can leave it alone unless you know the day's value.
 
-The hole-by-hole tables
+# The hole-by-hole tables
 
 Out holds holes 1 to 9 and In holds holes 10 to 18. Holes you are not playing are greyed out. Only digits can be typed in the Putt and Score boxes.
 
@@ -28,13 +28,13 @@ Sand: Check it if you were in a bunker at any time on the hole. You can click it
 
 The Out and In boxes at the bottom of each table add up the putts and the scores for that half.
 
-The column on the right
+# The column on the right
 
 Rating: The Course Rating and the Slope Rating of the tees you chose, for the holes you are playing. A nine-hole round on an 18-hole course needs front nine or back nine ratings in the course file to count toward your handicap. If it has none, the round still counts in your statistics and this box says "no rating".
 
 Eagles, Birdies, Pars, Bogeys, DBogeys, Others: How many holes of each kind you have so far. Others means triple bogey or worse.
 
-The form at the bottom
+# The form at the bottom
 
 Date: When you played. It starts as today. You can type it as 2026-10-22 or as 10/22/2026.
 
@@ -54,6 +54,6 @@ Index After: What your Handicap Index will be once this round is added. It also 
 
 Save and Cancel: Save adds the round to your data. Cancel throws away what you have typed. The ? button explains how to use them.
 
-Pink boxes and the bar at the bottom
+# Pink boxes and the bar at the bottom
 
 A box turns pink when what is in it cannot be right. The bar along the bottom of the window says what is wrong, or what is still missing.

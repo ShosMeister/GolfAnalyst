@@ -2,7 +2,7 @@ New Course - Info
 
 This is the screen for adding a course and up to four sets of tees. It is laid out like a scorecard: the captions run down the wooden frame on the left, and each set of tees has its own frame to the right. The white cells are the ones you type in. The cell with the cursor has a gold outline. The grey cells are worked out for you.
 
-Across the top
+# Across the top
 
 Course and Zip: The name of the course and its 5-digit zip code. If that course is already in the program (the capitals and extra spaces do not matter, but the zip must be the same), the bottom bar tells you which tees it already has, and the tees you fill in here are added to it.
 
@@ -10,7 +10,7 @@ City and State: Where the course is. State is two capital letters, for example S
 
 Nine-hole course: Tick it for a course that only has nine holes, like the ones Spark Golf plays. Holes 10 to 18 and the Front 9 and Back 9 rows disappear, and the stroke index runs from 1 to 9.
 
-The tees
+# The tees
 
 There are four frames, one for each set of tees. They start out named Ladies, Beginner, Intermediate and Expert, but you can call them anything (Blue, White, Gold...). Each name can only be used once on a course.
 
@@ -24,6 +24,6 @@ Par and SI for each hole: The par of the hole (3, 4, 5 or 6) and its stroke inde
 
 The arrow next to the first tee's name copies its pars and stroke index numbers into the other tees, but only into cells that are still empty. Nothing else is ever copied. If a scorecard does not give a rating for a set of tees, leave it out rather than guess, because a made-up rating would throw off your handicap.
 
-Across the bottom
+# Across the bottom
 
 The bar along the bottom always tells you the next thing to fill in or fix. When everything is in order it says Ready to save, and the Save button comes on. Save adds the tees to courses.tsv and takes you back Home. Cancel goes back Home without saving anything.

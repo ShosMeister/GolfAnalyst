@@ -24,8 +24,8 @@ Courses and rounds live in two plain tab-separated text files. Written for one u
   data; also knows if it is the sample data), `Main` (text reports, `--selftest`), `SelfTest`.
 - `src/golfanalyst/gui/`: `App` (entry), `AppFrame` (thin JFrame), `AppPanel` (ALL the window logic: pages, header,
   footer, navigation, Help/Info, the sample-data question), `Shell` (what a page may ask of the window), `Page`,
-  `HomePage`, `RoundPage`, `CoursePage`,
-  `HeaderBar`, `FooterBar`, `HelpWindow`, `Theme` (colours, fonts, images, drawing helpers), custom controls
+  `HomePage`, `RoundPage`, `CoursePage`, `HeaderBar`, `FooterBar`, `HelpWindow` + `HelpFormatter` (styles the help
+  text), `Theme` (colours, fonts, images, drawing helpers), custom controls
   (`WoodButton`, `IconButton`, `ValueBox`, `WoodPanel`, `WoodFrame`, `WoodTag`, `ImageCheckBox`, `BackdropPanel`),
   `GuiSelfTest`.
 - `images/` (wood buttons, textures, `backgrounds/<page>.jpg|gif`), `help/` (plain text Info and Help files),
@@ -107,7 +107,10 @@ Courses and rounds live in two plain tab-separated text files. Written for one u
   left New Course, New Round, Edit Round, Import, Clear; right Rounds, Stats Board, Analyzer, Best Round, Print.
 - Help: the i button says WHAT is on the screen; the ? button says HOW to use it. Files in `help/`
   (`home-*`, `round-new-*`, `round-view-*`, `course-*`). Update them with every feature. Keep the user's friendly
-  voice.
+  voice. The files stay plain text: the first line is the window title; a line starting with "# " is a section
+  heading (put "# " in front of every new section heading); "Label: text" (colon within 45 characters, no period
+  before it) shows the label in bold; "3. First sentence. More" shows the first sentence in bold
+  (`HelpFormatter`, shown by `HelpWindow` on parchment under a wood title band).
 - Version numbers: second pair of digits, `.0x` is a bug fix and `.x0` is a feature (v4.00 -> v4.01 fix, v4.10
   feature). Set in `Theme.VERSION` and `pom.xml`. Release zips are named `GolfAnalyst_vX.XX.zip`.
 

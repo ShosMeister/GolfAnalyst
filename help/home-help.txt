@@ -2,13 +2,13 @@ Golf Analyst Home - Help
 
 Okay, so you want to know how to use this thing. Here is how it all works, from the scorecard to the screen.
 
-Before you play
+# Before you play
 
 There really isn't much more you need to do when you play a round to capture the information. Normally, you write down your score. Now, instead of just your score, mark an "F" on the scorecard if you hit the fairway from the tee. Also, when you get to the green, count the number of putts and mark that on your scorecard as well. What I do is use two lines on the card. The top line is my normal score and the second line I use for the F and the number of putts (F2). Finally, if you are in the sand at any time on the hole, just put an "S" on that second line. Once you get the hang of it you'll find that it's really not that much work.
 
 Two rules to remember. A putt is only counted when your ball is on the putting green. A stroke from the fringe or the collar is not a putt, even if you use your putter. And if you hole out from off the green (a chip-in, for example) that hole has 0 putts.
 
-After you play
+# After you play
 
 To add the round, press New Round. Fill it in from your scorecard and press Save. You can even type the same F and S letters you marked on your card, right in the Putt box. The Help button on that screen walks you through it. When you come back to Home, your handicap and statistics already include the new round.
 
@@ -16,20 +16,20 @@ To look back at your rounds, press Rounds. It opens at your most recent round an
 
 To change the name, click it in the Golfer's Stats section, type the name and press OK.
 
-Adding a course
+# Adding a course
 
 You cannot enter a round until its course is in the program. Press New Course, type the course name and zip, then the rating, slope, pars and stroke index numbers of each set of tees straight from the scorecard, and press Save. You can put in up to four sets of tees at once, and add more tees to a course later the same way. The Help button on that screen walks you through it. If you want a front nine or back nine round on an 18-hole course to count toward your handicap, fill in that nine's own rating and slope too.
 
-Your own data
+# Your own data
 
 When you first open the program it shows the sample data, so there is something to look at. The title bar and the bar along the bottom say so. The first time you save a course or a round, the program asks whether to make your own data folder. Say Yes, then close the program and open it again: from then on it uses your own data folder and the sample data is left alone.
 
-Using what the numbers tell you
+# Using what the numbers tell you
 
 Look at your four percentages: Fairways Hit, Greens In Reg, Sand Saves and Two-Putt. See which one is low compared with the others. That is where to practice.
 
 For example, I know, from using this program, that my weakness is my short game. How? Simple, my Two-Putt percentage is always 90+ but my Greens In Reg is always under 20%. That tells me that if I could get to the green in regulation, I'd be making par almost all of the time.
 
-If something looks wrong
+# If something looks wrong
 
 The bar along the bottom of the window tells you when something in your data files could not be read. Click it to see exactly which line of which file to fix. The program reads the files when it starts, so after you edit one by hand, close the program and open it again.

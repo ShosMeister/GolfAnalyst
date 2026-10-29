@@ -56,6 +56,10 @@ public final class Theme
     public static final Color FIELD_ERROR = new Color(255, 200, 200);
     /** The pale cream fill of the spreadsheet cell that has the cursor (New Course). */
     public static final Color FIELD_FOCUS = new Color(255, 248, 220);
+    /** The parchment behind the text of the Help and Info windows. */
+    public static final Color HELP_PAPER = new Color(247, 241, 227);
+    /** The dark brown of the section headings in the Help and Info windows. */
+    public static final Color HELP_HEADING = new Color(100, 50, 8);
     /** The thin lines between spreadsheet cells (New Course). */
     public static final Color GRID_LINE = new Color(185, 180, 170);
     public static final Color FRAME_DARK = new Color(70, 40, 10);

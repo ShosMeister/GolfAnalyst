@@ -24,7 +24,7 @@ Remember two things. Count a putt only when your ball is on the green. A stroke 
 
 If you change your mind, press Cancel. Nothing is saved.
 
-A few things worth knowing
+# A few things worth knowing
 
 PCC: Leave it at 0 unless you know the day's value. A wrong value changes your handicap.
 

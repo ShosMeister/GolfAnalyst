@@ -91,7 +91,10 @@ in place and say "not built yet" in the footer.
   `round-view-info.txt` and `round-view-help.txt` while you are looking at saved ones, and
   `course-info.txt` and `course-help.txt` on the New Course screen.
   The first line of a file is the window title; blank lines separate paragraphs. Edit them with any
-  text editor; nothing needs rebuilding.
+  text editor; nothing needs rebuilding. The files stay plain text, and a few simple marks give the
+  window its styles: put "# " at the start of a line to make it a section heading (do this for every new
+  section you add); a line that starts with a label and a colon, like "Low Index: ...", shows the label
+  in bold; and a numbered step like "3. Check the date. ..." shows its first sentence in bold.
 - **Pictures** are in the `images` folder: the wood buttons and textures, the round buttons and the
   check boxes. Each page's background photo is in `images/backgrounds`, named for the page
   (`home.gif`, `round.jpg`, and so on). Drop in another picture with the same name to change a page's
@@ -107,8 +110,9 @@ Code for the window is in `src/golfanalyst/gui`: `AppFrame` (the window itself, 
 `AppPanel` (everything the window does: the pages, navigation, Help and Info), `HeaderBar`, `FooterBar`,
 `Page` and its three pages `HomePage`, `RoundPage` and `CoursePage`, the custom controls (`WoodButton`, `IconButton`,
 `ValueBox`, `WoodPanel`, `WoodFrame`, `WoodTag`, `ImageCheckBox`, `BackdropPanel`), `Theme` (colours,
-fonts, pictures, in one place), `HelpWindow` and `App`. The pages talk to the window only through the
-`Shell` interface, so they can be tested without opening a window.
+fonts, pictures, in one place), `HelpWindow` (with `HelpFormatter`, which styles the help text) and
+`App`. The pages talk to the window only through the `Shell` interface, so they can be tested without
+opening a window.
 
 ## Your data: two tab-separated text files
 
