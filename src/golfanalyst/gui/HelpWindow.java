@@ -38,6 +38,11 @@ import javax.swing.text.StyledDocument;
  | a line makes it a heading). The text wraps to the window's width and     |
  | cannot be changed.                                                       |
  |                                                                          |
+ | The window is modal: while it is open the main window takes no clicks    |
+ | or typing, so the help always belongs to the screen it was opened from.  |
+ | It can still be moved and scrolled; Close (or the X) gives the main      |
+ | window back.                                                             |
+ |                                                                          |
  | File names are the screen's help key plus "-info" or "-help", for        |
  | example home-info.txt and home-help.txt.                                 |
  |                                                                          |
@@ -66,8 +71,8 @@ public final class HelpWindow extends JDialog
      | HelpWindow(owner, title, pieces)                                         |
      +--------------------------------------------------------------------------+
      | Purpose:                                                                 |
-     | Builds the window: the wood title band, the styled text in a scrolling,  |
-     | read-only pane on parchment, and a Close button underneath.              |
+     | Builds the modal window: the wood title band, the styled text in a       |
+     | scrolling, read-only pane on parchment, and a Close button underneath.   |
      |                                                                          |
      | Passed in:  owner  - the main window it opens over                       |
      |             title  - the words in the band and the title bar             |
@@ -77,7 +82,7 @@ public final class HelpWindow extends JDialog
      */
     private HelpWindow(Frame owner, String title, List<HelpFormatter.Piece> pieces)
     {
-        super(owner, title, false);
+        super(owner, title, true);
         JTextPane text = new JTextPane();
         text.setEditable(false);
         text.setBackground(Theme.HELP_PAPER);
@@ -216,7 +221,8 @@ public final class HelpWindow extends JDialog
      | Purpose:                                                                 |
      | Reads a help file and opens a window showing it. If the file is          |
      | missing or cannot be read the window says so, and says which file it     |
-     | was looking for, instead of failing.                                     |
+     | was looking for, instead of failing. The window is modal, so this only   |
+     | returns once it has been closed.                                         |
      |                                                                          |
      | Passed in:  owner         - the main window                              |
      |             helpDir       - the folder holding the help files            |

@@ -1,4 +1,4 @@
-# GolfAnalyst v4.21 (Java) - notes for Claude
+# GolfAnalyst v4.22 (Java) - notes for Claude
 
 A single-golfer golf statistics program with a Swing window. Ported from HyperCard (1991) to Excel/VBA to Java.
 Courses and rounds live in two plain tab-separated text files. Written for one user who tests on Windows.
@@ -143,7 +143,8 @@ Courses and rounds live in two plain tab-separated text files. Written for one u
   voice. The files stay plain text: the first line is the window title; a line starting with "# " is a section
   heading (put "# " in front of every new section heading); "Label: text" (colon within 45 characters, no period
   before it) shows the label in bold; "3. First sentence. More" shows the first sentence in bold
-  (`HelpFormatter`, shown by `HelpWindow` on parchment under a wood title band).
+  (`HelpFormatter`, shown by `HelpWindow` on parchment under a wood title band). The help window is modal (v4.22):
+  the main window cannot be used until it is closed, so the help always matches the screen it was opened from.
 - Version numbers: second pair of digits, `.0x` is a bug fix and `.x0` is a feature (v4.00 -> v4.01 fix, v4.10
   feature). Set in `Theme.VERSION` and `pom.xml`. Release zips are named `GolfAnalyst_vX.XX.zip`.
 
