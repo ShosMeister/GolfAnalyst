@@ -3,6 +3,8 @@ package golfanalyst.gui;
 import golfanalyst.DataStore;
 import java.awt.Dimension;
 import java.awt.Image;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.nio.file.Path;
 import javax.swing.JFrame;
 
@@ -31,7 +33,9 @@ public final class AppFrame extends JFrame
      | AppFrame(store, helpDir, startNote)                                      |
      +--------------------------------------------------------------------------+
      | Purpose:                                                                 |
-     | Builds the window around a new AppPanel.                                 |
+     | Builds the window around a new AppPanel. The close box quits only if     |
+     | the page on show agrees (AppPanel.canQuit asks "Discard your changes?"   |
+     | when something typed is not saved).                                      |
      |                                                                          |
      | Passed in:  store     - the loaded data                                  |
      |             helpDir   - the folder with the help text files              |
@@ -50,7 +54,19 @@ public final class AppFrame extends JFrame
         {
             setIconImage(icon);
         }
-        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
+        addWindowListener(new WindowAdapter()
+        {
+            @Override
+            public void windowClosing(WindowEvent event)
+            {
+                if (panel.canQuit())
+                {
+                    dispose();
+                    System.exit(0);
+                }
+            }
+        });
         setSize(WINDOW_WIDTH, WINDOW_HEIGHT);
         setMinimumSize(new Dimension(MIN_WIDTH, MIN_HEIGHT));
         setLocationRelativeTo(null);

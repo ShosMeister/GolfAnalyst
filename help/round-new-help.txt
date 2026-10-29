@@ -18,7 +18,7 @@ Here is how to enter a round, step by step. Have your scorecard in front of you.
 
 8. Press Save. The round is added to the end of rounds.tsv in your data folder. Your other lines and comments in the file are not touched. The screen then shows the saved round, locked, so you can check it. Press Close, or the Home button, to go back to Home.
 
-If you change your mind, press Cancel. Nothing is saved.
+If you change your mind, press Cancel. Nothing is saved. If you have already typed something, the program asks "Discard your changes?" first, so a slip of the mouse does not lose your card. It asks the same if you press the Home button or close the window.
 
 # A few things worth knowing
 

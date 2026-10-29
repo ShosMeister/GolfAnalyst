@@ -231,6 +231,7 @@ public final class RoundPage extends Page
     private int playedStart = 0;
     private int playedCount = HOLES;
     private String editStart = "";
+    private String newStart = "";
     private JTextField cursorCell = null;
     private final Set<JTextField> wrongFields = new HashSet<>();
 
@@ -1225,6 +1226,7 @@ public final class RoundPage extends Page
         clearEntries();
         applyHoles();
         updating = false;
+        newStart = entries();
     }
 
     /*
@@ -1956,11 +1958,11 @@ public final class RoundPage extends Page
     }
 
     /*
-     * hasChanges(): whether a round being edited has been changed since Edit was pressed.
+     * hasChanges(): whether anything has been typed that is not saved: a round being edited changed since Edit was pressed, or a new round with anything filled in.
      */
     boolean hasChanges()
     {
-        return mode == Mode.EDIT && !entries().equals(editStart);
+        return (mode == Mode.EDIT && !entries().equals(editStart)) || (mode == Mode.NEW && !entries().equals(newStart));
     }
 
     /*
@@ -2000,21 +2002,31 @@ public final class RoundPage extends Page
     }
 
     /*
-     * cancel(): what Cancel / Close does: while editing, goes back to the saved round as it was (asking first if anything was changed); otherwise back to the Stats Board if the round was opened from there, or Home.
+     * cancel(): what Cancel / Close does: while editing, goes back to the saved round as it was; while entering a new round, goes Home (both ask first if anything was typed); looking at a saved round, goes back to the Stats Board if it was opened from there, or Home.
      */
     private void cancel()
     {
-        if (mode != Mode.EDIT && backToStats)
+        if (mode == Mode.EDIT)
+        {
+            if (canLeave())
+            {
+                showRoundAt(viewIndex);
+            }
+        }
+        else if (mode == Mode.NEW)
+        {
+            if (canLeave())
+            {
+                shell.goHome();
+            }
+        }
+        else if (backToStats)
         {
             shell.statsBoard();
         }
-        else if (mode != Mode.EDIT)
+        else
         {
             shell.goHome();
-        }
-        else if (canLeave())
-        {
-            showRoundAt(viewIndex);
         }
     }
 

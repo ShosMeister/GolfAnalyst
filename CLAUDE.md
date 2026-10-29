@@ -53,7 +53,10 @@ Courses and rounds live in two plain tab-separated text files. Written for one u
   temporary file. Courses are checked with the loader before writing. Then the store reloads.
 - Never write the byte-order mark as an invisible character in source: use `LineReplacer.BYTE_ORDER_MARK`.
 - A page with unsaved changes overrides `Page.canLeave()` to ask "Discard your changes?" (`Shell.askYesNo`); the
-  Home button, the arrows and Cancel all go through it.
+  Home button, the arrows, Cancel and the window's close box all go through it. Round entry (anything typed since
+  New Round), Edit Round and New Course (anything typed or ticked since the empty screen) ask. The close box is
+  `DO_NOTHING_ON_CLOSE` plus `AppPanel.canQuit()` (v4.41): nothing needs cleaning up on exit (saves are written at
+  once; edits via a temporary file), so it works from every screen and only unsaved typing is protected.
 
 ## The user's code style (strict; apply to everything, including edits)
 - A large comment block at the start of every class and function: what it does, what is passed in, what is passed

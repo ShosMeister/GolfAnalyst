@@ -137,6 +137,7 @@ public final class CoursePage extends Page
     final JPanel framesRow = new JPanel(new FlowLayout(FlowLayout.CENTER, FRAME_GAP, 0));
 
     private final List<JTextField> allBoxes = new ArrayList<>();
+    private String blankScreen = "";
     private final Set<JTextField> cells = new HashSet<>();
     private final List<JComponent> frontRow = new ArrayList<>();
     private final List<JComponent> backRow = new ArrayList<>();
@@ -187,7 +188,13 @@ public final class CoursePage extends Page
 
         copyButton.addActionListener(event -> copyFirstTee());
         saveButton.addActionListener(event -> save());
-        cancelButton.addActionListener(event -> shell.goHome());
+        cancelButton.addActionListener(event ->
+        {
+            if (canLeave())
+            {
+                shell.goHome();
+            }
+        });
         nineHoleCheck.setOnChange(() -> setNineHoles(nineHoleCheck.isSelected()));
         setFocusTraversalPolicyProvider(true);
         setFocusTraversalPolicy(focusPolicy);
@@ -1346,6 +1353,40 @@ public final class CoursePage extends Page
         saveButton.setEnabled(false);
         applyState();
         scroller.getVerticalScrollBar().setValue(0);
+        blankScreen = screenText();
+    }
+
+    /*
+     * screenText(): everything that can be typed or ticked on the screen, as one piece of text, so typing can be spotted by comparing it with the empty screen.
+     */
+    private String screenText()
+    {
+        StringBuilder text = new StringBuilder();
+        for (JTextField field : new JTextField[] {courseField, zipField, cityField, stateField})
+        {
+            text.append(field.getText()).append('|');
+        }
+        text.append(nineHoleCheck.isSelected()).append('|');
+        for (JTextField field : teeNameFields)
+        {
+            text.append(field.getText()).append('|');
+        }
+        for (JTextField field : allBoxes)
+        {
+            text.append(field.getText()).append('|');
+        }
+        return text.toString();
+    }
+
+    /*
+     * canLeave(): leaving with nothing typed goes straight away; once anything has been typed it asks "Discard your changes?" first (the Home button, Cancel and the window's close box all ask).
+     * Passed in:  nothing
+     * Passed out: true to let the window leave
+     */
+    @Override
+    public boolean canLeave()
+    {
+        return screenText().equals(blankScreen) || shell.askYesNo(RoundPage.DISCARD_QUESTION);
     }
 
     /*

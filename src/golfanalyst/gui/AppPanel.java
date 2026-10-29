@@ -299,6 +299,26 @@ public final class AppPanel extends JPanel implements Shell
     }
 
     /*
+     +--------------------------------------------------------------------------+
+     | canQuit()                                                                |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | What the window's close box asks before the program quits. Nothing       |
+     | needs tidying up (every save is written to the files at once), so the    |
+     | only thing to protect is typing that has not been saved: the page on     |
+     | show asks "Discard your changes?" if it has any, as the Home button      |
+     | does.                                                                    |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: true if the program may quit                                 |
+     +--------------------------------------------------------------------------+
+     */
+    public boolean canQuit()
+    {
+        return pages.get(current).canLeave();
+    }
+
+    /*
      * leaveForHome(): what the Home button does: goes Home, unless the page on show has unsaved changes and the answer to "Discard your changes?" is No.
      */
     private void leaveForHome()

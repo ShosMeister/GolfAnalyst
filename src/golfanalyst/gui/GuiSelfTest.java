@@ -761,6 +761,47 @@ public final class GuiSelfTest
         check("answering Yes goes Home", panel.header().title().equals("Golf Analyst Stats Home"));
         check("your own data: the window title does not say sample", !panel.windowTitle().contains("SAMPLE"));
         check("your own data: saving does not ask the sample question", panel.readyToSave());
+        // The window's close box: it quits at once unless something typed is not saved
+        List<String> quitAsked = new ArrayList<>();
+        panel.setAsker(question ->
+        {
+            quitAsked.add(question);
+            return javax.swing.JOptionPane.NO_OPTION;
+        });
+        panel.goHome();
+        check("on Home the close box quits without asking", panel.canQuit() && quitAsked.isEmpty());
+        ((WoodButton) findByText(panel, "New Round")).doClick();
+        check("an untouched New Round quits without asking", panel.canQuit() && quitAsked.isEmpty());
+        type(panel.roundPage().scoreFields[0], "5");
+        check("with a score typed on New Round, the close box asks first and No stays",
+                !panel.canQuit() && quitAsked.equals(List.of(RoundPage.DISCARD_QUESTION)));
+        ((IconButton) findByTip(panel, "Home")).doClick();
+        check("the Home button on New Round now asks too, and No stays", panel.header().title().equals("New Round")
+                && quitAsked.size() == 2);
+        ((WoodButton) findByText(panel, "Cancel")).doClick();
+        check("so does Cancel on New Round", panel.header().title().equals("New Round") && quitAsked.size() == 3);
+        panel.setAsker(question -> javax.swing.JOptionPane.YES_OPTION);
+        check("answering Yes lets the program quit", panel.canQuit());
+        ((WoodButton) findByText(panel, "Cancel")).doClick();
+        check("and Yes on Cancel goes Home", panel.header().title().equals("Golf Analyst Stats Home"));
+        quitAsked.clear();
+        panel.setAsker(question ->
+        {
+            quitAsked.add(question);
+            return javax.swing.JOptionPane.NO_OPTION;
+        });
+        ((WoodButton) findByText(panel, "New Course")).doClick();
+        check("an untouched New Course quits without asking", panel.canQuit() && quitAsked.isEmpty());
+        panel.coursePage().courseField.setText("Pine Hollow");
+        check("with a name typed on New Course, the close box asks first", !panel.canQuit()
+                && quitAsked.equals(List.of(RoundPage.DISCARD_QUESTION)));
+        ((WoodButton) findByText(panel, "Cancel")).doClick();
+        check("Cancel on New Course asks too, and No stays", panel.header().title().equals("New Course") && quitAsked.size() == 2);
+        panel.setAsker(question -> javax.swing.JOptionPane.YES_OPTION);
+        ((WoodButton) findByText(panel, "Cancel")).doClick();
+        check("Yes on Cancel leaves New Course", panel.header().title().equals("Golf Analyst Stats Home"));
+        ((WoodButton) findByText(panel, "Stats Board")).doClick();
+        check("the Stats Board has nothing to lose, so it quits without asking", panel.canQuit());
         deleteFolder(windowTemp);
 
         checkCourseTyping();

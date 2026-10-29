@@ -33,6 +33,8 @@ Watch the bar at the bottom: it always names the next thing to fill in, by tee a
 
 If you are still looking at the sample data, the program asks whether to make your own data folder first. Say Yes, then close the program and open it again, and it will be using your own empty data folder. Say No only if you really want to add the course to the sample data.
 
+If you change your mind, press Cancel. Once you have typed anything, the program asks "Discard your changes?" before it throws it away, and it asks the same if you press the Home button or close the window.
+
 # Fixing a course
 
 Made a mistake after saving, or found a better scorecard? Press New Course and type the course name and zip just as before. The title changes to Edit Course and the course's tees appear in the frames. Click the cell you want, type over it, and press Save. Only the tees you changed are rewritten, and the file as it was is kept in courses.tsv.bak in your data folder, just in case.

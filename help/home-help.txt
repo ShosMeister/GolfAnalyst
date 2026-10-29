@@ -44,6 +44,10 @@ Rounds too old to count toward today's handicap can still be kept, so nothing is
 
 Every screen has its own photo behind it. To see all of it, press and hold the mouse button on the yellow Golf Analyst text at the bottom left. The boxes and buttons disappear until you let go, and nothing you type while holding it goes anywhere.
 
+# Closing the program
+
+Close the window from any screen whenever you like. Everything is written to your files the moment you press Save, so there is nothing to tidy up first. The only thing the program checks is whether you are in the middle of typing a round or a course that you have not saved yet. If you are, it asks "Discard your changes?" first. Say No to go back and finish.
+
 # If something looks wrong
 
 The bar along the bottom of the window tells you when something in your data files could not be read. Click it to see exactly which line of which file to fix. The program reads the files when it starts, so after you edit one by hand, close the program and open it again.
