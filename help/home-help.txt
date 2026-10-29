@@ -26,6 +26,10 @@ You cannot enter a round until its course is in the program. Press New Course, t
 
 When you first open the program it shows the sample data, so there is something to look at. The title bar and the bar along the bottom say so. The first time you save a course or a round, the program asks whether to make your own data folder. Say Yes, then close the program and open it again: from then on it uses your own data folder and the sample data is left alone.
 
+# Looking course by course
+
+Press Stats Board to see your statistics for each course and set of tees, side by side. Click a heading to sort by it, and look at the gold: it marks the best figure in each column. Double-click a course to see the rounds you played there. The ? button on that screen tells you more.
+
 # Using what the numbers tell you
 
 Look at your four percentages: Fairways Hit, Greens In Reg, Sand Saves and Two-Putt. See which one is low compared with the others. That is where to practice.

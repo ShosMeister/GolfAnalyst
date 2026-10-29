@@ -109,7 +109,7 @@ public final class HomePage extends Page
         buttons.add(actionButton("New Course", () -> shell.newCourse()));
         buttons.add(actionButton("Rounds", () -> shell.browseRounds()));
         buttons.add(actionButton("New Round", () -> shell.newRound()));
-        buttons.add(actionButton("Stats Board", () -> shell.setStatus("Stats Board is not built yet.")));
+        buttons.add(actionButton("Stats Board", () -> shell.statsBoard()));
         buttons.add(actionButton("Edit Round", () -> shell.editRound()));
         buttons.add(actionButton("Analyzer", () -> shell.setStatus("Analyzer is not built yet.")));
         buttons.add(actionButton("Import", () -> shell.setStatus("Import is not built yet.")));

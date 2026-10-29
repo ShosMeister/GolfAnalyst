@@ -48,6 +48,8 @@ import javax.swing.JTextField;
  |   and the keyboard until it is let go                                    |
  | - Historical rounds: shown and marked in the viewer, kept historical     |
  |   when edited, left out of the Home counts                               |
+ | - The Stats Board: rows, band, totals, scroll bar, sorting, the gold,    |
+ |   highlighting a row, the arrow keys and opening a row's rounds          |
  |                                                                          |
  | How to run:                                                              |
  |   java -cp out golfanalyst.gui.App --selftest                            |
@@ -146,6 +148,26 @@ public final class GuiSelfTest
         {
             windowCalls = windowCalls + 1;
             lastPage = "browse";
+        }
+
+        /*
+         * browseRoundsOn(teeId): remembers which tees the rounds were asked for.
+         */
+        @Override
+        public void browseRoundsOn(int teeId)
+        {
+            windowCalls = windowCalls + 1;
+            lastPage = "browse " + teeId;
+        }
+
+        /*
+         * statsBoard(): remembers that the Stats Board was asked for.
+         */
+        @Override
+        public void statsBoard()
+        {
+            windowCalls = windowCalls + 1;
+            lastPage = "stats";
         }
 
         /*
@@ -684,8 +706,18 @@ public final class GuiSelfTest
         check("the First arrow changes the title to the first round", panel.header().title().startsWith("00001:"));
         ((WoodButton) findByText(panel, "Close")).doClick();
         check("Close goes back to Home", panel.header().title().equals("Golf Analyst Stats Home"));
-        ((WoodButton) findByText(panel, "Stats Board")).doClick();
+        ((WoodButton) findByText(panel, "Analyzer")).doClick();
         check("an unbuilt button says so", panel.footer().status().contains("not built yet"));
+        ((WoodButton) findByText(panel, "Stats Board")).doClick();
+        check("the Stats Board button opens the Stats Board", panel.header().title().equals("Stats Board")
+                && panel.footer().status().equals(StatsPage.FOOTER_HINT));
+        StatsPage windowStats = panel.statsPage();
+        windowStats.select(windowStats.rowPanels.get(0).row.key());
+        windowStats.openSelected();
+        check("Enter on a Stats Board row opens Rounds on that course and tees",
+                panel.header().title().matches("\\d{5}:.+:.+") && panel.roundPage().filterCombo.getSelectedItem() != null
+                        && ((RoundPage.FilterItem) panel.roundPage().filterCombo.getSelectedItem()).teeId() == windowStats.rowPanels.get(0).row.teeId());
+        ((IconButton) findByTip(panel, "Home")).doClick();
         ((WoodButton) findByText(panel, "New Course")).doClick();
         check("New Course shows the course page", panel.header().title().equals("New Course"));
         check("the course page asks for the name and zip first", panel.footer().status().contains("5-digit zip"));
@@ -722,6 +754,7 @@ public final class GuiSelfTest
         checkRoundLook(page);
         checkPeek();
         checkHistoricalScreens();
+        checkStatsPage();
         checkSampleSafeguard();
 
         List<Path> leftovers = new ArrayList<>();
@@ -1380,6 +1413,176 @@ public final class GuiSelfTest
                 && after.get(1).contains("\t6,5,5,") && after.get(1).endsWith("\tY"));
         check("after saving it is still shown as historical", page.differentialBox.getText().equals("historical")
                 && store.handicap().entries().size() == 1);
+        deleteFolder(temp);
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | checkStatsPage()                                                         |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | The Stats Board on a copy of the sample data: building it makes no       |
+     | calls to the window; the rows match the engine's; the pinned band, its   |
+     | headings (one font size, the sort arrow, the Sand tool tip) and totals;  |
+     | the frame and scroll bar sizes, the bar always shown and its thumb       |
+     | filling the track when every row fits; sorting by clicking a heading,    |
+     | reversing, the hover, and the sort kept when the page is shown again;    |
+     | highlighting a row and keeping it across a sort; the Up and Down keys    |
+     | passing over the nine-hole band; Enter and a double-click opening the    |
+     | rounds; and an empty board with no rounds.                               |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing (throws IOException if a temporary file fails)       |
+     +--------------------------------------------------------------------------+
+     */
+    private static void checkStatsPage() throws IOException
+    {
+        Path temp = Files.createTempDirectory("golfanalyst-stats-test");
+        copyFolder(Path.of("sample-data"), temp);
+        DataStore store = new DataStore(temp);
+        TestShell shell = new TestShell(store);
+        StatsPage page = new StatsPage(shell);
+        check("building the Stats Board makes no calls to the window", shell.windowCalls == 0);
+        check("the Stats Board's title and help files", page.title().equals("Stats Board") && page.helpKey().equals("stats"));
+        page.onShow();
+        page.setSize(944, 626);
+        layoutAll(page);
+        golfanalyst.StatsBoard.Board board = golfanalyst.StatsBoard.build(store.roundsByDate(), store.teeMap());
+        check("one row on screen per row of the board", page.rowPanels.size() == board.eighteen().size() + board.nine().size()
+                && !board.nine().isEmpty());
+        check("the 18-hole rows come first, then the nine-hole band, then the nine-hole rows",
+                page.list.getComponent(board.eighteen().size()) == page.nineBand
+                        && page.nineBand.getText().equals(StatsPage.NINE_BAND)
+                        && page.nineBand.getBackground().equals(StatsPage.NINE_BAND_FACE));
+        check("the footer explains the board", shell.status.equals(StatsPage.FOOTER_HINT));
+
+        check("the frame is 893 wide (858 grid + 17 scroll bar + 9 + 9 wood)", page.frame.getWidth() == 893);
+        check("the band is pinned at the top of the frame, 875 x 81", page.band.getParent() == page.frame
+                && page.band.getY() == 9 && page.band.getSize().equals(new java.awt.Dimension(875, 81)));
+        check("the list sits under the band", page.scroll.getY() == page.band.getY() + page.band.getHeight()
+                && page.scroll.getWidth() == 875);
+        int rows = page.list.getComponentCount();
+        check("the frame grows with the rows (" + rows + " rows)", page.scroll.getHeight() == Math.min(rows, 19) * 25);
+        check("the frame stays inside the page", page.frame.getHeight() <= 626 - 28);
+        check("the vertical scroll bar is always shown and is 17 px wide",
+                page.scroll.getVerticalScrollBarPolicy() == javax.swing.ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS
+                        && page.scroll.getVerticalScrollBar().getWidth() == 17);
+        check("there is never a sideways scroll bar",
+                page.scroll.getHorizontalScrollBarPolicy() == javax.swing.ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        javax.swing.JScrollBar bar = page.scroll.getVerticalScrollBar();
+        check("when every row fits, the thumb fills the whole track", rows <= 19
+                && page.barUI.thumbArea().height == bar.getHeight() - 2 * 17 && page.barUI.thumbArea().height > 0);
+        java.awt.image.BufferedImage picture = new java.awt.image.BufferedImage(944, 626, java.awt.image.BufferedImage.TYPE_INT_RGB);
+        java.awt.Graphics2D canvas = picture.createGraphics();
+        page.paint(canvas);
+        canvas.dispose();
+        check("the page, band and scroll bar paint without error", true);
+
+        float headingSize = page.headings.get(golfanalyst.StatsBoard.Column.COURSE).getFont().getSize2D();
+        boolean sameSize = true;
+        for (WoodTag tag : page.headings.values())
+        {
+            sameSize = sameSize && tag.getFont().getSize2D() == headingSize;
+        }
+        check("every heading uses the same font size (" + headingSize + " pt)", sameSize && headingSize >= 9f);
+        check("the headings have the agreed text", page.headings.get(golfanalyst.StatsBoard.Column.PUTTS).text().startsWith("Putts/Rnd")
+                && page.headings.get(golfanalyst.StatsBoard.Column.RATING).text().startsWith("Rating\\Slope"));
+        check("the sorted heading shows an up arrow, the others none", page.headings.get(golfanalyst.StatsBoard.Column.COURSE).sortArrow() == 1
+                && page.headings.get(golfanalyst.StatsBoard.Column.AVERAGE).sortArrow() == 0);
+        java.awt.FontMetrics headingMetrics = page.getFontMetrics(page.headings.get(golfanalyst.StatsBoard.Column.PUTTS).getFont());
+        check("Putts/Rnd fits its tag at the shared size", headingMetrics.stringWidth("Putts/Rnd") <= 62 - 3 - 8);
+        check("Sand % explains itself", StatsPage.SAND_TIP.equals(page.headings.get(golfanalyst.StatsBoard.Column.SAND).getToolTipText())
+                && StatsPage.SAND_TIP.equals("Sand saves: how often I was in the sand and still made par or better"));
+        check("a heading tag is 3 px smaller than its 25 px slot", page.headings.get(golfanalyst.StatsBoard.Column.AVERAGE).getHeight() == 22
+                && page.headings.get(golfanalyst.StatsBoard.Column.AVERAGE).getWidth() == 59);
+        check("the band has both total rows", page.totalCells.size() == 20
+                && ((javax.swing.JLabel) page.totalCells.get(0)).getText().equals("All 18-hole rounds")
+                && ((javax.swing.JLabel) page.totalCells.get(10)).getText().equals("All nine-hole rounds")
+                && ((javax.swing.JLabel) page.totalCells.get(1)).getText().isEmpty()
+                && page.totalCells.get(2).getBackground().equals(StatsPage.TOTAL_FACE));
+        check("the 18-hole total row shows the 18-hole rounds", ((javax.swing.JLabel) page.totalCells.get(2)).getText()
+                .equals(Integer.toString(board.allEighteen().rounds())));
+        boolean anyGold = false;
+        for (StatsPage.RowPanel panel : page.rowPanels)
+        {
+            for (javax.swing.JLabel cell : panel.cells)
+            {
+                anyGold = anyGold || (cell.getBackground().equals(StatsPage.BEST_FACE) && cell.getFont().isBold());
+            }
+        }
+        check("gold marks best figures in bold", anyGold);
+
+        WoodTag average = page.headings.get(golfanalyst.StatsBoard.Column.AVERAGE);
+        sendMouse(average, java.awt.event.MouseEvent.MOUSE_ENTERED, 5, 5);
+        check("a heading's text turns red under the mouse", average.isHover());
+        sendMouse(average, java.awt.event.MouseEvent.MOUSE_EXITED, 5, 5);
+        check("and back when the mouse leaves", !average.isHover());
+        sendMouse(average, java.awt.event.MouseEvent.MOUSE_CLICKED, 5, 5);
+        List<golfanalyst.StatsBoard.Row> wanted = new ArrayList<>(golfanalyst.StatsBoard.sort(board.eighteen(), golfanalyst.StatsBoard.Column.AVERAGE, true));
+        wanted.addAll(golfanalyst.StatsBoard.sort(board.nine(), golfanalyst.StatsBoard.Column.AVERAGE, true));
+        boolean inOrder = page.rowPanels.size() == wanted.size();
+        for (int row = 0; row < wanted.size() && inOrder; row = row + 1)
+        {
+            inOrder = page.rowPanels.get(row).row.key().equals(wanted.get(row).key());
+        }
+        check("clicking a heading sorts each section by it, lowest first", inOrder && average.sortArrow() == 1
+                && page.headings.get(golfanalyst.StatsBoard.Column.COURSE).sortArrow() == 0
+                && page.sortColumn() == golfanalyst.StatsBoard.Column.AVERAGE && page.isAscending());
+        check("the totals do not move when sorting", ((javax.swing.JLabel) page.totalCells.get(0)).getText().equals("All 18-hole rounds"));
+        sendMouse(average, java.awt.event.MouseEvent.MOUSE_CLICKED, 5, 5);
+        check("clicking it again reverses the order", !page.isAscending() && average.sortArrow() == -1
+                && page.rowPanels.get(0).row.key().equals(golfanalyst.StatsBoard.sort(board.eighteen(), golfanalyst.StatsBoard.Column.AVERAGE, false).get(0).key()));
+        page.onShow();
+        check("the sort is kept when the page is shown again", page.sortColumn() == golfanalyst.StatsBoard.Column.AVERAGE && !page.isAscending());
+
+        StatsPage.RowPanel third = page.rowPanels.get(2);
+        String thirdKey = third.row.key();
+        sendMouse(third, java.awt.event.MouseEvent.MOUSE_PRESSED, 50, 10);
+        boolean cream = true;
+        for (int col = 0; col < third.cells.length; col = col + 1)
+        {
+            cream = cream && third.cells[col].getBackground().equals(third.best[col] ? StatsPage.BEST_FACE : Theme.FIELD_FOCUS);
+        }
+        check("clicking a row highlights the whole line (gold cells stay gold)", thirdKey.equals(page.selectedKey())
+                && third.isHighlighted() && cream);
+        check("only one row is highlighted", page.rowPanels.stream().filter(StatsPage.RowPanel::isHighlighted).count() == 1);
+        sendMouse(page.headings.get(golfanalyst.StatsBoard.Column.COURSE), java.awt.event.MouseEvent.MOUSE_CLICKED, 5, 5);
+        check("the highlight follows its row through a sort", thirdKey.equals(page.selectedKey())
+                && page.panelFor(thirdKey).isHighlighted() && page.panelFor(thirdKey) != third);
+
+        int lastEighteen = board.eighteen().size() - 1;
+        page.select(page.rowPanels.get(lastEighteen).row.key());
+        page.getActionMap().get("down").actionPerformed(null);
+        check("Down from the last 18-hole row passes over the nine-hole band",
+                page.selectedKey().equals(page.rowPanels.get(lastEighteen + 1).row.key()));
+        page.getActionMap().get("up").actionPerformed(null);
+        check("Up comes back over it", page.selectedKey().equals(page.rowPanels.get(lastEighteen).row.key()));
+        page.select(page.rowPanels.get(0).row.key());
+        page.getActionMap().get("up").actionPerformed(null);
+        check("Up on the first row stays there", page.selectedKey().equals(page.rowPanels.get(0).row.key()));
+        check("the keys are bound to Up, Down and Enter",
+                "down".equals(page.getInputMap(javax.swing.JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).get(javax.swing.KeyStroke.getKeyStroke("DOWN")))
+                        && "open".equals(page.getInputMap(javax.swing.JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).get(javax.swing.KeyStroke.getKeyStroke("ENTER"))));
+        int firstTee = page.rowPanels.get(0).row.teeId();
+        page.getActionMap().get("open").actionPerformed(null);
+        check("Enter opens the highlighted row's rounds", shell.lastPage.equals("browse " + firstTee));
+        StatsPage.RowPanel nineRow = page.rowPanels.get(lastEighteen + 1);
+        nineRow.dispatchEvent(new java.awt.event.MouseEvent(nineRow, java.awt.event.MouseEvent.MOUSE_CLICKED, System.currentTimeMillis(),
+                0, 20, 10, 2, false, java.awt.event.MouseEvent.BUTTON1));
+        check("a double-click opens that row's rounds", shell.lastPage.equals("browse " + nineRow.row.teeId()));
+
+        Path emptyFolder = Files.createTempDirectory("golfanalyst-stats-empty");
+        Files.copy(temp.resolve(DataLoader.COURSES_FILE), emptyFolder.resolve(DataLoader.COURSES_FILE));
+        Files.writeString(emptyFolder.resolve(DataLoader.ROUNDS_FILE), golfanalyst.RoundWriter.STANDARD_HEADER + "\n", StandardCharsets.UTF_8);
+        TestShell emptyShell = new TestShell(new DataStore(emptyFolder));
+        StatsPage emptyPage = new StatsPage(emptyShell);
+        emptyPage.onShow();
+        check("with no rounds the footer says so", emptyShell.status.equals(StatsPage.NO_ROUNDS));
+        check("with no rounds the band shows dashes and one total row", emptyPage.totalCells.size() == 10
+                && ((javax.swing.JLabel) emptyPage.totalCells.get(2)).getText().equals("-")
+                && ((javax.swing.JLabel) emptyPage.totalCells.get(3)).getText().equals("-")
+                && emptyPage.rowPanels.isEmpty());
+        deleteFolder(emptyFolder);
         deleteFolder(temp);
     }
 

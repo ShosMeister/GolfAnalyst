@@ -11,6 +11,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Stream;
 
 /*
@@ -551,6 +552,8 @@ public final class SelfTest
                 oldColumnRounds.size() == 1 && oldColumnProblems.stream().anyMatch(problem ->
                         problem.severity() == Problem.Severity.WARNING && problem.message().contains("calculated")));
 
+        checkStatsBoard();
+
         try
         {
             checkCourseFiles();
@@ -564,6 +567,153 @@ public final class SelfTest
 
         System.out.println(passedCount + " passed, " + failedCount + " failed");
         return failedCount == 0;
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | checkStatsBoard()                                                        |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Tests the StatsBoard calculations on a small set of rounds whose         |
+     | answers were worked out by hand.                                         |
+     |                                                                          |
+     | It checks that:                                                          |
+     | - each tee gets one row for its 18-hole rounds;                          |
+     | - nine-hole rounds get their own rows: one for a front nine, one for a   |
+     |   back nine, and one for a nine-hole course;                             |
+     | - the average, best score, putts and each percentage come out right;     |
+     | - a figure with nothing to divide by shows "-";                          |
+     | - each kind of row shows the right rating and slope;                     |
+     | - the two total rows add up all 18-hole and all nine-hole rounds;        |
+     | - historical rounds are left out;                                        |
+     | - sorting works both ways, with "-" always at the bottom;                |
+     | - gold marks the best figure only among rows with two or more rounds,    |
+     |   only when at least two rows have that many, and every tie is gold.     |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing                                                      |
+     +--------------------------------------------------------------------------+
+     */
+    private static void checkStatsBoard()
+    {
+        Tee links = testTee(0, 0);
+        int[] pars = links.pars();
+        int[] ninePars = {4, 3, 5, 4, 4, 3, 5, 4, 4};
+        int[] nineIndex = {1, 2, 3, 4, 5, 6, 7, 8, 9};
+        Tee park = new Tee(2, "Nine Park", "", "", "", "Red", Tee.NINE, 34.0, 110, 3000,
+                ninePars, nineIndex, 0, 0, 0, 0);
+        Tee other = new Tee(3, "other course", "", "", "", "Blue", Tee.HOLES, 71.0, 125, 6400,
+                pars, links.strokeIndex(), 0, 0, 0, 0);
+        Tee single = new Tee(4, "Single Round", "", "", "", "Gold", Tee.HOLES, 69.0, 118, 6100,
+                pars, links.strokeIndex(), 0, 0, 0, 0);
+        Map<Integer, Tee> tees = Map.of(1, links, 2, park, 3, other, 4, single);
+
+        // Round A on Test Links: par everywhere but hole 1 (5, 3 putts) and hole 2 (3, 1 putt);
+        // fairways on holes 1 and 3; sand on hole 1 (bogey, no save) and hole 2 (par, a save)
+        int[] scoresA = pars.clone();
+        int[] puttsA = new int[Tee.HOLES];
+        Arrays.fill(puttsA, PLAIN_PUTTS);
+        scoresA[0] = 5;
+        puttsA[0] = 3;
+        puttsA[1] = 1;
+        boolean[] fairwayA = new boolean[Tee.HOLES];
+        fairwayA[0] = true;
+        fairwayA[2] = true;
+        boolean[] sandA = new boolean[Tee.HOLES];
+        sandA[0] = true;
+        sandA[1] = true;
+        Round roundA = new Round(10, 1, LocalDate.parse("2026-05-01"), 0, 0, Tee.HOLES, scoresA, puttsA, fairwayA, sandA);
+        Round roundB = roundOver(11, Tee.HOLES, "2026-05-02", links);
+        Round oldRound = new Round(12, 1, LocalDate.parse("2005-06-19"), 0, 0, Tee.HOLES, pars.clone(), puttsA.clone(),
+                new boolean[Tee.HOLES], new boolean[Tee.HOLES], true);
+        int[] birdies = pars.clone();
+        for (int hole = 0; hole < 5; hole = hole + 1)
+        {
+            birdies[hole] = birdies[hole] - 1;
+        }
+        int[] onePutts = new int[Tee.HOLES];
+        Arrays.fill(onePutts, 1);
+        Round singleRound = new Round(13, 4, LocalDate.parse("2026-05-03"), 0, 0, Tee.HOLES, birdies, onePutts,
+                new boolean[Tee.HOLES], new boolean[Tee.HOLES]);
+        List<Round> rounds = new ArrayList<>(List.of(roundA, roundB, oldRound, singleRound,
+                roundOver(14, 0, "2026-05-04", other), roundOver(15, 0, "2026-05-05", other),
+                nineRound(16, 0, 9, "2026-05-06", links), nineRound(17, 9, 0, "2026-05-07", links)));
+        int[] parkScores = {4, 3, 5, 4, 4, 3, 5, 4, 5};
+        int[] parkPutts = {2, 2, 2, 2, 2, 2, 2, 2, 2};
+        boolean[] noNine = new boolean[Tee.NINE];
+        rounds.add(new Round(18, 2, LocalDate.parse("2026-05-08"), 0, 0, Tee.NINE, parkScores, parkPutts, noNine, noNine));
+        rounds.add(new Round(19, 2, LocalDate.parse("2026-05-09"), 0, 0, Tee.NINE, parkScores, parkPutts, noNine, noNine));
+
+        StatsBoard.Board board = StatsBoard.build(rounds, tees);
+        check("one 18-hole row per tee played, in course order (any capitals)", board.eighteen().size() == 3
+                && board.eighteen().get(0).label().equals("other course:Blue")
+                && board.eighteen().get(1).label().equals("Single Round:Gold")
+                && board.eighteen().get(2).label().equals("Test Links:White"));
+        StatsBoard.Row links18 = board.eighteen().get(2);
+        check("historical rounds are left out of the board", links18.rounds() == 2 && links18.best() == 73);
+        check("the average of 73 and 90 is 81.5", links18.text(StatsBoard.Column.AVERAGE).equals("81.5"));
+        check("the best is the lowest score", links18.text(StatsBoard.Column.BEST).equals("73"));
+        check("putts per round: 36 and 36 make 36", links18.text(StatsBoard.Column.PUTTS).equals("36"));
+        check("fairways: 2 of the 28 par 4s and 5s is 7.1%", links18.text(StatsBoard.Column.FAIRWAY).equals("7.1"));
+        check("greens in regulation: 17 of 36 holes is 47.2%", links18.text(StatsBoard.Column.GIR).equals("47.2"));
+        check("two putts or fewer: 35 of 36 holes is 97.2%", links18.text(StatsBoard.Column.TWO_PUTT).equals("97.2"));
+        check("sand: 1 save from 2 sand holes is 50% (no .0)", links18.text(StatsBoard.Column.SAND).equals("50"));
+        check("an 18-hole row shows the tee's rating and slope", links18.text(StatsBoard.Column.RATING).equals("70.0 / 113"));
+        check("a row with no sand holes shows - for Sand %", board.eighteen().get(0).text(StatsBoard.Column.SAND).equals("-"));
+
+        check("nine-hole rows: front, back and the nine-hole course, never mixed with 18", board.nine().size() == 3
+                && board.nine().get(0).label().equals("Nine Park:Red")
+                && board.nine().get(1).label().equals("Test Links:White (Back 9)")
+                && board.nine().get(2).label().equals("Test Links:White (Front 9)"));
+        check("a front nine row shows that nine's rating", board.nine().get(2).text(StatsBoard.Column.RATING).equals("35.0 / 113"));
+        check("a nine with no rating shows -", board.nine().get(1).text(StatsBoard.Column.RATING).equals("-"));
+        check("a nine-hole course shows its own rating", board.nine().get(0).text(StatsBoard.Column.RATING).equals("34.0 / 110"));
+        check("a nine-hole row's average is over nine holes", board.nine().get(2).text(StatsBoard.Column.AVERAGE).equals("45")
+                && board.nine().get(0).text(StatsBoard.Column.AVERAGE).equals("37"));
+        check("a nine-hole row's putts are per nine-hole round", board.nine().get(0).text(StatsBoard.Column.PUTTS).equals("18"));
+
+        StatsBoard.Row total18 = board.allEighteen();
+        check("the 18-hole total covers every 18-hole round but the historical one", total18.rounds() == 5
+                && total18.text(StatsBoard.Column.BEST).equals("67") && total18.label().equals("All 18-hole rounds"));
+        check("the 18-hole total's average is (73 + 90 + 67 + 72 + 72) / 5", total18.text(StatsBoard.Column.AVERAGE).equals("74.8"));
+        check("the totals leave Rating\\Slope empty", total18.text(StatsBoard.Column.RATING).isEmpty());
+        check("the nine-hole total covers the four nine-hole rounds", board.allNine() != null && board.allNine().rounds() == 4
+                && board.allNine().text(StatsBoard.Column.BEST).equals("36"));
+        StatsBoard.Board eighteensOnly = StatsBoard.build(List.of(roundA, roundB), tees);
+        check("no nine-hole total without nine-hole rounds", eighteensOnly.allNine() == null && eighteensOnly.nine().isEmpty());
+        StatsBoard.Board empty = StatsBoard.build(List.of(), tees);
+        check("with no rounds the board is empty and the total has nothing to show", empty.eighteen().isEmpty()
+                && empty.allEighteen().rounds() == 0 && empty.allEighteen().text(StatsBoard.Column.AVERAGE).equals("-"));
+
+        List<StatsBoard.Row> byAverage = StatsBoard.sort(board.eighteen(), StatsBoard.Column.AVERAGE, true);
+        check("sorting by Avg puts the lowest first", byAverage.get(0).teeId() == 4 && byAverage.get(1).teeId() == 3
+                && byAverage.get(2).teeId() == 1);
+        List<StatsBoard.Row> byAverageDown = StatsBoard.sort(board.eighteen(), StatsBoard.Column.AVERAGE, false);
+        check("sorting again reverses it", byAverageDown.get(0).teeId() == 1 && byAverageDown.get(2).teeId() == 4);
+        List<StatsBoard.Row> bySand = StatsBoard.sort(board.eighteen(), StatsBoard.Column.SAND, true);
+        List<StatsBoard.Row> bySandDown = StatsBoard.sort(board.eighteen(), StatsBoard.Column.SAND, false);
+        check("a - sorts last going up", bySand.get(0).teeId() == 1);
+        check("a - sorts last going down too", bySandDown.get(0).teeId() == 1
+                && Double.isNaN(bySandDown.get(1).sandPct()) && Double.isNaN(bySandDown.get(2).sandPct()));
+        List<StatsBoard.Row> byName = StatsBoard.sort(board.eighteen(), StatsBoard.Column.COURSE, false);
+        check("sorting by name backwards", byName.get(0).teeId() == 1 && byName.get(2).teeId() == 3);
+        List<StatsBoard.Row> byRating = StatsBoard.sort(board.nine(), StatsBoard.Column.RATING, true);
+        check("sorting by rating puts a nine with no rating last", byRating.get(0).teeId() == 2
+                && byRating.get(2).part() == StatsBoard.Part.BACK);
+
+        Map<StatsBoard.Column, Set<String>> gold = StatsBoard.best(board.eighteen());
+        check("gold: the lowest average among rows with 2 or more rounds", gold.get(StatsBoard.Column.AVERAGE).equals(Set.of("3:EIGHTEEN")));
+        check("gold: a row with one round never counts, however good", !gold.get(StatsBoard.Column.BEST).contains("4:EIGHTEEN")
+                && gold.get(StatsBoard.Column.BEST).equals(Set.of("3:EIGHTEEN")));
+        check("gold: the highest fairway percentage", gold.get(StatsBoard.Column.FAIRWAY).equals(Set.of("1:EIGHTEEN")));
+        check("gold: ties are all gold", gold.get(StatsBoard.Column.PUTTS).equals(Set.of("1:EIGHTEEN", "3:EIGHTEEN")));
+        check("gold: a - is never gold, the figure that exists is", gold.get(StatsBoard.Column.SAND).equals(Set.of("1:EIGHTEEN")));
+        check("gold: Rnds and Rating have no gold", !gold.containsKey(StatsBoard.Column.ROUNDS) && !gold.containsKey(StatsBoard.Column.RATING));
+        check("gold: none when fewer than 2 rows have 2 or more rounds", StatsBoard.best(board.nine()).isEmpty());
+
+        check("numbers: one decimal", StatsBoard.number(14.2857).equals("14.3"));
+        check("numbers: a trailing .0 is dropped", StatsBoard.number(43.0).equals("43"));
+        check("numbers: nothing to show is -", StatsBoard.number(Double.NaN).equals("-"));
     }
 
     /*

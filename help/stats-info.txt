@@ -1,0 +1,47 @@
+Stats Board - Info
+
+This is the Stats Board. It shows your statistics course by course, so you can see where you play well and where you struggle. Every number is worked out by the program from the rounds you have saved, the same way as on the Home screen. Historical rounds are not counted.
+
+# The rows
+
+Each row is one course and set of tees, written as Course:Tee. Your 18-hole rounds come first, one row for each set of tees you have played.
+
+Nine-hole rounds are never mixed in with 18-hole ones, because the scores cannot be compared. They come after the brown Nine-hole rounds band. A nine played on an 18-hole course gets its own row for the front nine and for the back nine, marked (Front 9) or (Back 9). A nine-hole course gets just one row.
+
+# The columns
+
+Course : Tee Box: The course and the set of tees.
+
+Rating\Slope: The Course Rating and Slope Rating of those tees. For a front nine or back nine row it is that nine's own rating, or a dash if the course file has none.
+
+Rnds: How many rounds are in the row.
+
+Avg: Your average score.
+
+Best: Your lowest score.
+
+Fwy %: The percentage of fairways you hit from the tee. Only par 4s and par 5s are counted, since on a par 3 you are aiming at the green.
+
+GIR %: The percentage of holes where you reached the green in regulation, which means you had a putt for birdie or better.
+
+2-Putt %: The percentage of holes where you took two putts or fewer.
+
+Putts/Rnd: Your average number of putts in a round.
+
+Sand %: Your sand saves: how often you were in the sand and still made par or better.
+
+All of the percentages use every hole played in that row. A dash means there is nothing to work it out from yet, for example Sand % on a course where you have never been in a bunker.
+
+# The band at the top
+
+The headings and the two total rows stay in place while the rows below them scroll. All 18-hole rounds and All nine-hole rounds give the same figures over every round of that kind, so they match the Home screen.
+
+# The colours
+
+Gold: The best figure in each column, among the rows with two or more rounds. The lowest Avg, Best and Putts/Rnd, and the highest of the percentages. The 18-hole rows and the nine-hole rows each have their own gold. There is no gold until at least two rows have two or more rounds, because one round on its own does not tell you much.
+
+Cream with a gold outline: The row you have picked.
+
+# Across the bottom
+
+The bar along the bottom says what you can do on this screen.

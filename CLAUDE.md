@@ -1,4 +1,4 @@
-# GolfAnalyst v4.30 (Java) - notes for Claude
+# GolfAnalyst v4.40 (Java) - notes for Claude
 
 A single-golfer golf statistics program with a Swing window. Ported from HyperCard (1991) to Excel/VBA to Java.
 Courses and rounds live in two plain tab-separated text files. Written for one user who tests on Windows.
@@ -22,12 +22,14 @@ Courses and rounds live in two plain tab-separated text files. Written for one u
   `Handicap` (the rules), `Stats`, `RoundWriter` (appends or replaces a round, keeps the file's column order),
   `CourseWriter` (appends or updates tees the same way, and refuses a line DataLoader would reject), `LineReplacer`
   (swaps lines in place and writes safely with a `.bak`; used by both writers), `DataStore` (the one place screens
-  get data; also knows if it is the sample data), `Main` (text reports, `--selftest`), `SelfTest`.
+  get data; also knows if it is the sample data), `StatsBoard` (the Stats Board's rows, totals, sorting and gold;
+  no Swing), `Main` (text reports, `--selftest`), `SelfTest`.
 - `src/golfanalyst/gui/`: `App` (entry), `AppFrame` (thin JFrame), `AppPanel` (ALL the window logic: pages, header,
   footer, navigation, Help/Info, the sample-data question), `Shell` (what a page may ask of the window), `Page`,
-  `HomePage`, `RoundPage`, `CoursePage`, `HeaderBar`, `FooterBar`, `HelpWindow` + `HelpFormatter` (styles the help
+  `HomePage`, `RoundPage`, `CoursePage`, `StatsPage`, `HeaderBar`, `FooterBar`, `HelpWindow` + `HelpFormatter` (styles the help
   text), `Theme` (colours, fonts, images, drawing helpers), custom controls
-  (`WoodButton`, `IconButton`, `ValueBox`, `WoodPanel`, `WoodFrame`, `WoodTag`, `ImageCheckBox`, `BackdropPanel`),
+  (`WoodButton`, `IconButton`, `ValueBox`, `WoodPanel`, `WoodFrame`, `WoodTag`, `ImageCheckBox`, `BackdropPanel`,
+  `WoodScrollBarUI`),
   `GuiSelfTest`.
 - `images/` (wood buttons, textures, `backgrounds/<page>.jpg|gif`), `help/` (plain text Info and Help files),
   `sample-data/` (made up, plus the Edgewater course the user added, TeeIDs 5-8; its round 37 is the latest round, so
@@ -122,6 +124,22 @@ Courses and rounds live in two plain tab-separated text files. Written for one u
   self-repainting controls stay hidden, keys swallowed); releasing anywhere shows everything. Hand cursor and the
   tool tip "Press and hold to see the whole picture." No page may put a control that takes the mouse over the label
   (see-through layout panels without mouse listeners are fine).
+- Stats Board (v4.40, `StatsPage` on `StatsBoard`): one row per tee for 18-hole rounds, then a tan "Nine-hole rounds"
+  band and rows per tee and nine ("Course:Tee (Front 9)" / "(Back 9)", or "Course:Tee" on a nine-hole course); never
+  mixed. Columns Course : Tee Box 266 (left), Rating\Slope 96 ("70.4 / 123", "-" for an unrated nine), then eight of 62:
+  Rnds, Avg, Best, Fwy %, GIR %, 2-Putt %, Putts/Rnd, Sand % (tool tip on Sand %). Home's definitions (it uses
+  `Stats.summarize` per row); historical rounds left out; one decimal with ".0" dropped (Home itself still shows
+  ".0"); "-" for nothing to divide by. One `WoodFrame` centred with 14 px of photo round it: a pinned band (heading
+  `WoodTag`s 3 px smaller than their 25 px slots, all one font size set by the headings alone, the sort shown as a
+  small triangle in the tag's top right corner because no arrow fits beside "Putts/Rnd"; then tan total rows "All
+  18-hole rounds" and "All nine-hole rounds") painted with `WoodFrame.paintFrameWood`, then a scroll pane of 25 px
+  white hairline rows with the vertical bar always shown (`WoodScrollBarUI`, 17 px; track from the frame's own wood,
+  thumb of turned light wood filling the track when everything fits). Width 858 + 17 + 18 = 893; height 99 + 25 x
+  rows, at most 19 rows in a 626 px page. Heading click sorts (again reverses), each section on its own, "-" always
+  last, kept for the session. Gold (255,236,150, bold) = best per column per section among rows with 2+ rounds when
+  2+ such rows exist, ties all gold. Click highlights a row (cream + 2 px gold outline), Up/Down move it over the band,
+  Enter or double-click calls `Shell.browseRoundsOn(teeId)` (Rounds on the tee's newest round, Show set to the tee,
+  so the arrows include that tee's 18-hole and nine-hole rounds).
 - Edit Round: Home's Edit Round opens the round viewer at the latest round; the viewer has an Edit button (where
   Save sits when entering). Edit mode keeps Course/tee and Holes locked and opens date, PCC, scores, putts, Fwy and
   Sand; the header says "Edit 00031:Sample Links:White"; help files `round-edit-*`. Save replaces only that round
@@ -143,7 +161,7 @@ Courses and rounds live in two plain tab-separated text files. Written for one u
 - Home buttons: data entry on the left, viewing on the right:
   left New Course, New Round, Edit Round, Import, Clear; right Rounds, Stats Board, Analyzer, Best Round, Print.
 - Help: the i button says WHAT is on the screen; the ? button says HOW to use it. Files in `help/`
-  (`home-*`, `round-new-*`, `round-view-*`, `round-edit-*`, `course-*`). Update them with every feature. Keep the user's friendly
+  (`home-*`, `round-new-*`, `round-view-*`, `round-edit-*`, `course-*`, `stats-*`). Update them with every feature. Keep the user's friendly
   voice. The files stay plain text: the first line is the window title; a line starting with "# " is a section
   heading (put "# " in front of every new section heading); "Label: text" (colon within 45 characters, no period
   before it) shows the label in bold; "3. First sentence. More" shows the first sentence in bold
@@ -156,8 +174,9 @@ Courses and rounds live in two plain tab-separated text files. Written for one u
 Built: Home, round entry, saved-round viewer with the Show (course/tee) filter, Info/Help, New Course (v4.10: adds
 a course or more tees to one; up to four tees at once; v4.11: wood-frame look, copy arrow, live checking), the
 sample-data title/footer and save question, styled Help/Info windows, Edit Round and Edit Course (both v4.20), the New Course style round page
-and the press-and-hold peek on the version text (v4.21), modal Help/Info windows (v4.22), historical rounds (v4.30).
-Not built (buttons are in place and say "not built yet"): Import, Clear, Stats Board, Analyzer, Best Round, Print.
+and the press-and-hold peek on the version text (v4.21), modal Help/Info windows (v4.22), historical rounds (v4.30), the
+Stats Board (v4.40).
+Not built (buttons are in place and say "not built yet"): Import, Clear, Analyzer, Best Round, Print.
 Not built either: deleting a round or a tee, renaming a course or changing its zip.
 - **Edit Course** (built, v4.20): no separate button. On New Course, typing a saved course's name and zip loads its
   tees (first four) into the frames; title "Edit Course"; empty frames take new tees. City/state editable (a change

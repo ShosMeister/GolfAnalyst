@@ -57,6 +57,7 @@ public final class AppPanel extends JPanel implements Shell
     public static final String HOME = "home";
     public static final String ROUND = "round";
     public static final String COURSE = "course";
+    public static final String STATS = "stats";
     static final String SAMPLE_QUESTION = "This is the sample data. Create your own data folder first?";
 
     private final transient DataStore store;
@@ -68,6 +69,7 @@ public final class AppPanel extends JPanel implements Shell
     private final transient Map<String, Page> pages = new LinkedHashMap<>();
     private final RoundPage roundPage;
     private final CoursePage coursePage;
+    private final StatsPage statsPage;
     private String current = HOME;
     private transient ToIntFunction<String> asker = question -> askOnScreen(question);
 
@@ -95,12 +97,15 @@ public final class AppPanel extends JPanel implements Shell
         HomePage homePage = new HomePage(this);
         roundPage = new RoundPage(this);
         coursePage = new CoursePage(this);
+        statsPage = new StatsPage(this);
         pages.put(HOME, homePage);
         pages.put(ROUND, roundPage);
         pages.put(COURSE, coursePage);
+        pages.put(STATS, statsPage);
         center.add(homePage, HOME);
         center.add(roundPage, ROUND);
         center.add(coursePage, COURSE);
+        center.add(statsPage, STATS);
         add(header, BorderLayout.NORTH);
         add(center, BorderLayout.CENTER);
         add(footer, BorderLayout.SOUTH);
@@ -152,7 +157,7 @@ public final class AppPanel extends JPanel implements Shell
      | and puts its title in the header. The Home button is switched off on     |
      | the Home page.                                                           |
      |                                                                          |
-     | Passed in:  pageName - HOME, ROUND or COURSE                             |
+     | Passed in:  pageName - HOME, ROUND, COURSE or STATS                      |
      | Passed out: nothing                                                      |
      +--------------------------------------------------------------------------+
      */
@@ -272,6 +277,25 @@ public final class AppPanel extends JPanel implements Shell
     {
         roundPage.showLatest();
         navigate(ROUND);
+    }
+
+    /*
+     * browseRoundsOn(teeId): opens the round screen on the newest round on those tees, with Show set to them.
+     */
+    @Override
+    public void browseRoundsOn(int teeId)
+    {
+        roundPage.showLatestOn(teeId);
+        navigate(ROUND);
+    }
+
+    /*
+     * statsBoard(): opens the Stats Board.
+     */
+    @Override
+    public void statsBoard()
+    {
+        navigate(STATS);
     }
 
     /*
@@ -417,6 +441,14 @@ public final class AppPanel extends JPanel implements Shell
     RoundPage roundPage()
     {
         return roundPage;
+    }
+
+    /*
+     * statsPage(): the Stats Board page (for tests).
+     */
+    StatsPage statsPage()
+    {
+        return statsPage;
     }
 
     /*

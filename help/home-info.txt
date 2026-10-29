@@ -18,7 +18,7 @@ A historical round is an old round kept only to look back at, such as the rounds
 
 # The Golfer's Stats section (right)
 
-These are the numbers that help you find the weak spot in your game. They use every round you have saved, apart from historical ones, and are not course specific. The Stats Board will show them course by course. All of the percentages are rounded to one decimal place.
+These are the numbers that help you find the weak spot in your game. They use every round you have saved, apart from historical ones, and are not course specific. The Stats Board shows them course by course. All of the percentages are rounded to one decimal place.
 
 Name: Your name, kept in settings.txt in your data folder.
 
@@ -42,7 +42,7 @@ On the left: New Course adds a course and its tees, or fixes a course you have a
 
 On the right: Rounds is the screen for looking at the rounds you have saved. Stats Board, Analyzer and Best Round show your statistics in more detail, and Print prints what you are looking at.
 
-Import, Clear, Stats Board, Analyzer, Best Round and Print are not built yet. They are in place and will be added.
+Import, Clear, Analyzer, Best Round and Print are not built yet. They are in place and will be added.
 
 # Across the top and bottom
 
@@ -92,3 +92,5 @@ Golf Analyst v4.21: The round screen now looks like the New Course screen, with 
 Golf Analyst v4.22: The Help and Info windows now have to be closed before you can go back to the screen behind them, so the help you are reading always belongs to the screen you are on.
 
 Golf Analyst v4.30: Old rounds can be kept as historical rounds. You can still look back at them in Rounds, but they are left out of your Handicap Index and your statistics, so those show how you play today.
+
+Golf Analyst v4.40: Added the Stats Board, which shows your statistics course by course and tee by tee, with your nine-hole rounds kept apart. Click a heading to sort it, and the best figure in each column is marked in gold. Double-click a course to see its rounds.

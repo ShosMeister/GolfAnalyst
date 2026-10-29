@@ -1305,6 +1305,34 @@ public final class RoundPage extends Page
     }
 
     /*
+     +--------------------------------------------------------------------------+
+     | showLatestOn(teeId)                                                      |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Shows the newest saved round played on one set of tees, with the Show    |
+     | box set to those tees, so the arrows step through every round on them    |
+     | (18 holes, front nine and back nine alike). With no rounds on those      |
+     | tees it shows the newest round of all.                                   |
+     |                                                                          |
+     | Passed in:  teeId - the tees                                             |
+     | Passed out: nothing                                                      |
+     +--------------------------------------------------------------------------+
+     */
+    public void showLatestOn(int teeId)
+    {
+        Tee tee = shell.store().teeMap().get(teeId);
+        filterCourse = (tee == null ? null : tee.courseName());
+        filterTeeId = (tee == null ? -1 : teeId);
+        rebuildFilter();
+        if (shown.isEmpty())
+        {
+            showLatest();
+            return;
+        }
+        showRoundAt(shown.get(shown.size() - 1));
+    }
+
+    /*
      * showLatest(): shows the newest saved round, or starts a new round if there are none.
      * Passed in:  nothing
      * Passed out: nothing

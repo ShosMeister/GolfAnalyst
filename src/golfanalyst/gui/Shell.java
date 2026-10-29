@@ -61,6 +61,16 @@ public interface Shell
     void browseRounds();
 
     /*
+     * browseRoundsOn(teeId): opens the round screen on the newest round played on those tees, with the Show box set to them.
+     */
+    void browseRoundsOn(int teeId);
+
+    /*
+     * statsBoard(): opens the Stats Board.
+     */
+    void statsBoard();
+
+    /*
      * editRound(): opens the round viewer at the latest round, with its Edit button, so a round can be picked and edited.
      */
     void editRound();
