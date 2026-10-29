@@ -726,7 +726,7 @@ public final class StatsPage extends Page
      | Purpose:                                                                 |
      | The white list of rows in the scroll pane: rows 25 px tall, stacked in   |
      | a one-column grid so every kind of row starts at the left edge at the    |
-     | grid's full width, scrolling a row at a time with the arrows and the   |
+     | grid's full width, scrolling a row at a time with the arrows and the     |
      | mouse wheel. It can take the cursor so the Up, Down and Enter keys       |
      | reach the page.                                                          |
      +--------------------------------------------------------------------------+
