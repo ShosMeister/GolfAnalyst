@@ -104,6 +104,9 @@ public final class CoursePage extends Page
     private static final int BAR_BOX_HEIGHT = 24;
     private static final float CELL_FONT = 15f;
     private static final float NAME_FONT = 14f;
+    private static final float INDEX_HEADER_FONT = 11f;
+    private static final String INDEX_HEADER = "Hdcp/SI";
+    private static final String INDEX_TIP = "Hole handicap number (stroke index): 1 is the hardest hole.";
     private static final float SMALLEST_NAME_FONT = 10f;
     private static final int MIN_SLOPE = 55;
     private static final int MAX_SLOPE = 155;
@@ -126,6 +129,7 @@ public final class CoursePage extends Page
     final JLabel[] parTotalBoxes = new JLabel[TEES];
     final JTextField[][] parFields = new JTextField[TEES][HOLES];
     final JTextField[][] indexFields = new JTextField[TEES][HOLES];
+    final JLabel[] indexHeaders = new JLabel[TEES];
     final WoodButton copyButton = new WoodButton("►");
     final WoodButton saveButton = new WoodButton("Save");
     final WoodButton cancelButton = new WoodButton("Cancel");
@@ -216,7 +220,7 @@ public final class CoursePage extends Page
         courseField.setToolTipText("The name of the course, as on the scorecard");
         zipField.setToolTipText("The course's 5-digit zip code");
         stateField.setToolTipText("Two letters, for example SC");
-        nineHoleCheck.setToolTipText("Tick for a nine-hole course (stroke index 1 to 9)");
+        nineHoleCheck.setToolTipText("Tick for a nine-hole course (handicap numbers 1 to 9)");
         DocumentListener lookup = new ChangeWatcher(() -> courseChanged());
         courseField.getDocument().addDocumentListener(lookup);
         zipField.getDocument().addDocumentListener(lookup);
@@ -427,7 +431,7 @@ public final class CoursePage extends Page
             fixSize(teeNameFields[tee], 2 * CELL_WIDTH - COPY_WIDTH);
             fixSize(copyButton, COPY_WIDTH);
             copyButton.setFocusable(false);
-            copyButton.setToolTipText("Copy these pars and stroke index numbers into the empty par and SI cells of the other tees");
+            copyButton.setToolTipText("Copy these pars and handicap numbers into the empty Par and Hdcp/SI cells of the other tees");
             nameRow.add(teeNameFields[tee], BorderLayout.CENTER);
             nameRow.add(copyButton, BorderLayout.EAST);
             put(sheet, nameRow, 0, 0, 2);
@@ -466,7 +470,10 @@ public final class CoursePage extends Page
         put(sheet, parTotalBoxes[tee], 1, 4, 1);
 
         put(sheet, greyCell("Par", true), 0, 5, 1);
-        put(sheet, greyCell("SI", false), 1, 5, 1);
+        indexHeaders[tee] = greyCell(INDEX_HEADER, false);
+        indexHeaders[tee].setFont(Theme.font(Font.BOLD, INDEX_HEADER_FONT));
+        indexHeaders[tee].setToolTipText(INDEX_TIP);
+        put(sheet, indexHeaders[tee], 1, 5, 1);
         for (int hole = 0; hole < HOLES; hole = hole + 1)
         {
             parFields[tee][hole] = numberCell(BoxFilter.Kind.PAR, true);
@@ -1056,7 +1063,7 @@ public final class CoursePage extends Page
         }
         if (!anyToCopy)
         {
-            shell.setStatus("Type the pars and stroke index of " + first + " first, then press the arrow to copy them.");
+            shell.setStatus("Type the pars and handicap numbers of " + first + " first, then press the arrow to copy them.");
             return;
         }
         List<String> filled = new ArrayList<>();
@@ -1087,11 +1094,11 @@ public final class CoursePage extends Page
         refresh();
         if (filled.isEmpty())
         {
-            shell.setStatus("The par and SI cells of the other tees are already filled, so nothing was copied.");
+            shell.setStatus("The Par and Hdcp/SI cells of the other tees are already filled, so nothing was copied.");
         }
         else
         {
-            shell.setStatus("Copied the pars and stroke index of " + first + " into the empty cells of " + String.join(", ", filled)
+            shell.setStatus("Copied the pars and handicap numbers of " + first + " into the empty cells of " + String.join(", ", filled)
                     + ". Check any holes that differ on the card.");
         }
     }
@@ -1430,11 +1437,11 @@ public final class CoursePage extends Page
                 int rank = Integer.parseInt(text);
                 if (rank < 1 || rank > playedHoles())
                 {
-                    return mistake(indexFields[tee][hole], where + "the stroke index must be 1 to " + playedHoles() + ".");
+                    return mistake(indexFields[tee][hole], where + "the handicap number must be 1 to " + playedHoles() + ".");
                 }
                 if (usedOn[rank] > 0)
                 {
-                    return mistake(indexFields[tee][hole], where + "stroke index " + rank + " is already used on hole " + usedOn[rank] + ".");
+                    return mistake(indexFields[tee][hole], where + "handicap number " + rank + " is already used on hole " + usedOn[rank] + ".");
                 }
                 usedOn[rank] = hole + 1;
             }
@@ -1590,16 +1597,16 @@ public final class CoursePage extends Page
             String text = indexFields[tee][hole].getText();
             if (text.isEmpty())
             {
-                return mistake(indexFields[tee][hole], where + "the stroke index is missing.");
+                return mistake(indexFields[tee][hole], where + "the handicap number is missing.");
             }
             int rank = Integer.parseInt(text);
             if (rank < 1 || rank > playedHoles())
             {
-                return mistake(indexFields[tee][hole], where + "the stroke index must be 1 to " + playedHoles() + ".");
+                return mistake(indexFields[tee][hole], where + "the handicap number must be 1 to " + playedHoles() + ".");
             }
             if (usedOn[rank] > 0)
             {
-                return mistake(indexFields[tee][hole], where + "stroke index " + rank + " is already used on hole " + usedOn[rank] + ".");
+                return mistake(indexFields[tee][hole], where + "handicap number " + rank + " is already used on hole " + usedOn[rank] + ".");
             }
             usedOn[rank] = hole + 1;
         }

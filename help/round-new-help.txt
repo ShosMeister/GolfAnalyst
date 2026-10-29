@@ -2,7 +2,7 @@ Entering a Round - Help
 
 Here is how to enter a round, step by step. Have your scorecard in front of you.
 
-1. Choose the course and tees. Open the Course / tee list at the top and pick the tees you played. If your course is not in the list it has not been added yet. See the Help on the Home screen for how to add a course.
+1. Choose the course and tees. Open the Course / tee list at the top and pick the tees you played. If your course is not in the list it has not been added yet. Go back to Home and press New Course to add it.
 
 2. Say how many holes you played. For a full round leave Holes at 18 holes. If you only played the front nine or the back nine of an 18-hole course, choose Front nine or Back nine and the other holes grey out. A nine-hole course has nothing to choose.
 
@@ -11,10 +11,6 @@ Here is how to enter a round, step by step. Have your scorecard in front of you.
 4. Enter the scores. The cursor starts in the Score box of hole 1. Type the score for each hole, one after the other. The cursor moves down the holes by itself, over to hole 10 after hole 9, and on to the putts after the last hole. A score from 2 to 9 moves on right away. If you type a 1 the cursor waits, because it could be a hole in one or the start of a score like 10 or 12. Press Enter to accept the 1, or type the second digit. Only digits can be typed in these boxes. To fix a box, click it and type the new digit over the old one.
 
 5. Enter the putts. After the last score the cursor goes on to the Putt box of hole 1. Type the putts for each hole in the same way, one digit each.
-
-The F and S keys are a shortcut, and you do not have to use them. If your scorecard has an F (fairway) or an S (sand) on the putts line, you can type that letter right in the Putt box. F ticks or unticks Fwy for that hole and S does the same for Sand. The letter is not typed into the box. Type it before the putts digit, because the cursor moves on to the next hole as soon as the digit goes in. A hole marked F2 on the card is typed F then 2, and a hole with both an F and an S is typed F, S, then the putts. If you do not mark F and S on your card, or you would rather use the mouse, just click the Fwy and Sand boxes. Either way works and you can mix them. The Fwy box is switched off on par 3s, so F does nothing there. Any other letter is ignored.
-
-Remember two things. Count a putt only when your ball is on the green. A stroke from the fringe is not a putt. And if you holed out from off the green, like a chip-in, put 0 for the putts.
 
 6. Watch the boxes as you go. The totals, the eagles to others and the fairway, sand, green and two-putt figures all update as you type. When every hole is filled in you also see the 18-Hole Diff and what your Handicap Index will be after this round.
 
@@ -26,6 +22,10 @@ If you change your mind, press Cancel. Nothing is saved.
 
 # A few things worth knowing
 
+The F and S keys are a shortcut, and you do not have to use them. If your scorecard has an F (fairway) or an S (sand) on the putts line, you can type that letter right in the Putt box. F ticks or unticks Fwy for that hole and S does the same for Sand. The letter is not typed into the box. Type it before the putts digit, because the cursor moves on to the next hole as soon as the digit goes in. A hole marked F2 on the card is typed F then 2, and a hole with both an F and an S is typed F, S, then the putts. If you do not mark F and S on your card, or you would rather use the mouse, just click the Fwy and Sand boxes. Either way works and you can mix them. The Fwy box is switched off on par 3s, so F does nothing there. Any other letter is ignored.
+
+Remember two things. Count a putt only when your ball is on the green. A stroke from the fringe is not a putt. And if you holed out from off the green, like a chip-in, put 0 for the putts.
+
 PCC: Leave it at 0 unless you know the day's value. A wrong value changes your handicap.
 
-Nine-hole rounds: A nine-hole round on an 18-hole course counts toward your handicap only if the course file has ratings for that nine. If the Rating box says "no rating" the round is still saved and still counts in your statistics, just not in your handicap. Once the ratings are added to the course file, it counts the next time you start the program.
+Nine-hole rounds: A nine-hole round on an 18-hole course counts toward your handicap only if the course file has ratings for that nine. If the Rating box says "no rating" the round is still saved and still counts in your statistics, just not in your handicap. To add the ratings, go back to Home and press New Course, type the course name and zip, then fill in that nine's rating and slope (the Front 9 or Back 9 row) and press Save. Your handicap is worked out again as soon as the course is saved, so the round counts straight away. If you add the ratings by editing courses.tsv yourself instead, it counts the next time you start the program.

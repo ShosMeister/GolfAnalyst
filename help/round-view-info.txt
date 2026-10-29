@@ -1,6 +1,6 @@
 Looking at Your Rounds - Info
 
-This screen shows one saved round at a time, exactly as it was saved. Nothing on it can be changed, which is why every box is grey.
+This screen shows one saved round at a time, exactly as it was saved. Nothing on it can be changed here, which is why every box is grey. To fix something, press Edit.
 
 # At the top
 

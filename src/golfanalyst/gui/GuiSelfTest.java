@@ -16,6 +16,7 @@ import java.awt.Component;
 import java.awt.Container;
 import javax.swing.AbstractButton;
 import javax.swing.JComponent;
+import javax.swing.JLabel;
 import javax.swing.JTextField;
 
 /*
@@ -539,7 +540,7 @@ public final class GuiSelfTest
         check("the entering help explains the F and S keys and says they are optional",
                 entryHelp.contains("F ticks or unticks Fwy") && entryHelp.contains("S does the same for Sand")
                         && entryHelp.contains("you do not have to use them"));
-        check("the entering info mentions the F and S keys", Files.readString(Path.of("help", "round-new-info.txt")).contains("type F in the Putt box"));
+        check("the F and S keys are explained in the Help, not the Info", !Files.readString(Path.of("help", "round-new-info.txt")).contains("type F"));
         check("the Name help is not 'whose rounds these are'", !Files.readString(Path.of("help", "home-info.txt")).contains("Whose rounds"));
 
         // The Show drop-down limits the arrows to one course or one set of tees
@@ -1103,6 +1104,13 @@ public final class GuiSelfTest
         check("each tee frame is 134 x 526, so the rows line up", teeSizes);
         check("a cell is 56 x 21", page.parFields[0][0].getPreferredSize().equals(new java.awt.Dimension(56, 21)));
         check("a cell is bold 15 pt", page.parFields[0][0].getFont().isBold() && page.parFields[0][0].getFont().getSize2D() == 15f);
+        JLabel indexHeader = page.indexHeaders[0];
+        check("the handicap column is headed Hdcp/SI in bold 11 pt", indexHeader.getText().equals("Hdcp/SI")
+                && indexHeader.getFont().isBold() && indexHeader.getFont().getSize2D() == 11f);
+        check("the Hdcp/SI header explains itself in a tool tip",
+                "Hole handicap number (stroke index): 1 is the hardest hole.".equals(indexHeader.getToolTipText()));
+        int headerWidth = indexHeader.getFontMetrics(indexHeader.getFont()).stringWidth(indexHeader.getText());
+        check("the Hdcp/SI header fits its 56 px cell (" + headerWidth + " px)", headerWidth <= 56 - 4);
 
         page.showNew();
         check("New Course names the tees Ladies, Beginner, Intermediate and Expert",
@@ -1154,8 +1162,8 @@ public final class GuiSelfTest
         check("a new tee on a saved course is ready to save", shell.status.equals("Ready to save.") && page.saveButton.isEnabled());
 
         page.indexFields[2][4].setText("3");
-        check("a repeated stroke index is named by tee and hole",
-                shell.status.equals("Gold tee, hole 5: stroke index 3 is already used on hole 3."));
+        check("a repeated handicap number is named by tee and hole",
+                shell.status.equals("Gold tee, hole 5: handicap number 3 is already used on hole 3."));
         check("a repeated stroke index is pink", page.indexFields[2][4].getBackground().equals(Theme.FIELD_ERROR));
         page.indexFields[2][4].setText("5");
         page.parFields[2][6].setText("");
@@ -1285,11 +1293,11 @@ public final class GuiSelfTest
         page.courseField.setText("Copy Hills");
         page.zipField.setText("29200");
         page.copyButton.doClick();
-        check("the copy arrow with nothing to copy says what to do", shell.status.startsWith("Type the pars and stroke index of Ladies first"));
+        check("the copy arrow with nothing to copy says what to do", shell.status.startsWith("Type the pars and handicap numbers of Ladies first"));
         fillTee(page, 0, "Ladies", "70.2", "121", pars, index);
         page.parFields[2][3].setText("5");
         page.copyButton.doClick();
-        check("the copy arrow says which tees it filled", shell.status.equals("Copied the pars and stroke index of Ladies into the empty cells of"
+        check("the copy arrow says which tees it filled", shell.status.equals("Copied the pars and handicap numbers of Ladies into the empty cells of"
                 + " Beginner, Intermediate, Expert. Check any holes that differ on the card."));
         boolean copied = true;
         for (int hole = 0; hole < 18; hole = hole + 1)
@@ -1302,7 +1310,7 @@ public final class GuiSelfTest
         check("the rating and slope are never copied", page.ratingFields[1].getText().isEmpty() && page.slopeFields[3].getText().isEmpty());
         check("copying does not move the cursor or need a click on each cell", page.parTotalBoxes[1].getText().equals("72"));
         page.copyButton.doClick();
-        check("copying again with every cell filled copies nothing", shell.status.startsWith("The par and SI cells of the other tees are already filled"));
+        check("copying again with every cell filled copies nothing", shell.status.startsWith("The Par and Hdcp/SI cells of the other tees are already filled"));
         page.saveButton.doClick();
         check("tees holding only copied pars and stroke index are skipped quietly", shell.status.equals("Added 1 tee for Copy Hills."));
 

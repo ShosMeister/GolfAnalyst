@@ -10,24 +10,26 @@ You do not have to fuss over capitals. If you type the whole name in lower case 
 
 # The tees
 
-Change the tee names to the ones on your card. Then for the first tee type the rating, the slope, the front and back nine ratings if your card has them, and the yardage if you like. Then go down the pars and down the stroke index numbers.
+Change the tee names to the ones on your card. Then for the first tee type the rating, the slope, the front and back nine ratings if your card has them, and the yardage if you like. Then go down the pars and down the handicap numbers.
 
 You hardly need to touch the mouse. The cursor moves on by itself as soon as a cell is complete:
 - a par moves on as soon as you type it (only 3, 4, 5 and 6 can be typed);
-- a stroke index from 2 to 9 moves on at once. A 1 waits for a second digit, because it could be 1 or the start of 10 to 18;
+- a handicap number from 2 to 9 moves on at once. A 1 waits for a second digit, because it could be 1 or the start of 10 to 18;
 - a slope moves on after two digits if it starts with 5 to 9, and after three digits if it starts with 1;
 - a rating moves on after the number after the point, so type 70.4 and you are on to the slope.
-Enter or Tab moves on too, and skips a cell you want to leave blank. The cursor goes down all the pars of a tee, then down all its stroke index numbers, then on to the next tee. The gold outline shows you where you are.
+Enter or Tab moves on too, and skips a cell you want to leave blank. The cursor goes down all the pars of a tee, then down all its handicap numbers, then on to the next tee. The gold outline shows you where you are.
+
+If a scorecard does not give a rating for a set of tees, leave it out rather than guess, because a made-up rating would throw off your handicap.
 
 # The copy arrow
 
-Most courses use the same pars, and often the same stroke index, for every set of tees. Once the first tee's pars and stroke index are in, press the arrow next to its name. They are copied into the other three tees, but only into cells that are still empty, so anything you already typed stays. Then just fix the few holes that differ on the card, and type each tee's own rating and slope, which are never copied. If the ladies' tees on your card have their own stroke index, type the men's tee in the first frame (rename it), copy, and then fix the ladies' column.
+Most courses use the same pars, and often the same handicap numbers, for every set of tees. Once the first tee's pars and handicap numbers are in, press the arrow next to its name. They are copied into the other three tees, but only into cells that are still empty, so anything you already typed stays. Then just fix the few holes that differ on the card, and type each tee's own rating and slope, which are never copied. If the ladies' tees on your card have their own handicap numbers, type the men's tee in the first frame (rename it), copy, and then fix the ladies' column.
 
 A tee you do not fill in a rating for is simply left out, even if the arrow copied pars into it.
 
 # Saving
 
-Watch the bar at the bottom: it always names the next thing to fill in, by tee and hole. If something is actually wrong, such as a stroke index used twice or a tee name the course already has, that cell turns pink straight away. A cell you just have not reached yet stays white. When everything is in order the bar says Ready to save and the Save button comes on. Press it, and you are back at Home with a message saying what was added. Now you can enter rounds on the new course.
+Watch the bar at the bottom: it always names the next thing to fill in, by tee and hole. If something is actually wrong, such as a handicap number used twice or a tee name the course already has, that cell turns pink straight away. A cell you just have not reached yet stays white. When everything is in order the bar says Ready to save and the Save button comes on. Press it, and you are back at Home with a message saying what was added. Now you can enter rounds on the new course.
 
 If you are still looking at the sample data, the program asks whether to make your own data folder first. Say Yes, then close the program and open it again, and it will be using your own empty data folder. Say No only if you really want to add the course to the sample data.
 
@@ -35,4 +37,4 @@ If you are still looking at the sample data, the program asks whether to make yo
 
 Made a mistake after saving, or found a better scorecard? Press New Course and type the course name and zip just as before. The title changes to Edit Course and the course's tees appear in the frames. Click the cell you want, type over it, and press Save. Only the tees you changed are rewritten, and the file as it was is kept in courses.tsv.bak in your data folder, just in case.
 
-A few things to know: a set of tees that is already in the program must keep its rating (rounds were played on it, so it cannot be left out); if you change a rating, slope, par or stroke index on tees you have played, the bar at the bottom reminds you that your handicap will be worked out again for those rounds, which is exactly what you want when fixing a typo; and the Nine-hole course box cannot be changed for a course you have saved. If you change the course name or zip after you have started fixing things, nothing is thrown away: Save just stays off until you put them back.
+A few things to know: a set of tees that is already in the program must keep its rating (rounds were played on it, so it cannot be left out); if you change a rating, slope, par or handicap number on tees you have played, the bar at the bottom reminds you that your handicap will be worked out again for those rounds, which is exactly what you want when fixing a typo; and the Nine-hole course box cannot be changed for a course you have saved. If you change the course name or zip after you have started fixing things, nothing is thrown away: Save just stays off until you put them back.

@@ -4,7 +4,7 @@ This is a round you have already saved, opened so you can fix it. The title at t
 
 # Across the top
 
-Course / tee and Holes: Where and how much you played. They are locked while you edit, because the round belongs to that course and those holes. If you picked the wrong course when you entered it, the simplest fix is to enter the round again on the right course.
+Course / tee and Holes: Where and how much you played. They are locked while you edit, because the round belongs to that course and those holes.
 
 PCC: The day's Playing Conditions Calculation, normally 0. You can change it.
 
@@ -12,11 +12,13 @@ PCC: The day's Playing Conditions Calculation, normally 0. You can change it.
 
 Score and Putt: The score and putts of each hole you played. You can change any of them.
 
-Fwy and Sand: Whether you hit the fairway from the tee and whether you were in a bunker. Click them, or type F or S in the Putt box, to tick or untick them.
+Fwy and Sand: Whether you hit the fairway from the tee and whether you were in a bunker.
 
 # The column on the right and the form at the bottom
 
-These show the round as it would be with your changes: the eagles to others, the totals, fairways, sand saves, greens in regulation and two-putts, and what the round does to your handicap. Date: The day you played. You can change it.
+These show the round as it would be with your changes: the eagles to others, the totals, fairways, sand saves, greens in regulation and two-putts, and what the round does to your handicap.
+
+Date: The day you played. You can change it.
 
 # The buttons at the bottom right
 

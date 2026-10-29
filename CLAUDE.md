@@ -86,7 +86,10 @@ Courses and rounds live in two plain tab-separated text files. Written for one u
   did; invented ratings spoil the handicap). The only copy allowed is the user pressing the arrow on the FIRST tee,
   which fills its pars and stroke index into EMPTY par/SI cells of the other three tees (never overwrites). A tee
   with a blank rating is skipped; the "skipped" warning counts only slope, front/back and yardage typed by hand,
-  not pars/SI (the arrow may have filled them). Tee names are unique within a course,
+  not pars/SI (the arrow may have filled them). The hole handicap column is shown as Hdcp/SI (header 11 pt bold,
+  tool tip "Hole handicap number (stroke index): 1 is the hardest hole.") and screen and help text call it the
+  "handicap number": users know it as Handicap (US cards) or Stroke Index (UK and European cards). The file column
+  and the code names (`StrokeIndex`, `strokeIndex`, `indexFields`) stay as they are. Tee names are unique within a course,
   ignoring capitals. Names are trimmed; capitals change only when the whole name was typed all lower or all upper
   case (so TPC Sawgrass and McDonough survive). State is two capital letters, zip five digits, yardage optional.
   A course is matched by name (any capitals/spaces) plus zip; new tees use the existing course's own spelling.

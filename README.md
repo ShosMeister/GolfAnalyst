@@ -73,15 +73,15 @@ are in place and say "not built yet" in the footer.
   photo, captions down the left frame and one frame per tee, with spreadsheet-style cells (the cell with
   the cursor has a gold outline). Type the course name and its 5-digit zip first. Then each tee: name,
   rating and slope, the optional front-nine and
-  back-nine rating and slope, optional yardage, then the par and stroke index of every hole. The total
+  back-nine rating and slope, optional yardage, then the par and handicap number (the Hdcp/SI column) of every hole. The total
   par is shown as you type. Cells take digits only and move on by themselves: a par (3-6) at once; a
-  stroke index from 2 to 9 at once, a 1 waits (then 0-8 for 10 to 18); a slope after two digits from 5-9
+  handicap number from 2 to 9 at once, a 1 waits (then 0-8 for 10 to 18); a slope after two digits from 5-9
   or three from 1 (55 to 155); a rating after the digit after the point. The arrow beside the first
-  tee's name copies its pars and stroke index into the empty par and SI cells of the other tees; a
+  tee's name copies its pars and handicap numbers into the empty Par and Hdcp/SI cells of the other tees; a
   rating, slope or yardage is never copied. A tee with no rating is skipped. Names are tidied: extra
   spaces go, and the capitals change only when the whole name was typed in lower case or in capitals.
   Everything is checked as you type: the footer names the next thing to fill in or fix, by tee and hole;
-  a real mistake (a stroke index used twice, a tee name already used) turns pink at once; Save comes on
+  a real mistake (a handicap number used twice, a tee name already used) turns pink at once; Save comes on
   only when all is well. Save adds the tees with new TeeIDs to `courses.tsv` in the file's own column
   order and goes back Home.
 - **Fixing a course:** type the name and zip of a course that is already in the program (any capitals) on
@@ -146,6 +146,9 @@ round, 9 for a nine-hole round).
 - `StrokeIndex` is the scorecard's hole handicap ranking (1 = hardest hole), each number used
   once: 1-18 for an 18-hole tee, 1-9 for a nine-hole course. The handicap needs it to find
   which holes get handicap strokes.
+  On the New Course screen the column is headed **Hdcp/SI** and the messages call it the
+  "handicap number": golfers know it as Handicap (US scorecards) or Stroke Index (UK and
+  European scorecards). The file column and the names in the code stay `StrokeIndex`.
 - A **nine-hole course** has `Holes` = 9, nine pars, nine stroke index values, and its
   `Rating` and `Slope` are its nine-hole ratings.
 - An **18-hole tee** can have `FrontRating`/`FrontSlope` (holes 1-9) and

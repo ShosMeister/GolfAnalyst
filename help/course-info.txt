@@ -8,7 +8,7 @@ Course and Zip: The name of the course and its 5-digit zip code. If that course 
 
 City and State: Where the course is. State is two capital letters, for example SC. For a course that is already in the program they are filled in for you; if you change them, every set of tees of that course gets the new city and state.
 
-Nine-hole course: Tick it for a course that only has nine holes, like the ones Spark Golf plays. Holes 10 to 18 and the Front 9 and Back 9 rows disappear, and the stroke index runs from 1 to 9. For a course that is already in the program it cannot be changed, because its rounds depend on it.
+Nine-hole course: Marks a course that only has nine holes, like the ones Spark Golf plays. With it on, holes 10 to 18 and the Front 9 and Back 9 rows disappear, and the handicap numbers run from 1 to 9. For a course that is already in the program it cannot be changed, because its rounds depend on it.
 
 # The tees
 
@@ -20,9 +20,9 @@ Front 9 and Back 9: The nine-hole rating and slope of the front nine and the bac
 
 Yards / Par: The total yardage, which you can leave blank, and the total par, worked out as you type the pars below. It is a handy check against the scorecard.
 
-Par and SI for each hole: The par of the hole (3, 4, 5 or 6) and its stroke index, the hole handicap number on the scorecard (1 is the hardest hole). Each number from 1 to 18 is used once.
+Par and Hdcp/SI for each hole: The par of the hole (3, 4, 5 or 6) and its handicap number, which is the number on the scorecard in the row or column marked Handicap, HCP, S.I. or Stroke Index, from 1 for the hardest hole to 18 for the easiest. Each number from 1 to 18 is used once. It is not your own handicap. The rules call it the stroke index, and it decides which holes you get handicap strokes on.
 
-The arrow next to the first tee's name copies its pars and stroke index numbers into the other tees, but only into cells that are still empty. Nothing else is ever copied. If a scorecard does not give a rating for a set of tees, leave it out rather than guess, because a made-up rating would throw off your handicap.
+The arrow next to the first tee's name copies its pars and handicap numbers into the other tees, but only into cells that are still empty. Nothing else is ever copied.
 
 # Across the bottom
 
