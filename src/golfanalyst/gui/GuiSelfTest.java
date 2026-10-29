@@ -360,7 +360,11 @@ public final class GuiSelfTest
         // Round entry: a bogey on every hole, two putts everywhere
         page.showNew();
         check("a new round starts with Save off", !page.saveButton.isEnabled());
-        int[] pars = {4, 3, 5, 4, 4, 3, 5, 4, 4, 4, 3, 5, 4, 4, 3, 5, 4, 4};
+        String startTee = String.valueOf(page.teeCombo.getSelectedItem());
+        check("a new round opens on the tee of the latest round (Edgewater Senior, round 37)",
+                startTee.startsWith("00005: ") && startTee.contains("Edgewater") && startTee.contains("Senior"));
+        int[] pars = {4, 5, 4, 3, 4, 5, 4, 3, 4, 4, 3, 4, 5, 4, 3, 4, 5, 4};
+        int parThree = 3; // hole 4, Edgewater's first par 3
         for (int hole = 0; hole < 18; hole = hole + 1)
         {
             check("hole " + (hole + 1) + " shows its par from the course", page.parBoxes[hole].getText().equals(Integer.toString(pars[hole])));
@@ -375,7 +379,7 @@ public final class GuiSelfTest
         check("the projected index is shown", !page.indexBox.getText().equals("-"));
 
         // fairways: switched off on par 3s, counted on par 4s and 5s
-        check("the fairway box is off on a par 3", !page.fairwayChecks[1].isEnabled());
+        check("the fairway box is off on a par 3", !page.fairwayChecks[parThree].isEnabled());
         check("the fairway box is on for a par 4", page.fairwayChecks[0].isEnabled());
         page.fairwayChecks[0].setSelected(true);
         page.fairwayChecks[2].setSelected(true);
@@ -393,10 +397,10 @@ public final class GuiSelfTest
         check("the footer explains the problem", shell.status.contains("must be fewer than the score"));
         type(page.puttFields[0], "0");
 
-        // sand: bunker shot with par on hole 2 (par 3) is a save
-        page.sandChecks[1].setSelected(true);
-        type(page.scoreFields[1], "3");
-        type(page.puttFields[1], "1");
+        // sand: bunker shot with par on hole 4 (par 3) is a save
+        page.sandChecks[parThree].setSelected(true);
+        type(page.scoreFields[parThree], "3");
+        type(page.puttFields[parThree], "1");
         check("a par from the sand is a sand save", page.sandBox.getText().equals("1 / 1"));
 
         // Save writes to the file and reads back the same
@@ -406,10 +410,10 @@ public final class GuiSelfTest
         check("the file loads back with no errors", reread.errorCount() == 0);
         Round saved = reread.rounds().get(reread.rounds().size() - 1);
         check("the saved round has the typed scores",
-                saved.scores()[0] == 3 && saved.putts()[0] == 0 && saved.scores()[1] == 3 && saved.putts()[1] == 1
+                saved.scores()[0] == 3 && saved.putts()[0] == 0 && saved.scores()[parThree] == 3 && saved.putts()[parThree] == 1
                         && saved.totalScore() == 87);
         check("the saved round remembers the fairways and the bunker",
-                saved.fairway()[0] && saved.fairway()[2] && !saved.fairway()[1] && saved.sand()[1]);
+                saved.fairway()[0] && saved.fairway()[2] && !saved.fairway()[parThree] && saved.sand()[parThree]);
         check("after saving the screen shows the saved round read-only", !page.saveButton.isVisible());
         check("the saved round's total is shown", page.scoreBox.getText().equals("87"));
         List<String> lines = Files.readAllLines(temp.resolve(DataLoader.ROUNDS_FILE), StandardCharsets.UTF_8);
@@ -503,11 +507,11 @@ public final class GuiSelfTest
             check("F in a putts box ticks the Fwy box of a par 4", page.fairwayChecks[0].isSelected());
             page.puttFields[0].getDocument().insertString(0, "F", null);
             check("F again unticks it", !page.fairwayChecks[0].isSelected());
-            page.puttFields[1].getDocument().insertString(0, "f", null);
-            check("F does nothing on a par 3", !page.fairwayChecks[1].isSelected());
-            page.puttFields[1].getDocument().insertString(0, "s", null);
-            check("S in a putts box ticks the Sand box", page.sandChecks[1].isSelected());
-            check("the letters were not typed into the box", page.puttFields[0].getText().isEmpty() && page.puttFields[1].getText().isEmpty());
+            page.puttFields[parThree].getDocument().insertString(0, "f", null);
+            check("F does nothing on a par 3", !page.fairwayChecks[parThree].isSelected());
+            page.puttFields[parThree].getDocument().insertString(0, "s", null);
+            check("S in a putts box ticks the Sand box", page.sandChecks[parThree].isSelected());
+            check("the letters were not typed into the box", page.puttFields[0].getText().isEmpty() && page.puttFields[parThree].getText().isEmpty());
         }
         catch (javax.swing.text.BadLocationException unexpected)
         {

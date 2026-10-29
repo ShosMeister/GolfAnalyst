@@ -30,7 +30,8 @@ Courses and rounds live in two plain tab-separated text files. Written for one u
   (`WoodButton`, `IconButton`, `ValueBox`, `WoodPanel`, `WoodFrame`, `WoodTag`, `ImageCheckBox`, `BackdropPanel`),
   `GuiSelfTest`.
 - `images/` (wood buttons, textures, `backgrounds/<page>.jpg|gif`), `help/` (plain text Info and Help files),
-  `sample-data/` (random, not real), `data/` (the user's real data, never overwrite it).
+  `sample-data/` (made up, plus the Edgewater course the user added, TeeIDs 5-8; its round 37 is the latest round, so
+  New Round opens on Edgewater Senior and the screen tests expect its pars), `data/` (the user's real data, never overwrite it).
 
 ## Architecture rules (each one came from a real problem)
 - The engine (`golfanalyst`) has no Swing code. Screens get data only from `DataStore`, and after any change the
