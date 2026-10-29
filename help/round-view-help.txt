@@ -21,4 +21,4 @@ Step to the round and press Edit, at the right end of the frame under the tables
 Press Close, or the Home button, to go back to the Home screen and then press New Round.
 
 # Leaving this screen
-Press Close or the Home button.
+Press Close to go back where you came from. If you double-clicked a course on the Stats Board to get here, Close takes you back to the Stats Board, just as you left it; otherwise it goes to the Home screen. The Home button always goes Home.

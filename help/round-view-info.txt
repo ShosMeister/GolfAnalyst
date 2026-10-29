@@ -46,4 +46,4 @@ Greens In Reg: Holes where the strokes before your first putt (your score minus 
 
 The arrows are First, Previous, Next and Last round, within whatever you chose in Show. An arrow is greyed out when there is nowhere to go. The bar along the bottom says which round you are on and how many there are in your choice, for example Round 3 of 12.
 
-Edit and Close: At the right end of the frame under the tables. Edit opens the round on show so you can fix it. Close goes back to the Home screen.
+Edit and Close: At the right end of the frame under the tables. Edit opens the round on show so you can fix it. Close goes back to where you came from: the Stats Board if you opened the round from there, otherwise the Home screen.

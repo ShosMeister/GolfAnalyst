@@ -12,7 +12,7 @@ Click a row and it is highlighted in cream with a gold outline, so it is easy to
 
 # Seeing the rounds behind a row
 
-Double-click a row, or press Enter on the highlighted one, and the Rounds screen opens at the newest round on that course and set of tees, with the Show box already set to them. The arrows there step through every round on those tees: 18-hole rounds, front nines and back nines together.
+Double-click a row, or press Enter on the highlighted one, and the Rounds screen opens at the newest round on that course and set of tees, with the Show box already set to them. The arrows there step through every round on those tees: 18-hole rounds, front nines and back nines together. Press Close there to come back to the Stats Board, with your sort and your highlighted row just as you left them.
 
 # Sorting
 

@@ -94,3 +94,5 @@ Golf Analyst v4.22: The Help and Info windows now have to be closed before you c
 Golf Analyst v4.30: Old rounds can be kept as historical rounds. You can still look back at them in Rounds, but they are left out of your Handicap Index and your statistics, so those show how you play today.
 
 Golf Analyst v4.40: Added the Stats Board, which shows your statistics course by course and tee by tee, with your nine-hole rounds kept apart. Click a heading to sort it, and the best figure in each column is marked in gold. Double-click a course to see its rounds.
+
+Golf Analyst v4.41: Close on the Rounds screen goes back to the Stats Board when you came from there, instead of to the Home screen.

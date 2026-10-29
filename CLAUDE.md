@@ -1,4 +1,4 @@
-# GolfAnalyst v4.40 (Java) - notes for Claude
+# GolfAnalyst v4.41 (Java) - notes for Claude
 
 A single-golfer golf statistics program with a Swing window. Ported from HyperCard (1991) to Excel/VBA to Java.
 Courses and rounds live in two plain tab-separated text files. Written for one user who tests on Windows.
@@ -143,7 +143,9 @@ Courses and rounds live in two plain tab-separated text files. Written for one u
   last, kept for the session. Gold (255,236,150, bold) = best per column per section among rows with 2+ rounds when
   2+ such rows exist, ties all gold. Click highlights a row (cream + 2 px gold outline), Up/Down move it over the band,
   Enter or double-click calls `Shell.browseRoundsOn(teeId)` (Rounds on the tee's newest round, Show set to the tee,
-  so the arrows include that tee's 18-hole and nine-hole rounds).
+  so the arrows include that tee's 18-hole and nine-hole rounds). Close on that round goes back to the Stats Board
+  (v4.41; `RoundPage.backToStats`, set by `showLatestOn`, cleared by `showLatest`/`showNew`; tool tip says where it
+  goes); the Home button always goes Home.
 - Edit Round: Home's Edit Round opens the round viewer at the latest round; the viewer has an Edit button (where
   Save sits when entering). Edit mode keeps Course/tee and Holes locked and opens date, PCC, scores, putts, Fwy and
   Sand; the header says "Edit 00031:Sample Links:White"; help files `round-edit-*`. Save replaces only that round

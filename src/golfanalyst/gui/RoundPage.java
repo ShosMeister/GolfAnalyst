@@ -223,6 +223,9 @@ public final class RoundPage extends Page
     private int filterTeeId = -1;
     private int viewedRoundId = -1;
     private boolean viewedHistorical = false;
+    private boolean backToStats = false;
+    static final String BACK_TO_STATS = "Back to the Stats Board";
+    static final String BACK_HOME = "Back to the Home screen";
     static final String HISTORICAL_NOTE = " Historical: kept to look back at, not in your handicap or statistics.";
     private boolean updating = false;
     private int playedStart = 0;
@@ -1187,6 +1190,7 @@ public final class RoundPage extends Page
         filterLabel.setVisible(!typing);
         filterCombo.setVisible(!typing);
         cancelButton.setText(typing ? "Cancel" : "Close");
+        showCloseTip();
         mark(pccField, false);
         mark(dateField, false);
     }
@@ -1237,6 +1241,7 @@ public final class RoundPage extends Page
      */
     public void showNew()
     {
+        backToStats = false;
         prepareNew();
         updateNav();
         recalc();
@@ -1312,7 +1317,8 @@ public final class RoundPage extends Page
      | Shows the newest saved round played on one set of tees, with the Show    |
      | box set to those tees, so the arrows step through every round on them    |
      | (18 holes, front nine and back nine alike). With no rounds on those      |
-     | tees it shows the newest round of all.                                   |
+     | tees it shows the newest round of all. It is how the Stats Board opens   |
+     | a course, so Close then goes back to the Stats Board.                    |
      |                                                                          |
      | Passed in:  teeId - the tees                                             |
      | Passed out: nothing                                                      |
@@ -1330,6 +1336,25 @@ public final class RoundPage extends Page
             return;
         }
         showRoundAt(shown.get(shown.size() - 1));
+        backToStats = true;
+        showCloseTip();
+    }
+
+    /*
+     * showCloseTip(): the tool tip of Close says where it goes: back to the Stats Board when the round was opened from there, otherwise Home. Cancel has none.
+     */
+    private void showCloseTip()
+    {
+        boolean closing = mode == Mode.VIEW;
+        cancelButton.setToolTipText(closing ? (backToStats ? BACK_TO_STATS : BACK_HOME) : null);
+    }
+
+    /*
+     * isBackToStats(): whether Close goes back to the Stats Board (the round was opened from it).
+     */
+    boolean isBackToStats()
+    {
+        return backToStats;
     }
 
     /*
@@ -1339,6 +1364,7 @@ public final class RoundPage extends Page
      */
     public void showLatest()
     {
+        backToStats = false;
         rebuildFilter();
         if (shown.isEmpty())
         {
@@ -1974,11 +2000,15 @@ public final class RoundPage extends Page
     }
 
     /*
-     * cancel(): what Cancel / Close does: while editing, goes back to the saved round as it was (asking first if anything was changed); otherwise back Home.
+     * cancel(): what Cancel / Close does: while editing, goes back to the saved round as it was (asking first if anything was changed); otherwise back to the Stats Board if the round was opened from there, or Home.
      */
     private void cancel()
     {
-        if (mode != Mode.EDIT)
+        if (mode != Mode.EDIT && backToStats)
+        {
+            shell.statsBoard();
+        }
+        else if (mode != Mode.EDIT)
         {
             shell.goHome();
         }

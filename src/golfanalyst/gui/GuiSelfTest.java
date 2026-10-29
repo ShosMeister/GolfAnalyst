@@ -717,6 +717,22 @@ public final class GuiSelfTest
         check("Enter on a Stats Board row opens Rounds on that course and tees",
                 panel.header().title().matches("\\d{5}:.+:.+") && panel.roundPage().filterCombo.getSelectedItem() != null
                         && ((RoundPage.FilterItem) panel.roundPage().filterCombo.getSelectedItem()).teeId() == windowStats.rowPanels.get(0).row.teeId());
+        String pickedKey = windowStats.selectedKey();
+        check("Close says it goes back to the Stats Board", RoundPage.BACK_TO_STATS.equals(panel.roundPage().cancelButton.getToolTipText()));
+        ((WoodButton) findByText(panel, "Close")).doClick();
+        check("Close goes back to the Stats Board it came from, with the same row picked",
+                panel.header().title().equals("Stats Board") && pickedKey.equals(windowStats.selectedKey()));
+        ((IconButton) findByTip(panel, "Home")).doClick();
+        ((WoodButton) findByText(panel, "Rounds")).doClick();
+        check("opened from Home, Close says it goes Home", RoundPage.BACK_HOME.equals(panel.roundPage().cancelButton.getToolTipText()));
+        ((WoodButton) findByText(panel, "Close")).doClick();
+        check("and Close then goes Home again", panel.header().title().equals("Golf Analyst Stats Home"));
+        windowStats.openSelected();
+        ((WoodButton) findByText(panel, "Edit")).doClick();
+        ((WoodButton) findByText(panel, "Cancel")).doClick();
+        check("from the Stats Board, Cancel in Edit still goes back to the round", panel.header().title().matches("\\d{5}:.+:.+"));
+        ((WoodButton) findByText(panel, "Close")).doClick();
+        check("and Close after editing still goes back to the Stats Board", panel.header().title().equals("Stats Board"));
         ((IconButton) findByTip(panel, "Home")).doClick();
         ((WoodButton) findByText(panel, "New Course")).doClick();
         check("New Course shows the course page", panel.header().title().equals("New Course"));

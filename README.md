@@ -1,4 +1,4 @@
-# GolfAnalyst v4.40 (Java)
+# GolfAnalyst v4.41 (Java)
 
 Golf Analyst with its window. It has the one-window layout of the earlier versions: a wood header
 with Home, Help and Info buttons that stays the same on every screen, a status footer that stays
