@@ -43,6 +43,8 @@ import java.util.Properties;
  | nextTeeId()               - an unused tee id                             |
  | teesForCourse(name, zip)  - the tees a course already has                |
  | addTees(tees)             - adds tees to courses.tsv and reloads         |
+ | updateTees(changed, added) - saves edited and new tees, reloads          |
+ | roundsOnTee(teeId)        - how many rounds were played on a tee         |
  | project(draft)            - the handicap line a round would get          |
  | golferName(), setGolferName(name)                                        |
  | isSampleData()            - whether this is the sample data folder       |
@@ -279,6 +281,51 @@ public final class DataStore
     {
         CourseWriter.append(dir.resolve(DataLoader.COURSES_FILE), tees);
         reload();
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | updateTees(changed, added)                                               |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Saves edited tees (their lines are replaced in place, the file as it     |
+     | was is kept in courses.tsv.bak) and any new tees (added at the end),     |
+     | then reloads, so the handicap of rounds on an edited tee is worked out   |
+     | again with its new numbers. With nothing changed it is simply addTees.   |
+     |                                                                          |
+     | Passed in:  changed - edited tees, with the TeeIDs they already have     |
+     |             added   - new tees, with ids from nextTeeId() upwards        |
+     | Passed out: nothing (throws IOException if a tee is refused or the       |
+     |             file cannot be written)                                      |
+     +--------------------------------------------------------------------------+
+     */
+    public void updateTees(List<Tee> changed, List<Tee> added) throws IOException
+    {
+        if (changed.isEmpty())
+        {
+            addTees(added);
+            return;
+        }
+        CourseWriter.update(dir.resolve(DataLoader.COURSES_FILE), changed, added);
+        reload();
+    }
+
+    /*
+     * roundsOnTee(teeId): how many saved rounds were played on a tee.
+     * Passed in:  teeId - the tee
+     * Passed out: the count
+     */
+    public int roundsOnTee(int teeId)
+    {
+        int count = 0;
+        for (Round round : dataset.rounds())
+        {
+            if (round.teeId() == teeId)
+            {
+                count = count + 1;
+            }
+        }
+        return count;
     }
 
     /*

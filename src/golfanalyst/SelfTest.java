@@ -727,6 +727,44 @@ public final class SelfTest
         check("a TeeID already used is refused", refused);
         check("a refused tee leaves the file as it was", Files.readString(courses, StandardCharsets.UTF_8).equals(after));
 
+        Tee whiteFixed = new Tee(1, "Old Links", "Anytown", "SC", "29000", "White", Tee.HOLES, 70.2, 114, 6000,
+                pars, index, 0, 0, 0, 0);
+        Tee green = new Tee(4, "Old Links", "Anytown", "SC", "29000", "Green", Tee.HOLES, 66.0, 110, 0, pars, index, 0, 0, 0, 0);
+        store.updateTees(List.of(whiteFixed), List.of(green));
+        String updated = Files.readString(courses, StandardCharsets.UTF_8);
+        String[] beforeLines = after.split("\r\n", -1);
+        String[] updatedLines = updated.split("\r\n", -1);
+        boolean onlyWhite = updatedLines.length == beforeLines.length + 1;
+        for (int lp = 0; onlyWhite && lp < beforeLines.length - 1; lp = lp + 1)
+        {
+            onlyWhite = beforeLines[lp].equals(updatedLines[lp]) || beforeLines[lp].startsWith("Old Links\t1\t");
+        }
+        check("editing a tee replaces only its line, adds the new tee at the end, keeps the line endings", onlyWhite
+                && updated.startsWith("# my comment\r\n" + header + "\r\n") && updated.endsWith("\r\n")
+                && updatedLines[updatedLines.length - 2].startsWith("Old Links\t4\tGreen\t"));
+        check("the edited line has the new numbers and keeps the column of your own",
+                updated.contains("Old Links\t1\tWhite\tkeep me\t70.2\t114\t"));
+        check("the file as it was is kept in courses.tsv.bak",
+                Files.readString(temp.resolve("courses.tsv.bak"), StandardCharsets.UTF_8).equals(after));
+        check("the store reloads with the edited and the new tee", store.teeMap().get(1).rating() == 70.2
+                && store.teeMap().get(4) != null && store.dataset().errorCount() == 0);
+        int[] badPars = pars.clone();
+        badPars[0] = 7;
+        Tee badFix = new Tee(2, "Old Links", "Anytown", "SC", "29000", "Blue", Tee.HOLES, 72.3, 131, 0,
+                badPars, index, 0, 0, 0, 0);
+        refused = false;
+        try
+        {
+            store.updateTees(List.of(badFix), List.of());
+        }
+        catch (IOException expected)
+        {
+            refused = expected.getMessage().contains("would not load");
+        }
+        check("an edit that would not load is refused", refused);
+        check("a refused edit leaves the file as it was", Files.readString(courses, StandardCharsets.UTF_8).equals(updated));
+        after = updated;
+
         Path fresh = temp.resolve("fresh");
         CourseWriter.append(fresh.resolve(DataLoader.COURSES_FILE), List.of(clash));
         List<String> freshLines = Files.readAllLines(fresh.resolve(DataLoader.COURSES_FILE));

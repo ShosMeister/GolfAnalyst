@@ -4,11 +4,9 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
+import java.util.Map;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /*
  +--------------------------------------------------------------------------+
@@ -42,7 +40,7 @@ public final class RoundWriter
 {
 
     public static final String STANDARD_HEADER = "RoundID\tTeeID\tDate\tHoles\tPCC\tScores\tPutts\tFairways\tSand";
-    public static final String BACKUP_SUFFIX = ".bak";
+    public static final String BACKUP_SUFFIX = LineReplacer.BACKUP_SUFFIX;
     private static final Set<String> KNOWN_COLUMNS =
             Set.of("roundid", "teeid", "date", "holes", "pcc", "scores", "putts", "fairways", "sand");
 
@@ -234,100 +232,18 @@ public final class RoundWriter
     public static void replace(Path file, Round round, Tee tee) throws IOException
     {
         String text = Files.readString(file, StandardCharsets.UTF_8);
-        String[] headerCells = findHeader(text);
-        if (headerCells == null)
+        LineReplacer.LineMaker maker = (headerCells, oldCells) ->
         {
-            throw new IOException(file.getFileName() + " has no header row");
-        }
-        int idColumn = -1;
-        for (int col = 0; col < headerCells.length; col = col + 1)
-        {
-            if (DataLoader.normalize(headerCells[col]).equals("roundid") && idColumn < 0)
+            StringBuilder line = new StringBuilder();
+            for (int col = 0; col < headerCells.length; col = col + 1)
             {
-                idColumn = col;
+                String column = DataLoader.normalize(headerCells[col]);
+                String cell = KNOWN_COLUMNS.contains(column) ? cellText(round, tee, column) : (col < oldCells.length ? oldCells[col] : "");
+                line.append(col > 0 ? "\t" : "").append(cell);
             }
-        }
-        if (idColumn < 0)
-        {
-            throw new IOException(file.getFileName() + " has no RoundID column");
-        }
-
-        int lineStart = text.startsWith("﻿") ? 1 : 0;
-        int foundStart = -1;
-        int foundEnd = -1;
-        boolean headerSeen = false;
-        Matcher breaks = Pattern.compile("\\R").matcher(text);
-        while (lineStart <= text.length())
-        {
-            int lineEnd = breaks.find(lineStart) ? breaks.start() : text.length();
-            String line = text.substring(lineStart, lineEnd);
-            if (!line.isBlank() && !line.trim().startsWith("#"))
-            {
-                if (headerSeen && sameId(line, idColumn, round.id()))
-                {
-                    if (foundStart >= 0)
-                    {
-                        throw new IOException("RoundID " + round.id() + " is on more than one line of " + file.getFileName());
-                    }
-                    foundStart = lineStart;
-                    foundEnd = lineEnd;
-                }
-                headerSeen = true;
-            }
-            if (lineEnd >= text.length())
-            {
-                break;
-            }
-            lineStart = breaks.end();
-        }
-        if (foundStart < 0)
-        {
-            throw new IOException("RoundID " + round.id() + " is not in " + file.getFileName());
-        }
-
-        String[] oldCells = text.substring(foundStart, foundEnd).split("\t", -1);
-        StringBuilder newLine = new StringBuilder();
-        for (int col = 0; col < headerCells.length; col = col + 1)
-        {
-            String column = DataLoader.normalize(headerCells[col]);
-            String cell = KNOWN_COLUMNS.contains(column) ? cellText(round, tee, column) : (col < oldCells.length ? oldCells[col] : "");
-            newLine.append(col > 0 ? "\t" : "").append(cell);
-        }
-        String result = text.substring(0, foundStart) + newLine + text.substring(foundEnd);
-
-        Path backup = file.resolveSibling(file.getFileName() + BACKUP_SUFFIX);
-        Files.copy(file, backup, StandardCopyOption.REPLACE_EXISTING);
-        Path temporary = file.resolveSibling(file.getFileName() + ".new");
-        Files.writeString(temporary, result, StandardCharsets.UTF_8);
-        try
-        {
-            Files.move(temporary, file, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
-        }
-        catch (IOException notAtomic)
-        {
-            Files.move(temporary, file, StandardCopyOption.REPLACE_EXISTING);
-        }
-    }
-
-    /*
-     * sameId(line, idColumn, id): whether a data line holds the given RoundID.
-     * Passed in:  line - one line of the file, idColumn - where RoundID is, id - the id wanted
-     * Passed out: true if that cell is the id (a cell that is not a number never matches)
-     */
-    private static boolean sameId(String line, int idColumn, int id)
-    {
-        String[] cells = line.split("\t", -1);
-        if (idColumn >= cells.length)
-        {
-            return false;
-        }
-        try
-        {
-            return Integer.parseInt(cells[idColumn].trim()) == id;
-        }
-        catch (NumberFormatException notNumber)
-        {
-            return false;
-        }
+            return line.toString();
+        };
+        LineReplacer.Spliced spliced = LineReplacer.splice(text, "roundid", Map.of(round.id(), maker), file.getFileName().toString());
+        LineReplacer.write(file, spliced.text());
     }
 }

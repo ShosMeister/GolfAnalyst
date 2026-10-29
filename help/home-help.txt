@@ -20,7 +20,7 @@ To change the name, click it in the Golfer's Stats section, type the name and pr
 
 # Adding a course
 
-You cannot enter a round until its course is in the program. Press New Course, type the course name and zip, then the rating, slope, pars and stroke index numbers of each set of tees straight from the scorecard, and press Save. You can put in up to four sets of tees at once, and add more tees to a course later the same way. The Help button on that screen walks you through it. If you want a front nine or back nine round on an 18-hole course to count toward your handicap, fill in that nine's own rating and slope too.
+You cannot enter a round until its course is in the program. Press New Course, type the course name and zip, then the rating, slope, pars and stroke index numbers of each set of tees straight from the scorecard, and press Save. You can put in up to four sets of tees at once, and add more tees to a course later the same way. To fix a course you have saved, type its name and zip on that screen: its tees appear, ready to change. The Help button on that screen walks you through it. If you want a front nine or back nine round on an 18-hole course to count toward your handicap, fill in that nine's own rating and slope too.
 
 # Your own data
 

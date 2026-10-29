@@ -1122,71 +1122,135 @@ public final class GuiSelfTest
         check("it goes back to normal when the cursor leaves", page.parFields[0][0].getBackground().equals(java.awt.Color.WHITE)
                 && !(page.parFields[0][0].getBorder() instanceof javax.swing.border.LineBorder));
 
-        // A course already in the program, typed with other capitals and spaces
+        // A course already in the program, typed with other capitals and spaces: its tees load for fixing
         page.courseField.setText("sample   LINKS");
         check("with a name but no zip, the footer asks for the zip", shell.status.equals("Type the course's 5-digit zip."));
         page.zipField.setText("29000");
+        golfanalyst.Tee savedWhite = store.teeMap().get(1);
         check("a course already there is found whatever the capitals", page.cityField.getText().equals("Anytown")
                 && page.stateField.getText().equals("SC"));
-        check("its city and state are locked", !page.cityField.isEditable() && !page.stateField.isEditable());
-        check("the footer lists the tees it has", shell.status.contains("White, Blue"));
-        check("the cursor skips the locked city and state", page.componentAfter(page.zipField) == page.teeNameFields[0]);
+        check("the title becomes Edit Course", page.title().equals("Edit Course"));
+        check("its city and state can be fixed, its nine-hole box is locked", page.cityField.isEditable()
+                && page.stateField.isEditable() && !page.nineHoleCheck.isEnabled());
+        check("its tees load into the frames", page.teeNameFields[0].getText().equals("White")
+                && page.ratingFields[0].getText().equals("70.4") && page.slopeFields[0].getText().equals("123")
+                && page.yardageFields[0].getText().equals("6050")
+                && page.parFields[0][0].getText().equals(Integer.toString(savedWhite.pars()[0]))
+                && page.indexFields[0][17].getText().equals(Integer.toString(savedWhite.strokeIndex()[17]))
+                && page.teeNameFields[1].getText().equals("Blue"));
+        check("the frames left over are empty for new tees", page.teeNameFields[2].getText().equals("Intermediate")
+                && page.ratingFields[2].getText().isEmpty() && page.parFields[3][0].getText().isEmpty());
+        check("the total par of a loaded tee is shown", page.parTotalBoxes[0].getText().equals("72"));
+        check("with nothing changed, Save is off and the footer says what to do", !page.saveButton.isEnabled()
+                && shell.status.contains("is already in the program") && shell.status.contains("Change what you need"));
 
-        fillTee(page, 0, "white", "69.0", "120", pars, index);
-        check("the total par is worked out as you type", page.parTotalBoxes[0].getText().equals("72"));
-        check("a tee name already on the course is named at once, ignoring capitals",
-                shell.status.equals("There is already a tee called white on this course."));
-        check("a real mistake turns its cell pink at once", page.teeNameFields[0].getBackground().equals(Theme.FIELD_ERROR));
+        fillTee(page, 2, "blue", "69.0", "120", pars, index);
+        check("a new tee named like a saved one is named at once, ignoring capitals",
+                shell.status.equals("There is already a tee called blue on this course."));
+        check("a real mistake turns its cell pink at once", page.teeNameFields[2].getBackground().equals(Theme.FIELD_ERROR));
         check("Save stays off while there is a mistake", !page.saveButton.isEnabled());
-        page.teeNameFields[0].setText("Gold");
-        check("fixing it clears the pink", !page.teeNameFields[0].getBackground().equals(Theme.FIELD_ERROR));
-        check("one complete tee is ready to save", shell.status.equals("Ready to save.") && page.saveButton.isEnabled());
+        page.teeNameFields[2].setText("Gold");
+        check("fixing it clears the pink", !page.teeNameFields[2].getBackground().equals(Theme.FIELD_ERROR));
+        check("a new tee on a saved course is ready to save", shell.status.equals("Ready to save.") && page.saveButton.isEnabled());
 
-        fillTee(page, 1, "GOLD", "71.0", "125", pars, reversed);
-        check("two new tees with the same name are a mistake", shell.status.equals("There is already a tee called GOLD on this course.")
-                && !page.saveButton.isEnabled());
-        page.teeNameFields[1].setText("Red");
-
-        page.indexFields[1][4].setText("16");
+        page.indexFields[2][4].setText("3");
         check("a repeated stroke index is named by tee and hole",
-                shell.status.equals("Red tee, hole 5: stroke index 16 is already used on hole 3."));
-        check("a repeated stroke index is pink", page.indexFields[1][4].getBackground().equals(Theme.FIELD_ERROR));
-        page.indexFields[1][4].setText("14");
-
-        page.parFields[1][6].setText("");
-        check("a missing par is named by tee and hole", shell.status.equals("Red tee, hole 7: the par is missing."));
-        check("a cell not filled in yet is not pink", page.parFields[1][6].getBackground().equals(java.awt.Color.WHITE));
+                shell.status.equals("Gold tee, hole 5: stroke index 3 is already used on hole 3."));
+        check("a repeated stroke index is pink", page.indexFields[2][4].getBackground().equals(Theme.FIELD_ERROR));
+        page.indexFields[2][4].setText("5");
+        page.parFields[2][6].setText("");
+        check("a missing par is named by tee and hole", shell.status.equals("Gold tee, hole 7: the par is missing."));
+        check("a cell not filled in yet is not pink", page.parFields[2][6].getBackground().equals(java.awt.Color.WHITE));
         check("Save is off while a par is missing", !page.saveButton.isEnabled());
-        check("the total par counts only the pars typed", page.parTotalBoxes[1].getText().equals("67"));
-        page.parFields[1][6].setText("5");
+        check("the total par counts only the pars typed", page.parTotalBoxes[2].getText().equals("67"));
+        page.parFields[2][6].setText("5");
+        page.slopeFields[2].setText("");
+        check("a missing slope is named", shell.status.equals("Gold tee: the slope is missing."));
+        page.slopeFields[2].setText("120");
 
-        page.slopeFields[1].setText("");
-        check("a missing slope is named", shell.status.equals("Red tee: the slope is missing."));
-        page.slopeFields[1].setText("125");
+        String whiteRating = page.ratingFields[0].getText();
+        page.ratingFields[0].setText("");
+        check("a saved tee cannot be emptied out: it needs its rating",
+                shell.status.equals("White is already in the program, so it needs its rating.") && !page.saveButton.isEnabled());
+        page.ratingFields[0].setText(whiteRating);
 
+        page.ratingFields[1].setText("71.8");
+        check("changing a tee with rounds says the handicap will be worked out again", shell.status.equals(
+                "Ready to save. Blue has saved rounds, so your handicap will be worked out again for them."));
+        page.frontSlopeFields[1].setText("");
         page.frontRatingFields[1].setText("35.0");
         check("a front-nine rating needs its slope", shell.status.contains("go together") && !page.saveButton.isEnabled());
         page.frontSlopeFields[1].setText("119");
+        page.yardageFields[3].setText("5000");
 
-        page.yardageFields[2].setText("5000");
-        check("with everything filled in, the footer says it is ready", shell.status.equals("Ready to save.") && page.saveButton.isEnabled());
+        Path coursesFile = temp.resolve(DataLoader.COURSES_FILE);
+        List<String> before = Files.readAllLines(coursesFile, StandardCharsets.UTF_8);
+        String beforeText = Files.readString(coursesFile, StandardCharsets.UTF_8);
+        double blueBefore = Double.NaN;
+        for (Handicap.Entry entry : store.handicap().entries())
+        {
+            blueBefore = entry.round().teeId() == 2 && Double.isNaN(blueBefore) ? entry.differential() : blueBefore;
+        }
         int nextId = store.nextTeeId();
         int teesBefore = store.dataset().tees().size();
         page.saveButton.doClick();
-        check("Save adds the tees and says so, naming a tee skipped for having no rating",
-                shell.status.equals("Added 2 tees for Sample Links.  Intermediate was skipped because it has no rating."));
+        check("Save updates the changed tee, adds the new one and says so", shell.status.equals("Updated 1 tee and added 1 tee for"
+                + " Sample Links. The file as it was is in courses.tsv.bak.  Expert was skipped because it has no rating."));
         check("after saving, the window goes Home", shell.lastPage.equals("home"));
+        List<String> after = Files.readAllLines(coursesFile, StandardCharsets.UTF_8);
+        boolean othersUntouched = after.size() == before.size() + 1;
+        int changedLines = 0;
+        for (int lp = 0; othersUntouched && lp < before.size(); lp = lp + 1)
+        {
+            if (!before.get(lp).equals(after.get(lp)))
+            {
+                changedLines = changedLines + 1;
+                othersUntouched = before.get(lp).startsWith("2\t") && after.get(lp).startsWith("2\t");
+            }
+        }
+        check("only the edited tee's line changes; comments and other tees are untouched", othersUntouched && changedLines == 1
+                && after.get(0).equals(before.get(0)) && after.get(0).startsWith("#"));
+        check("the new tee is added at the end", after.get(after.size() - 1).startsWith(nextId + "\t"));
+        check("the file as it was is kept in courses.tsv.bak", Files.readString(temp.resolve("courses.tsv.bak"),
+                StandardCharsets.UTF_8).equals(beforeText));
         Dataset reread = DataLoader.load(temp);
         check("the course file loads back with no errors", reread.errorCount() == 0);
-        check("two tees were added", reread.tees().size() == teesBefore + 2 && store.dataset().tees().size() == teesBefore + 2);
+        check("one tee was added", reread.tees().size() == teesBefore + 1 && store.dataset().tees().size() == teesBefore + 1);
+        golfanalyst.Tee blue = reread.teeMap().get(2);
         golfanalyst.Tee gold = reread.teeMap().get(nextId);
-        golfanalyst.Tee red = reread.teeMap().get(nextId + 1);
-        check("the new TeeIDs are the highest plus one, then plus two", gold != null && red != null);
-        check("the new tees join the course under its own spelling", gold != null && gold.courseName().equals("Sample Links")
-                && gold.city().equals("Anytown") && gold.zip().equals("29000"));
-        check("the typed numbers are saved", red != null && red.rating() == 71.0 && red.slope() == 125
-                && red.strokeIndex()[0] == 18 && red.pars()[6] == 5 && red.frontRating() == 35.0 && red.frontSlope() == 119
-                && red.backSlope() == 0 && red.yardage() == 0);
+        check("the edited tee keeps its TeeID, name and yardage, with the new numbers", blue != null && blue.teeName().equals("Blue")
+                && blue.rating() == 71.8 && blue.frontRating() == 35.0 && blue.frontSlope() == 119 && blue.yardage() == 6540);
+        check("the new tee joins the course under its own spelling", gold != null && gold.courseName().equals("Sample Links")
+                && gold.city().equals("Anytown") && gold.zip().equals("29000") && gold.teeName().equals("Gold"));
+        double blueAfter = Double.NaN;
+        for (Handicap.Entry entry : store.handicap().entries())
+        {
+            blueAfter = entry.round().teeId() == 2 && Double.isNaN(blueAfter) ? entry.differential() : blueAfter;
+        }
+        check("the handicap is worked out again with the new rating", !Double.isNaN(blueBefore) && blueAfter != blueBefore);
+
+        // Changing the city changes every tee of the course
+        page.showNew();
+        page.courseField.setText("Sample Links");
+        page.zipField.setText("29000");
+        page.cityField.setText("Newtown");
+        check("a new city is ready to save", shell.status.equals("Ready to save.") && page.saveButton.isEnabled());
+        page.courseField.setText("Sample Link");
+        check("changing the course name after an edit keeps the edit", page.cityField.getText().equals("Newtown")
+                && page.teeNameFields[0].getText().equals("White") && page.title().equals("Edit Course"));
+        check("and Save stays off until the name is put back", !page.saveButton.isEnabled()
+                && shell.status.startsWith("The course name or zip no longer matches Sample Links."));
+        page.courseField.setText("sample   links");
+        check("putting the name back (any capitals) makes it ready again", page.saveButton.isEnabled()
+                && page.cityField.getText().equals("Newtown"));
+        page.saveButton.doClick();
+        check("a new city updates every tee of the course", shell.status.startsWith("Updated 3 tees for Sample Links."));
+        boolean allMoved = true;
+        for (golfanalyst.Tee tee : DataLoader.load(temp).tees())
+        {
+            allMoved = allMoved && (!tee.courseName().equals("Sample Links") || tee.city().equals("Newtown"));
+        }
+        check("every tee of the course has the new city", allMoved);
 
         // A new nine-hole course, names typed in all lower and all upper case
         page.showNew();

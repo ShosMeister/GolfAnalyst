@@ -34,7 +34,7 @@ Two-Putt: The percentage of holes where you took two putts or fewer. Whatever is
 
 The buttons on the left are for putting information in. The buttons on the right are for looking at it.
 
-On the left: New Course adds a course and its tees. New Round is the screen for entering a round. Edit Round is for correcting a round you have saved, Import is for loading many rounds or courses at once, and Clear is for clearing out old data to start over.
+On the left: New Course adds a course and its tees, or fixes a course you have already saved. New Round is the screen for entering a round. Edit Round is for correcting a round you have saved, Import is for loading many rounds or courses at once, and Clear is for clearing out old data to start over.
 
 On the right: Rounds is the screen for looking at the rounds you have saved. Stats Board, Analyzer and Best Round show your statistics in more detail, and Print prints what you are looking at.
 
@@ -79,4 +79,4 @@ Golf Analyst v4.10: Added the New Course screen, so courses and up to four sets 
 
 Golf Analyst v4.11: The New Course screen now looks like the round screen, with each set of tees in its own wooden frame. An arrow on the first tee copies its pars and stroke index into the empty cells of the other tees. Everything is checked as you type, and Save comes on only when the course is ready to save.
 
-Golf Analyst v4.20: Added Edit Round, so a saved round can be fixed right on the screen instead of in the rounds file. Only that round is changed, and a copy of the file as it was is kept in rounds.tsv.bak. The Help and Info windows now show headings and bold labels.
+Golf Analyst v4.20: Added Edit Round, so a saved round can be fixed right on the screen instead of in the rounds file. Saved courses can be fixed the same way from New Course. Only what you changed is rewritten, and a copy of the file as it was is kept in rounds.tsv.bak or courses.tsv.bak. The Help and Info windows now show headings and bold labels.

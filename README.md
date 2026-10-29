@@ -71,9 +71,8 @@ are in place and say "not built yet" in the footer.
 
 - **Entering a course:** the page looks like the round page: a centred row of wood frames over the
   photo, captions down the left frame and one frame per tee, with spreadsheet-style cells (the cell with
-  the cursor has a gold outline). Type the course name and its 5-digit zip first. If that course (any
-  capitals) and zip are already in the program, its city, state and holes are filled in and locked and
-  the new tees are added to it. Then each tee: name, rating and slope, the optional front-nine and
+  the cursor has a gold outline). Type the course name and its 5-digit zip first. Then each tee: name,
+  rating and slope, the optional front-nine and
   back-nine rating and slope, optional yardage, then the par and stroke index of every hole. The total
   par is shown as you type. Cells take digits only and move on by themselves: a par (3-6) at once; a
   stroke index from 2 to 9 at once, a 1 waits (then 0-8 for 10 to 18); a slope after two digits from 5-9
@@ -85,6 +84,13 @@ are in place and say "not built yet" in the footer.
   a real mistake (a stroke index used twice, a tee name already used) turns pink at once; Save comes on
   only when all is well. Save adds the tees with new TeeIDs to `courses.tsv` in the file's own column
   order and goes back Home.
+- **Fixing a course:** type the name and zip of a course that is already in the program (any capitals) on
+  the New Course screen. The title becomes Edit Course and its tees (the first four) load into the frames;
+  empty frames take new tees. Change what you need and press Save: only the tees you changed are rewritten
+  (same TeeID, columns of your own kept, everything else in the file untouched), new tees are added, and the
+  file as it was is copied to `courses.tsv.bak` first. A tee already in the program must keep its rating;
+  changing the city or state changes it for every tee of the course; the nine-hole setting is locked. If a
+  changed tee already has rounds, the footer says your handicap will be worked out again for them.
 
 - **Entering a round from the keyboard:** the cursor starts on hole 1's score and goes down all the scores
   (hole 9 to hole 10 included), then down all the putts. Only digits are accepted. A putts box takes one

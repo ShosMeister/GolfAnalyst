@@ -1,14 +1,14 @@
 New Course - Info
 
-This is the screen for adding a course and up to four sets of tees. It is laid out like a scorecard: the captions run down the wooden frame on the left, and each set of tees has its own frame to the right. The white cells are the ones you type in. The cell with the cursor has a gold outline. The grey cells are worked out for you.
+This is the screen for adding a course and up to four sets of tees, and for fixing a course that is already in the program. It is laid out like a scorecard: the captions run down the wooden frame on the left, and each set of tees has its own frame to the right. The white cells are the ones you type in. The cell with the cursor has a gold outline. The grey cells are worked out for you.
 
 # Across the top
 
-Course and Zip: The name of the course and its 5-digit zip code. If that course is already in the program (the capitals and extra spaces do not matter, but the zip must be the same), the bottom bar tells you which tees it already has, and the tees you fill in here are added to it.
+Course and Zip: The name of the course and its 5-digit zip code. If that course is already in the program (the capitals and extra spaces do not matter, but the zip must be the same), the title changes to Edit Course and its tees appear in the frames, ready to be fixed. Any frames left empty are for new tees.
 
-City and State: Where the course is. State is two capital letters, for example SC. For a course that is already in the program they are filled in for you and cannot be changed here.
+City and State: Where the course is. State is two capital letters, for example SC. For a course that is already in the program they are filled in for you; if you change them, every set of tees of that course gets the new city and state.
 
-Nine-hole course: Tick it for a course that only has nine holes, like the ones Spark Golf plays. Holes 10 to 18 and the Front 9 and Back 9 rows disappear, and the stroke index runs from 1 to 9.
+Nine-hole course: Tick it for a course that only has nine holes, like the ones Spark Golf plays. Holes 10 to 18 and the Front 9 and Back 9 rows disappear, and the stroke index runs from 1 to 9. For a course that is already in the program it cannot be changed, because its rounds depend on it.
 
 # The tees
 
@@ -26,4 +26,4 @@ The arrow next to the first tee's name copies its pars and stroke index numbers 
 
 # Across the bottom
 
-The bar along the bottom always tells you the next thing to fill in or fix. When everything is in order it says Ready to save, and the Save button comes on. Save adds the tees to courses.tsv and takes you back Home. Cancel goes back Home without saving anything.
+The bar along the bottom always tells you the next thing to fill in or fix. When everything is in order it says Ready to save, and the Save button comes on. If you changed a set of tees that already has rounds, it also tells you your handicap will be worked out again for them. Save puts your changes and new tees into courses.tsv and takes you back Home; when a course already in the program was changed, the file as it was is kept in courses.tsv.bak. Cancel goes back Home without saving anything.

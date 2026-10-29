@@ -139,6 +139,9 @@ public final class CoursePage extends Page
     private final List<List<JComponent>> holeRows = new ArrayList<>();
     private final transient EntryTraversal focusPolicy = new EntryTraversal();
     private transient List<Tee> existingTees = new ArrayList<>();
+    private final transient Tee[] loadedTees = new Tee[TEES];
+    private final String[] loadedEntries = new String[TEES];
+    private String loadedPlace = "";
     private JTextField badField = null;
     private JTextField cursorCell = null;
     private boolean updating = false;
@@ -647,9 +650,12 @@ public final class CoursePage extends Page
      +--------------------------------------------------------------------------+
      | Purpose:                                                                 |
      | Runs when the course name or zip changes. Looks the course up; if it is  |
-     | already in the program, fills in and locks its city, state and           |
-     | nine-hole box (the footer then lists its tees, see refresh). If it was   |
-     | found a moment ago but no longer matches, those boxes are emptied again. |
+     | already in the program, fills in its city and state, locks its           |
+     | nine-hole box and loads its tees into the frames for fixing (the title   |
+     | becomes Edit Course). If it was found a moment ago but no longer         |
+     | matches, those boxes and frames are emptied again, unless something was  |
+     | already changed: then nothing is thrown away, Save stays off and the     |
+     | footer asks for the name and zip to be put back (see findMistake).       |
      |                                                                          |
      | Passed in:  nothing                                                      |
      | Passed out: nothing                                                      |
@@ -661,25 +667,167 @@ public final class CoursePage extends Page
         {
             return;
         }
-        List<Tee> found = courseReady() ? shell.store().teesForCourse(courseField.getText(), zipField.getText()) : new ArrayList<>();
-        boolean wasExisting = !existingTees.isEmpty();
-        existingTees = found;
-        updating = true;
-        if (!found.isEmpty())
+        List<Tee> found = typedCourse();
+        boolean keepEdits = found.isEmpty() && editing() && hasEdits();
+        if (!found.equals(existingTees) && !keepEdits)
         {
-            cityField.setText(found.get(0).city());
-            stateField.setText(found.get(0).state());
-            nineHoleCheck.setSelected(found.get(0).holes() == NINE);
+            existingTees = found;
+            updating = true;
+            cityField.setText(found.isEmpty() ? "" : found.get(0).city());
+            stateField.setText(found.isEmpty() ? "" : found.get(0).state());
+            nineHoleCheck.setSelected(!found.isEmpty() && found.get(0).holes() == NINE);
+            loadTees(found);
+            updating = false;
         }
-        else if (wasExisting)
-        {
-            cityField.setText("");
-            stateField.setText("");
-            nineHoleCheck.setSelected(false);
-        }
-        updating = false;
         applyState();
         refresh();
+        shell.refreshTitle();
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | loadTees(tees)                                                           |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Puts a course's saved tees into the frames, ready to be fixed: name,     |
+     | rating, slope, front and back nine, yardage, pars and stroke index.      |
+     | Only the first four fit; frames left over are emptied (with their usual  |
+     | names) for new tees. What was loaded is remembered, so Save knows which  |
+     | tees were changed. Called with an empty list it empties every frame.     |
+     |                                                                          |
+     | Passed in:  tees - the course's tees, in file order                      |
+     | Passed out: nothing                                                      |
+     +--------------------------------------------------------------------------+
+     */
+    private void loadTees(List<Tee> tees)
+    {
+        boolean wasUpdating = updating;
+        updating = true;
+        for (int tee = 0; tee < TEES; tee = tee + 1)
+        {
+            Tee saved = tee < tees.size() ? tees.get(tee) : null;
+            loadedTees[tee] = saved;
+            for (JTextField field : teeBoxes(tee))
+            {
+                field.setText("");
+            }
+            if (saved == null)
+            {
+                teeNameFields[tee].setText(DEFAULT_TEE_NAMES[tee]);
+                continue;
+            }
+            teeNameFields[tee].setText(saved.teeName());
+            ratingFields[tee].setText(Double.toString(saved.rating()));
+            slopeFields[tee].setText(Integer.toString(saved.slope()));
+            frontRatingFields[tee].setText(saved.frontRating() > 0 ? Double.toString(saved.frontRating()) : "");
+            frontSlopeFields[tee].setText(saved.frontSlope() > 0 ? Integer.toString(saved.frontSlope()) : "");
+            backRatingFields[tee].setText(saved.backRating() > 0 ? Double.toString(saved.backRating()) : "");
+            backSlopeFields[tee].setText(saved.backSlope() > 0 ? Integer.toString(saved.backSlope()) : "");
+            yardageFields[tee].setText(saved.yardage() > 0 ? Integer.toString(saved.yardage()) : "");
+            for (int hole = 0; hole < saved.holes(); hole = hole + 1)
+            {
+                parFields[tee][hole].setText(Integer.toString(saved.pars()[hole]));
+                indexFields[tee][hole].setText(Integer.toString(saved.strokeIndex()[hole]));
+            }
+        }
+        for (int tee = 0; tee < TEES; tee = tee + 1)
+        {
+            loadedEntries[tee] = frameEntries(tee);
+        }
+        loadedPlace = placeEntries();
+        updating = wasUpdating;
+    }
+
+    /*
+     * typedCourse(): the saved tees of the course whose name and zip are typed in the course bar (empty for a new course or while the zip is not complete).
+     */
+    private List<Tee> typedCourse()
+    {
+        return courseReady() ? shell.store().teesForCourse(courseField.getText(), zipField.getText()) : new ArrayList<>();
+    }
+
+    /*
+     * hasEdits(): whether anything was changed since a saved course was loaded: a loaded tee, the city or state, or anything typed in an empty frame (other than its name).
+     */
+    private boolean hasEdits()
+    {
+        if (placeChanged())
+        {
+            return true;
+        }
+        for (int tee = 0; tee < TEES; tee = tee + 1)
+        {
+            if (frameChanged(tee))
+            {
+                return true;
+            }
+            for (JTextField field : teeBoxes(tee))
+            {
+                if (loadedTees[tee] == null && field != teeNameFields[tee] && !field.getText().isEmpty())
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /*
+     * frameEntries(tee): everything typed in one tee's frame, as one piece of text, so a change can be spotted.
+     */
+    private String frameEntries(int tee)
+    {
+        StringBuilder text = new StringBuilder();
+        for (JTextField field : teeBoxes(tee))
+        {
+            text.append(field.getText().trim()).append('|');
+        }
+        return text.toString();
+    }
+
+    /*
+     * placeEntries(): the city and state as typed, as one piece of text, so a change can be spotted.
+     */
+    private String placeEntries()
+    {
+        return cityField.getText().trim() + "|" + stateField.getText().trim();
+    }
+
+    /*
+     * editing(): whether a course already in the program is on the screen (its tees loaded for fixing).
+     */
+    private boolean editing()
+    {
+        return !existingTees.isEmpty();
+    }
+
+    /*
+     * frameChanged(tee): whether a loaded tee's frame was changed since it was loaded.
+     */
+    private boolean frameChanged(int tee)
+    {
+        return loadedTees[tee] != null && !frameEntries(tee).equals(loadedEntries[tee]);
+    }
+
+    /*
+     * placeChanged(): whether the city or state of a course already in the program was changed (that changes all its tees).
+     */
+    private boolean placeChanged()
+    {
+        return editing() && !placeEntries().equals(loadedPlace);
+    }
+
+    /*
+     * notLoaded(): the course's saved tees that are not in a frame (only four fit); their names still count as taken.
+     */
+    private List<Tee> notLoaded()
+    {
+        List<Tee> rest = new ArrayList<>(existingTees);
+        for (Tee loaded : loadedTees)
+        {
+            rest.remove(loaded);
+        }
+        return rest;
     }
 
     /*
@@ -699,9 +847,9 @@ public final class CoursePage extends Page
      | applyState()                                                             |
      +--------------------------------------------------------------------------+
      | Purpose:                                                                 |
-     | Brings the screen up to date: the city, state and nine-hole box are      |
-     | locked for a course already in the program; a nine-hole course hides     |
-     | the front / back rows and holes 10 to 18 in every frame. Then the        |
+     | Brings the screen up to date: the nine-hole box is locked for a course   |
+     | already in the program (its rounds depend on it); a nine-hole course     |
+     | hides the front / back rows and holes 10 to 18 in every frame. Then the  |
      | colours and par totals. The tee cells are never greyed: they can be      |
      | typed in from the start. It never calls the window, so it is safe        |
      | while the page is being built.                                           |
@@ -712,11 +860,8 @@ public final class CoursePage extends Page
      */
     private void applyState()
     {
-        boolean locked = !existingTees.isEmpty();
         boolean nine = nineHoleCheck.isSelected();
-        cityField.setEditable(!locked);
-        stateField.setEditable(!locked);
-        nineHoleCheck.setEnabled(!locked);
+        nineHoleCheck.setEnabled(!editing());
         for (JComponent part : frontRow)
         {
             part.setVisible(!nine);
@@ -796,9 +941,51 @@ public final class CoursePage extends Page
         JTextField pink = badField;
         String problem = wrong != null ? wrong : findMistake();
         badField = wrong != null ? pink : null;
+        if (problem == null && editing() && changedTees().isEmpty() && newTeeCount() == 0)
+        {
+            problem = existingTees.get(0).courseName() + " is already in the program; its tees are shown here."
+                    + " Change what you need, or fill in an empty frame to add a tee.";
+        }
         saveButton.setEnabled(problem == null);
         colourBoxes();
-        shell.setStatus(problem == null ? READY_TO_SAVE : problem);
+        shell.setStatus(problem == null ? READY_TO_SAVE + roundsNote() : problem);
+    }
+
+    /*
+     * newTeeCount(): how many frames hold a new tee (one with a rating that was not loaded from the file).
+     */
+    private int newTeeCount()
+    {
+        int count = 0;
+        for (int tee = 0; tee < TEES; tee = tee + 1)
+        {
+            if (loadedTees[tee] == null && hasRating(tee))
+            {
+                count = count + 1;
+            }
+        }
+        return count;
+    }
+
+    /*
+     * roundsNote(): when a changed tee already has rounds, a sentence saying their handicap will be worked out again; otherwise "".
+     */
+    private String roundsNote()
+    {
+        List<String> names = new ArrayList<>();
+        for (int tee = 0; tee < TEES; tee = tee + 1)
+        {
+            if (frameChanged(tee) && shell.store().roundsOnTee(loadedTees[tee].id()) > 0)
+            {
+                names.add(teeNameFields[tee].getText().trim());
+            }
+        }
+        if (names.isEmpty())
+        {
+            return "";
+        }
+        return " " + String.join(", ", names) + (names.size() == 1 ? " has" : " have")
+                + " saved rounds, so your handicap will be worked out again for them.";
     }
 
     /*
@@ -957,7 +1144,11 @@ public final class CoursePage extends Page
         String tidy = tidyName(field.getText());
         if (!tidy.equals(field.getText()))
         {
+            boolean wasUpdating = updating;
+            updating = true;
             field.setText(tidy);
+            updating = wasUpdating;
+            refresh();
         }
     }
 
@@ -1095,12 +1286,12 @@ public final class CoursePage extends Page
     // ------------------------------------------------------------------- page
 
     /*
-     * title(): the header text for this screen.
+     * title(): the header text for this screen: New Course, or Edit Course once a course already in the program is on it.
      */
     @Override
     public String title()
     {
-        return "New Course";
+        return editing() ? "Edit Course" : "New Course";
     }
 
     /*
@@ -1137,6 +1328,12 @@ public final class CoursePage extends Page
         }
         nineHoleCheck.setSelected(false);
         existingTees = new ArrayList<>();
+        for (int tee = 0; tee < TEES; tee = tee + 1)
+        {
+            loadedTees[tee] = null;
+            loadedEntries[tee] = "";
+        }
+        loadedPlace = "";
         badField = null;
         updating = false;
         saveButton.setEnabled(false);
@@ -1205,7 +1402,7 @@ public final class CoursePage extends Page
     {
         badField = null;
         Set<String> names = new HashSet<>();
-        for (Tee tee : existingTees)
+        for (Tee tee : notLoaded())
         {
             names.add(tee.teeName().trim().toLowerCase(Locale.ROOT));
         }
@@ -1276,18 +1473,27 @@ public final class CoursePage extends Page
         {
             return mistake(zipField, "Type the course's 5-digit zip.");
         }
+        if (editing() && !typedCourse().equals(existingTees))
+        {
+            return mistake(courseField, "The course name or zip no longer matches " + existingTees.get(0).courseName()
+                    + ". Put it back to save your changes, or press Cancel to leave them.");
+        }
         if (!stateField.getText().isEmpty() && !stateField.getText().matches("[A-Z]{2}"))
         {
             return mistake(stateField, "The state must be two letters, for example SC.");
         }
         Set<String> names = new HashSet<>();
-        for (Tee tee : existingTees)
+        for (Tee tee : notLoaded())
         {
             names.add(tee.teeName().trim().toLowerCase(Locale.ROOT));
         }
         boolean anyRated = false;
         for (int tee = 0; tee < TEES; tee = tee + 1)
         {
+            if (!hasRating(tee) && loadedTees[tee] != null)
+            {
+                return mistake(ratingFields[tee], loadedTees[tee].teeName() + " is already in the program, so it needs its rating.");
+            }
             if (!hasRating(tee))
             {
                 continue;
@@ -1484,10 +1690,10 @@ public final class CoursePage extends Page
      | buildTees(firstId)                                                       |
      +--------------------------------------------------------------------------+
      | Purpose:                                                                 |
-     | Turns every tee that has a rating into a Tee, numbered from firstId.     |
-     | For a course already in the program its own spelling of the name and     |
-     | its city, state and zip are used, so the new tees join it exactly.       |
-     | Call it only after findMistake found nothing.                            |
+     | Turns every NEW tee that has a rating (one not loaded from the file)     |
+     | into a Tee, numbered from firstId. For a course already in the program   |
+     | its own spelling of the name and its zip are used, so the new tees join  |
+     | it exactly. Call it only after findMistake found nothing.                |
      |                                                                          |
      | Passed in:  firstId - the TeeID for the first new tee                    |
      | Passed out: the new tees                                                 |
@@ -1495,26 +1701,74 @@ public final class CoursePage extends Page
      */
     private List<Tee> buildTees(int firstId)
     {
-        boolean nine = nineHoleCheck.isSelected();
-        Tee model = existingTees.isEmpty() ? null : existingTees.get(0);
-        String course = model == null ? courseField.getText().trim() : model.courseName();
-        String city = model == null ? cityField.getText().trim() : model.city();
-        String state = model == null ? stateField.getText().trim() : model.state();
-        String zip = model == null ? zipField.getText() : model.zip();
         List<Tee> tees = new ArrayList<>();
         for (int tee = 0; tee < TEES; tee = tee + 1)
         {
-            if (!hasRating(tee))
+            if (hasRating(tee) && loadedTees[tee] == null)
             {
-                continue;
+                tees.add(teeFromFrame(tee, firstId + tees.size()));
             }
-            tees.add(new Tee(firstId + tees.size(), course, city, state, zip, teeNameFields[tee].getText().trim(),
-                    playedHoles(), decimal(ratingFields[tee]), whole(slopeFields[tee]), whole(yardageFields[tee]),
-                    numbers(parFields[tee]), numbers(indexFields[tee]),
-                    nine ? 0 : decimal(frontRatingFields[tee]), nine ? 0 : whole(frontSlopeFields[tee]),
-                    nine ? 0 : decimal(backRatingFields[tee]), nine ? 0 : whole(backSlopeFields[tee])));
         }
         return tees;
+    }
+
+    /*
+     * teeFromFrame(tee, id): a Tee made from what is typed in one frame and the course bar, with the given TeeID.
+     * Passed in:  tee - the frame, 0 to 3; id - its TeeID
+     * Passed out: the Tee
+     */
+    private Tee teeFromFrame(int tee, int id)
+    {
+        boolean nine = nineHoleCheck.isSelected();
+        Tee model = existingTees.isEmpty() ? null : existingTees.get(0);
+        String course = model == null ? courseField.getText().trim() : model.courseName();
+        String zip = model == null ? zipField.getText() : model.zip();
+        return new Tee(id, course, cityField.getText().trim(), stateField.getText().trim(), zip,
+                teeNameFields[tee].getText().trim(), playedHoles(), decimal(ratingFields[tee]), whole(slopeFields[tee]),
+                whole(yardageFields[tee]), numbers(parFields[tee]), numbers(indexFields[tee]),
+                nine ? 0 : decimal(frontRatingFields[tee]), nine ? 0 : whole(frontSlopeFields[tee]),
+                nine ? 0 : decimal(backRatingFields[tee]), nine ? 0 : whole(backSlopeFields[tee]));
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | changedTees()                                                            |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | The saved tees that need their line rewritten: every loaded tee whose    |
+     | frame was changed, keeping its TeeID; and, when the city or state was    |
+     | changed, every other tee of the course too (with only the city and       |
+     | state changed), since they all share them. Tees not changed are left     |
+     | out, so their lines are not touched. Call it only when findMistake       |
+     | found nothing.                                                           |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: the changed tees                                             |
+     +--------------------------------------------------------------------------+
+     */
+    private List<Tee> changedTees()
+    {
+        List<Tee> changed = new ArrayList<>();
+        boolean place = placeChanged();
+        for (int tee = 0; tee < TEES; tee = tee + 1)
+        {
+            if (frameChanged(tee) || (place && loadedTees[tee] != null))
+            {
+                changed.add(teeFromFrame(tee, loadedTees[tee].id()));
+            }
+        }
+        if (place)
+        {
+            String city = cityField.getText().trim();
+            String state = stateField.getText().trim();
+            for (Tee saved : notLoaded())
+            {
+                changed.add(new Tee(saved.id(), saved.courseName(), city, state, saved.zip(), saved.teeName(), saved.holes(),
+                        saved.rating(), saved.slope(), saved.yardage(), saved.pars(), saved.strokeIndex(),
+                        saved.frontRating(), saved.frontSlope(), saved.backRating(), saved.backSlope()));
+            }
+        }
+        return changed;
     }
 
     /*
@@ -1552,10 +1806,12 @@ public final class CoursePage extends Page
      | Purpose:                                                                 |
      | Save is only on when everything checks out, but the names are tidied     |
      | and everything checked once more first, in case tidying changed          |
-     | something. Then, after the window's sample-data question, the tees are   |
-     | added to courses.tsv with new TeeIDs and the window goes Home with a     |
-     | message such as "Added 3 tees for Sample Links." If the file cannot be   |
-     | written the footer says why and nothing changes.                         |
+     | something. Then, after the window's sample-data question, the changed    |
+     | tees of a course already in the program get their lines replaced (the    |
+     | file as it was goes to courses.tsv.bak), new tees are added with new     |
+     | TeeIDs, everything is reloaded and the window goes Home with a message   |
+     | such as "Updated 1 tee and added 1 tee for Sample Links." If the file    |
+     | cannot be written the footer says why and nothing changes.               |
      |                                                                          |
      | Passed in:  nothing                                                      |
      | Passed out: nothing                                                      |
@@ -1576,17 +1832,33 @@ public final class CoursePage extends Page
         }
         DataStore store = shell.store();
         List<Tee> tees = buildTees(store.nextTeeId());
+        List<Tee> changed = changedTees();
         List<String> skipped = skippedTees();
+        String course = editing() ? existingTees.get(0).courseName() : tees.get(0).courseName();
         try
         {
-            store.addTees(tees);
+            store.updateTees(changed, tees);
         }
         catch (IOException failure)
         {
             shell.setStatus("The course could not be saved: " + failure.getMessage());
             return;
         }
-        String message = "Added " + tees.size() + (tees.size() == 1 ? " tee" : " tees") + " for " + tees.get(0).courseName() + ".";
+        List<String> done = new ArrayList<>();
+        if (!changed.isEmpty())
+        {
+            done.add("updated " + changed.size() + (changed.size() == 1 ? " tee" : " tees"));
+        }
+        if (!tees.isEmpty())
+        {
+            done.add("added " + tees.size() + (tees.size() == 1 ? " tee" : " tees"));
+        }
+        String summary = String.join(" and ", done);
+        String message = Character.toUpperCase(summary.charAt(0)) + summary.substring(1) + " for " + course + ".";
+        if (!changed.isEmpty())
+        {
+            message = message + " The file as it was is in courses.tsv.bak.";
+        }
         if (!skipped.isEmpty())
         {
             message = message + "  " + String.join(", ", skipped) + (skipped.size() == 1 ? " was skipped because it has" : " were skipped because they have")
