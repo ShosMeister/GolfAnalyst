@@ -15,6 +15,7 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
+import java.awt.GridLayout;
 import java.awt.Insets;
 import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
@@ -29,7 +30,6 @@ import java.util.Map;
 import java.util.Set;
 import javax.swing.AbstractAction;
 import javax.swing.BorderFactory;
-import javax.swing.BoxLayout;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -724,8 +724,9 @@ public final class StatsPage extends Page
      | RowList                                                                  |
      +--------------------------------------------------------------------------+
      | Purpose:                                                                 |
-     | The white list of rows in the scroll pane: rows stacked 25 px apart,     |
-     | as wide as the grid, scrolling a row at a time with the arrows and the   |
+     | The white list of rows in the scroll pane: rows 25 px tall, stacked in   |
+     | a one-column grid so every kind of row starts at the left edge at the    |
+     | grid's full width, scrolling a row at a time with the arrows and the   |
      | mouse wheel. It can take the cursor so the Up, Down and Enter keys       |
      | reach the page.                                                          |
      +--------------------------------------------------------------------------+
@@ -737,7 +738,7 @@ public final class StatsPage extends Page
          */
         RowList()
         {
-            setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
+            setLayout(new GridLayout(0, 1));
             setBackground(Color.WHITE);
             setFocusable(true);
             addMouseListener(new MouseAdapter()

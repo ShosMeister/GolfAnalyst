@@ -1418,6 +1418,45 @@ public final class GuiSelfTest
 
     /*
      +--------------------------------------------------------------------------+
+     | checkColumnsLineUp(page, which)                                          |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Checks that every row of the Stats Board list (course rows, the          |
+     | nine-hole band, watermark rows and blank rows) starts at the left edge   |
+     | and is the full 858 px wide, and that each course row's cells sit        |
+     | exactly under their heading slots in the band. A layout that lined the   |
+     | different kinds of row up differently once shifted them sideways.        |
+     |                                                                          |
+     | Passed in:  page  - a Stats Board that has been laid out                 |
+     |             which - words for the check names, e.g. "one course"         |
+     | Passed out: nothing                                                      |
+     +--------------------------------------------------------------------------+
+     */
+    private static void checkColumnsLineUp(StatsPage page, String which)
+    {
+        boolean fullWidth = true;
+        for (Component part : page.list.getComponents())
+        {
+            fullWidth = fullWidth && part.getX() == 0 && part.getWidth() == StatsPage.GRID_WIDTH;
+        }
+        check(which + ": every list row starts at the left edge and is 858 px wide", fullWidth);
+        boolean underHeadings = !page.rowPanels.isEmpty();
+        for (StatsPage.RowPanel panel : page.rowPanels)
+        {
+            for (golfanalyst.StatsBoard.Column column : golfanalyst.StatsBoard.Column.values())
+            {
+                Component slot = page.headings.get(column).getParent();
+                javax.swing.JLabel cell = panel.cells[column.ordinal()];
+                int slotX = javax.swing.SwingUtilities.convertPoint(slot, 0, 0, page.frame).x;
+                int cellX = javax.swing.SwingUtilities.convertPoint(cell, 0, 0, page.frame).x;
+                underHeadings = underHeadings && slotX == cellX && slot.getWidth() == cell.getWidth();
+            }
+        }
+        check(which + ": each cell sits exactly under its heading", underHeadings);
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
      | checkStatsPage()                                                         |
      +--------------------------------------------------------------------------+
      | Purpose:                                                                 |
@@ -1464,6 +1503,7 @@ public final class GuiSelfTest
                 && page.band.getY() == 9 && page.band.getSize().equals(new java.awt.Dimension(875, 81)));
         check("the list sits under the band", page.scroll.getY() == page.band.getY() + page.band.getHeight()
                 && page.scroll.getWidth() == 875);
+        checkColumnsLineUp(page, "sample data");
         int rows = page.list.getComponentCount();
         check("the frame grows with the rows (" + rows + " rows)", page.scroll.getHeight() == Math.min(Math.max(rows, 12), 19) * 25);
         check("the frame stays inside the page", page.frame.getHeight() <= 626 - 28);
@@ -1620,6 +1660,7 @@ public final class GuiSelfTest
         onePage.onShow();
         onePage.setSize(944, 626);
         layoutAll(onePage);
+        checkColumnsLineUp(onePage, "one course");
         check("with one course: its row, the nine-hole band, the watermark and blank rows make 12", onePage.rowPanels.size() == 1
                 && onePage.list.getComponent(1) == onePage.nineBand && onePage.list.getComponentCount() == StatsPage.MIN_ROWS
                 && onePage.scroll.getHeight() == 300);
