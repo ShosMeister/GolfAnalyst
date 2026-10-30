@@ -44,6 +44,8 @@ import java.util.Set;
  | sort(rows, column, up)    - the rows in a column's order, "-" last       |
  | best(rows)                - the cells to mark gold in one section        |
  | number(value)             - one decimal, a trailing ".0" dropped, or "-" |
+ | partOf(round, tee)        - which kind of row a round belongs in         |
+ | labelOf(tee, part)        - a row's name, "Edgewater:Senior (Front 9)"   |
  +--------------------------------------------------------------------------+
  */
 public final class StatsBoard
@@ -301,7 +303,7 @@ public final class StatsBoard
     /*
      * partOf(round, tee): which kind of row a round belongs in: 18 holes, the front or back nine of an 18-hole tee, or a nine-hole course.
      */
-    private static Part partOf(Round round, Tee tee)
+    public static Part partOf(Round round, Tee tee)
     {
         if (tee.holes() == Tee.NINE)
         {
@@ -317,7 +319,7 @@ public final class StatsBoard
     /*
      * labelOf(tee, part): the row's name, "Course:Tee", with " (Front 9)" or " (Back 9)" for a nine of an 18-hole tee.
      */
-    private static String labelOf(Tee tee, Part part)
+    public static String labelOf(Tee tee, Part part)
     {
         String name = tee.courseName() + ":" + tee.teeName();
         if (part == Part.FRONT)

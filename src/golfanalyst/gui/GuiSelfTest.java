@@ -50,6 +50,8 @@ import javax.swing.JTextField;
  |   when edited, left out of the Home counts                               |
  | - The Stats Board: rows, band, totals, scroll bar, sorting, the gold,    |
  |   highlighting a row, the arrow keys and opening a row's rounds          |
+ | - Best Round: Single and Composite, the course and tees pulldown, the    |
+ |   titles and footer, and only a Close button                             |
  |                                                                          |
  | How to run:                                                              |
  |   java -cp out golfanalyst.gui.App --selftest                            |
@@ -168,6 +170,16 @@ public final class GuiSelfTest
         {
             windowCalls = windowCalls + 1;
             lastPage = "stats";
+        }
+
+        /*
+         * bestRound(): remembers that Best Round was asked for.
+         */
+        @Override
+        public void bestRound()
+        {
+            windowCalls = windowCalls + 1;
+            lastPage = "best";
         }
 
         /*
@@ -802,6 +814,12 @@ public final class GuiSelfTest
         check("Yes on Cancel leaves New Course", panel.header().title().equals("Golf Analyst Stats Home"));
         ((WoodButton) findByText(panel, "Stats Board")).doClick();
         check("the Stats Board has nothing to lose, so it quits without asking", panel.canQuit());
+        ((IconButton) findByTip(panel, "Home")).doClick();
+        ((WoodButton) findByText(panel, "Best Round")).doClick();
+        check("the Best Round button opens Best Round on Single", panel.header().title().startsWith("Best Single: ")
+                && panel.bestPage().singleButton.isSelected());
+        ((WoodButton) findByText(panel.bestPage(), "Close")).doClick();
+        check("Close on Best Round goes Home", panel.header().title().equals("Golf Analyst Stats Home"));
         deleteFolder(windowTemp);
 
         checkCourseTyping();
@@ -812,6 +830,7 @@ public final class GuiSelfTest
         checkPeek();
         checkHistoricalScreens();
         checkStatsPage();
+        checkBestRoundPage();
         checkSampleSafeguard();
 
         List<Path> leftovers = new ArrayList<>();
@@ -1510,6 +1529,92 @@ public final class GuiSelfTest
             }
         }
         check(which + ": each cell sits exactly under its heading", underHeadings);
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | checkBestRoundPage()                                                     |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | The Best Round screen on its own small data folder (the sample courses   |
+     | with three rounds on Sample Links:White: an 88 with a birdie 3 on hole   |
+     | 1, a 72 of pars, and a front nine of 45, the newest).                    |
+     |                                                                          |
+     | It checks that:                                                          |
+     | - building it makes no calls to the window;                              |
+     | - it starts on the kind of the latest round, with Single chosen;         |
+     | - the titles and footer say what is shown;                               |
+     | - there is no Edit, Save or arrow button, only Close, and every box is   |
+     |   grey;                                                                  |
+     | - changing the course and tees, and Single / Composite, update the       |
+     |   screen at once, with the composite's Date, Diff and Index shown as     |
+     |   Composite and dashes;                                                  |
+     | - with no rounds the footer says so and the controls are off.            |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing (throws IOException if a temporary file fails)       |
+     +--------------------------------------------------------------------------+
+     */
+    private static void checkBestRoundPage() throws IOException
+    {
+        Path temp = Files.createTempDirectory("golfanalyst-best-test");
+        Files.copy(Path.of("sample-data", DataLoader.COURSES_FILE), temp.resolve(DataLoader.COURSES_FILE));
+        String twos = "2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2";
+        String zeros = "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0";
+        String nineZeros = "0,0,0,0,0,0,0,0,0";
+        Files.writeString(temp.resolve(DataLoader.ROUNDS_FILE), golfanalyst.RoundWriter.STANDARD_HEADER + "\n"
+                + "1\t1\t2026-03-01\t\t\t3,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5\t1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2\t" + zeros + "\t" + zeros + "\n"
+                + "2\t1\t2026-04-01\t\t\t4,3,5,4,4,3,5,4,4,4,3,5,4,4,3,5,4,4\t" + twos + "\t" + zeros + "\t" + zeros + "\n"
+                + "3\t1\t2026-05-01\tF\t\t5,5,5,5,5,5,5,5,5\t2,2,2,2,2,2,2,2,2\t" + nineZeros + "\t" + nineZeros + "\n",
+                StandardCharsets.UTF_8);
+        DataStore store = new DataStore(temp);
+        TestShell shell = new TestShell(store);
+        RoundPage page = new RoundPage(shell, true);
+        check("building Best Round makes no calls to the window", shell.windowCalls == 0);
+        check("Best Round has its own help files", page.helpKey().equals("best") && page.isBestRound());
+        page.showBest();
+        check("it starts on the kind of the latest round", String.valueOf(page.bestCombo.getSelectedItem()).equals("Sample Links:White (Front 9)")
+                && page.bestCombo.getItemCount() == 2);
+        check("it starts on Single", page.singleButton.isSelected() && !page.compositeButton.isSelected());
+        check("Single's title names the round", page.title().equals("Best Single: 00003:Sample Links:White"));
+        check("Single's footer gives the best and its date", shell.status.equals("Best of 1 round on Sample Links:White (Front 9): 45 on 2026-05-01."));
+        check("there is no Edit, Save or arrow button, only Close", !page.editButton.isVisible() && !page.saveButton.isVisible()
+                && !page.navRow.isVisible() && page.cancelButton.isVisible() && page.cancelButton.getText().equals("Close"));
+        check("there is no Show box", !page.filterCombo.isVisible());
+        check("every box is grey", page.scoreFields[0].getBackground().equals(Theme.FIELD_FACE)
+                && page.dateField.getBackground().equals(Theme.FIELD_FACE) && page.sandChecks[0].getBackground().equals(Theme.FIELD_FACE));
+
+        page.bestCombo.setSelectedIndex(0);
+        check("changing the course and tees shows the best round there at once", page.title().equals("Best Single: 00002:Sample Links:White")
+                && page.scoreBox.getText().equals("72") && page.dateField.getText().equals("2026-04-01"));
+        check("the footer counts that kind's rounds", shell.status.equals("Best of 2 rounds on Sample Links:White: 72 on 2026-04-01."));
+        check("a real round shows its differential", !page.differentialBox.getText().equals("-"));
+
+        page.compositeButton.doClick();
+        check("Composite's title names the course and tees, with no round number", page.title().equals("Best Composite: Sample Links:White"));
+        check("Composite takes the best score on every hole", page.scoreBox.getText().equals("71")
+                && page.scoreFields[0].getText().equals("3") && page.puttFields[0].getText().equals("1"));
+        check("Composite's footer compares it with the best single round",
+                shell.status.equals("Best score on every hole from 2 rounds on Sample Links:White: 71. The best single round is 72."));
+        check("Composite shows Composite for the date and dashes for the Diff and Index", page.dateField.getText().equals("Composite")
+                && page.differentialBox.getText().equals("-") && page.indexBox.getText().equals("-"));
+        check("the Composite date is grey, not pink", page.dateField.getBackground().equals(Theme.FIELD_FACE));
+        check("the rating is the tee's", page.ratingBox.getText().equals("70.4 / 123"));
+        page.singleButton.doClick();
+        check("Single again shows the real round", page.title().equals("Best Single: 00002:Sample Links:White")
+                && page.dateField.getText().equals("2026-04-01"));
+
+        Path empty = Files.createTempDirectory("golfanalyst-best-empty");
+        Files.copy(temp.resolve(DataLoader.COURSES_FILE), empty.resolve(DataLoader.COURSES_FILE));
+        Files.writeString(empty.resolve(DataLoader.ROUNDS_FILE), golfanalyst.RoundWriter.STANDARD_HEADER + "\n", StandardCharsets.UTF_8);
+        TestShell emptyShell = new TestShell(new DataStore(empty));
+        RoundPage emptyPage = new RoundPage(emptyShell, true);
+        emptyPage.showBest();
+        check("with no rounds the footer says so", emptyShell.status.equals(RoundPage.NO_ROUNDS_YET));
+        check("with no rounds the pulldown and the buttons are off", !emptyPage.bestCombo.isEnabled()
+                && !emptyPage.singleButton.isEnabled() && !emptyPage.compositeButton.isEnabled() && emptyPage.title().equals("Best Round"));
+        deleteFolder(empty);
+        deleteFolder(temp);
     }
 
     /*

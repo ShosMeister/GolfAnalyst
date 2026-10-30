@@ -1,5 +1,6 @@
 package golfanalyst.gui;
 
+import golfanalyst.BestRound;
 import golfanalyst.DataLoader;
 import golfanalyst.DataStore;
 import golfanalyst.Handicap;
@@ -36,6 +37,8 @@ import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.ButtonGroup;
+import javax.swing.JRadioButton;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
@@ -78,6 +81,14 @@ import javax.swing.text.DocumentFilter;
  | score, and the round's greens in regulation, sand saves, two-putts,      |
  | differential and the index after the round from the rules. Fairways are  |
  | not counted on par 3s, so that box is switched off for them.             |
+ |                                                                          |
+ | The same page also makes the Best Round screen (a second copy, made      |
+ | with bestRound true): one course and tees from its own pulldown, as the  |
+ | lowest Single round or a Composite of the best score on every hole,      |
+ | shown read-only exactly like a saved round, with only Close. It is a     |
+ | second copy of this page, not a new page, so it shares every building    |
+ | block and calculation of the round viewer instead of copying them, yet   |
+ | keeps its own photo, title and state.                                    |
  |                                                                          |
  | Three modes:                                                             |
  | NEW  - the boxes are open for typing; Save adds the round to rounds.tsv  |
@@ -214,6 +225,17 @@ public final class RoundPage extends Page
     final WoodFrame resultsFrame;
     final WoodFrame detailsFrame;
     final JPanel navRow;
+    final JLabel teeLabel = new JLabel("Course / tee:");
+    final JLabel holesLabel = new JLabel("Holes:");
+    final JComboBox<BestRound.Choice> bestCombo = new JComboBox<>();
+    final JRadioButton singleButton = new JRadioButton("Single", true);
+    final JRadioButton compositeButton = new JRadioButton("Composite");
+    static final String BEST_TITLE = "Best Round";
+    static final String NO_ROUNDS_YET = "There are no rounds yet.";
+    static final String COMPOSITE_DATE = "Composite";
+    private final boolean bestRound;
+    private boolean showingComposite = false;
+    private String bestTitle = BEST_TITLE;
 
     private final transient EntryTraversal focusPolicy = new EntryTraversal();
     private Mode mode = Mode.NEW;
@@ -251,7 +273,32 @@ public final class RoundPage extends Page
      */
     public RoundPage(Shell shell)
     {
-        super(shell, "round");
+        this(shell, false);
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | RoundPage(shell, bestRound)                                              |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Builds the page, either as the round screen or, with bestRound true, as  |
+     | the Best Round screen: its own photo, its own pulldown and Single /      |
+     | Composite buttons in the top bar instead of Course / tee, Holes and      |
+     | Show, and no Edit button or arrows.                                      |
+     |                                                                          |
+     | Passed in:  shell     - the window this page sits in                     |
+     |             bestRound - true for the Best Round screen                   |
+     | Passed out: the page                                                     |
+     +--------------------------------------------------------------------------+
+     */
+    public RoundPage(Shell shell, boolean bestRound)
+    {
+        super(shell, (bestRound ? "bestround" : "round"));
+        this.bestRound = bestRound;
+        if (bestRound)
+        {
+            setBackdrop(bestBackdrop());
+        }
         setLayout(new BorderLayout(0, 8));
         setBorder(BorderFactory.createEmptyBorder(10, 14, 6, 14));
 
@@ -293,6 +340,7 @@ public final class RoundPage extends Page
         setFocusTraversalPolicy(focusPolicy);
         prepareNew();
         updateNav();
+        navRow.setVisible(!bestRound);
     }
 
     // ------------------------------------------------------------------ building
@@ -314,12 +362,31 @@ public final class RoundPage extends Page
         JPanel bar = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 4));
         bar.setBackground(Theme.PANEL_BODY);
         bar.setBorder(BorderFactory.createLineBorder(Theme.FRAME_DARK, 1));
-        bar.add(new JLabel("Course / tee:"));
-        bar.add(teeCombo);
-        bar.add(new JLabel("Holes:"));
-        bar.add(holesCombo);
-        bar.add(new JLabel("PCC:"));
-        bar.add(pccField);
+        if (bestRound)
+        {
+            bar.add(new JLabel("Course / tee:"));
+            bestCombo.setPreferredSize(new Dimension(330, 26));
+            bestCombo.setToolTipText("The course and tees to show the best of");
+            bar.add(bestCombo);
+            ButtonGroup kinds = new ButtonGroup();
+            for (JRadioButton button : new JRadioButton[] {singleButton, compositeButton})
+            {
+                button.setOpaque(false);
+                kinds.add(button);
+                bar.add(button);
+            }
+            singleButton.setToolTipText("Your lowest actual round on these tees");
+            compositeButton.setToolTipText("Your best score on every hole, put together into one round");
+        }
+        else
+        {
+            bar.add(teeLabel);
+            bar.add(teeCombo);
+            bar.add(holesLabel);
+            bar.add(holesCombo);
+            bar.add(new JLabel("PCC:"));
+            bar.add(pccField);
+        }
         bar.add(filterLabel);
         filterCombo.setPreferredSize(new Dimension(310, 26));
         filterCombo.setToolTipText("Which saved rounds the arrow buttons step through");
@@ -792,6 +859,15 @@ public final class RoundPage extends Page
         nextButton.addActionListener(event -> goTo(positionShown() + 1));
         lastButton.addActionListener(event -> goTo(shown.size() - 1));
         saveButton.addActionListener(event -> save());
+        bestCombo.addActionListener(event ->
+        {
+            if (!updating)
+            {
+                showBestChoice();
+            }
+        });
+        singleButton.addActionListener(event -> showBestChoice());
+        compositeButton.addActionListener(event -> showBestChoice());
         editButton.addActionListener(event -> startEdit());
         cancelButton.addActionListener(event -> cancel());
     }
@@ -965,6 +1041,10 @@ public final class RoundPage extends Page
     @Override
     public String title()
     {
+        if (bestRound)
+        {
+            return bestTitle;
+        }
         if (mode == Mode.NEW)
         {
             return "New Round";
@@ -981,6 +1061,10 @@ public final class RoundPage extends Page
     @Override
     public String helpKey()
     {
+        if (bestRound)
+        {
+            return "best";
+        }
         return mode == Mode.NEW ? "round-new" : (mode == Mode.EDIT ? "round-edit" : "round-view");
     }
 
@@ -1187,9 +1271,9 @@ public final class RoundPage extends Page
         pccField.setEditable(typing);
         dateField.setEditable(typing);
         saveButton.setVisible(typing);
-        editButton.setVisible(!typing);
-        filterLabel.setVisible(!typing);
-        filterCombo.setVisible(!typing);
+        editButton.setVisible(!typing && !bestRound);
+        filterLabel.setVisible(!typing && !bestRound);
+        filterCombo.setVisible(!typing && !bestRound);
         cancelButton.setText(typing ? "Cancel" : "Close");
         showCloseTip();
         mark(pccField, false);
@@ -1277,10 +1361,35 @@ public final class RoundPage extends Page
             rebuildFilter();
         }
         Round round = shell.store().roundsByDate().get(index);
+        viewIndex = index;
+        fillRound(round);
+        updateNav();
+        recalc();
+        shell.setStatus("Round " + (positionShown() + 1) + " of " + shown.size() + filterDescription()
+                + (viewedHistorical ? "." + HISTORICAL_NOTE : ""));
+        shell.refreshTitle();
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | fillRound(round)                                                         |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Puts a round on the screen read-only: its tees and holes, date, PCC and  |
+     | every hole's score, putts, fairway and sand. The round need not be       |
+     | saved (the Best Round composite is not). The totals are worked out by    |
+     | recalc, which the caller runs.                                           |
+     |                                                                          |
+     | Passed in:  round - the round to show                                    |
+     | Passed out: nothing                                                      |
+     +--------------------------------------------------------------------------+
+     */
+    private void fillRound(Round round)
+    {
         Tee tee = shell.store().teeMap().get(round.teeId());
         updating = true;
         setMode(Mode.VIEW);
-        viewIndex = index;
+        showingComposite = false;
         viewedRoundId = round.id();
         viewedHistorical = round.historical();
         fillTeeChoices(round.teeId());
@@ -1304,11 +1413,6 @@ public final class RoundPage extends Page
             sandChecks[hole].setSelected(round.sand()[lp]);
         }
         updating = false;
-        updateNav();
-        recalc();
-        shell.setStatus("Round " + (positionShown() + 1) + " of " + shown.size() + filterDescription()
-                + (viewedHistorical ? "." + HISTORICAL_NOTE : ""));
-        shell.refreshTitle();
     }
 
     /*
@@ -1357,6 +1461,133 @@ public final class RoundPage extends Page
     boolean isBackToStats()
     {
         return backToStats;
+    }
+
+    /*
+     * bestBackdrop(): the Best Round photo: bestround (jpg, png or gif), else BestRound, else the round screen's photo; null (a plain green) only if none is there.
+     */
+    private static java.awt.image.BufferedImage bestBackdrop()
+    {
+        for (String name : new String[] {"bestround", "BestRound", "round"})
+        {
+            java.awt.image.BufferedImage picture = Theme.backdrop(name);
+            if (picture != null)
+            {
+                return picture;
+            }
+        }
+        return null;
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | showBest()                                                               |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Opens the Best Round screen afresh: fills the course and tees pulldown   |
+     | with every course, tees and kind of round you have played (as on the     |
+     | Stats Board), picks the one of your latest round, chooses Single, and    |
+     | shows it.                                                                |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing                                                      |
+     +--------------------------------------------------------------------------+
+     */
+    public void showBest()
+    {
+        DataStore store = shell.store();
+        BestRound.Choice latest = BestRound.latestChoice(store.roundsByDate(), store.teeMap());
+        updating = true;
+        bestCombo.removeAllItems();
+        for (BestRound.Choice choice : BestRound.choices(store.roundsByDate(), store.teeMap()))
+        {
+            bestCombo.addItem(choice);
+            if (latest != null && choice.key().equals(latest.key()))
+            {
+                bestCombo.setSelectedItem(choice);
+            }
+        }
+        singleButton.setSelected(true);
+        updating = false;
+        showBestChoice();
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | showBestChoice()                                                         |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Shows what the pulldown and the Single / Composite buttons ask for.      |
+     | Single: the lowest round on those tees, exactly as the round viewer      |
+     | shows it. Composite: the best score on every hole made into one          |
+     | unsaved round, shown the same way but with Composite for the date and    |
+     | a dash for PCC, 18-Hole Diff and Index After. With no rounds at all the  |
+     | screen is empty and the pulldown and buttons are switched off.           |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing                                                      |
+     +--------------------------------------------------------------------------+
+     */
+    private void showBestChoice()
+    {
+        DataStore store = shell.store();
+        BestRound.Choice choice = (BestRound.Choice) bestCombo.getSelectedItem();
+        boolean any = choice != null;
+        bestCombo.setEnabled(any);
+        singleButton.setEnabled(any);
+        compositeButton.setEnabled(any);
+        if (!any)
+        {
+            updating = true;
+            setMode(Mode.VIEW);
+            showingComposite = false;
+            viewedRoundId = -1;
+            viewedHistorical = false;
+            dateField.setText("");
+            pccField.setText("");
+            clearEntries();
+            applyHoles();
+            updating = false;
+            recalc();
+            bestTitle = BEST_TITLE;
+            shell.setStatus(NO_ROUNDS_YET);
+            shell.refreshTitle();
+            return;
+        }
+        List<Round> rounds = BestRound.roundsOf(choice, store.roundsByDate(), store.teeMap());
+        Round single = BestRound.bestSingle(rounds);
+        String count = rounds.size() + (rounds.size() == 1 ? " round" : " rounds");
+        if (singleButton.isSelected())
+        {
+            fillRound(single);
+            recalc();
+            Tee tee = store.teeMap().get(single.teeId());
+            bestTitle = "Best Single: " + String.format("%05d:%s:%s", single.id(), tee.courseName(), tee.teeName());
+            shell.setStatus("Best of " + count + " on " + choice.label() + ": " + single.totalScore() + " on " + single.date() + ".");
+        }
+        else
+        {
+            Round composite = BestRound.compositeRound(choice, rounds);
+            fillRound(composite);
+            showingComposite = true;
+            updating = true;
+            dateField.setText(COMPOSITE_DATE);
+            pccField.setText("-");
+            updating = false;
+            recalc();
+            bestTitle = "Best Composite: " + choice.label();
+            shell.setStatus("Best score on every hole from " + count + " on " + choice.label() + ": " + composite.totalScore()
+                    + ". The best single round is " + single.totalScore() + ".");
+        }
+        shell.refreshTitle();
+    }
+
+    /*
+     * isBestRound(): whether this copy of the page is the Best Round screen.
+     */
+    boolean isBestRound()
+    {
+        return bestRound;
     }
 
     /*
@@ -1771,8 +2002,8 @@ public final class RoundPage extends Page
         LocalDate date = DataLoader.parseDateOrNull(dateField.getText());
         Integer pcc = pccValue();
         boolean ready = problem == null && complete == playedCount && date != null && pcc != null;
-        mark(pccField, pcc == null);
-        mark(dateField, date == null);
+        mark(pccField, pcc == null && mode != Mode.VIEW);
+        mark(dateField, date == null && mode != Mode.VIEW);
         showProjection(ready, date, pcc);
         if (mode != Mode.VIEW)
         {
@@ -1820,6 +2051,12 @@ public final class RoundPage extends Page
     private void showProjection(boolean ready, LocalDate date, Integer pcc)
     {
         Handicap.Entry entry = null;
+        if (showingComposite)
+        {
+            differentialBox.setValue("-");
+            indexBox.setValue("-");
+            return;
+        }
         if (mode != Mode.NEW && viewedHistorical)
         {
             differentialBox.setValue("historical");

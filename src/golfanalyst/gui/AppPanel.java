@@ -58,6 +58,7 @@ public final class AppPanel extends JPanel implements Shell
     public static final String ROUND = "round";
     public static final String COURSE = "course";
     public static final String STATS = "stats";
+    public static final String BEST = "best";
     static final String SAMPLE_QUESTION = "This is the sample data. Create your own data folder first?";
 
     private final transient DataStore store;
@@ -70,6 +71,7 @@ public final class AppPanel extends JPanel implements Shell
     private final RoundPage roundPage;
     private final CoursePage coursePage;
     private final StatsPage statsPage;
+    private final RoundPage bestPage;
     private String current = HOME;
     private transient ToIntFunction<String> asker = question -> askOnScreen(question);
 
@@ -98,14 +100,17 @@ public final class AppPanel extends JPanel implements Shell
         roundPage = new RoundPage(this);
         coursePage = new CoursePage(this);
         statsPage = new StatsPage(this);
+        bestPage = new RoundPage(this, true);
         pages.put(HOME, homePage);
         pages.put(ROUND, roundPage);
         pages.put(COURSE, coursePage);
         pages.put(STATS, statsPage);
+        pages.put(BEST, bestPage);
         center.add(homePage, HOME);
         center.add(roundPage, ROUND);
         center.add(coursePage, COURSE);
         center.add(statsPage, STATS);
+        center.add(bestPage, BEST);
         add(header, BorderLayout.NORTH);
         add(center, BorderLayout.CENTER);
         add(footer, BorderLayout.SOUTH);
@@ -157,7 +162,7 @@ public final class AppPanel extends JPanel implements Shell
      | and puts its title in the header. The Home button is switched off on     |
      | the Home page.                                                           |
      |                                                                          |
-     | Passed in:  pageName - HOME, ROUND, COURSE or STATS                      |
+     | Passed in:  pageName - HOME, ROUND, COURSE, STATS or BEST                |
      | Passed out: nothing                                                      |
      +--------------------------------------------------------------------------+
      */
@@ -296,6 +301,16 @@ public final class AppPanel extends JPanel implements Shell
     public void statsBoard()
     {
         navigate(STATS);
+    }
+
+    /*
+     * bestRound(): opens the Best Round screen afresh, on the course and tees of the latest round, showing Single.
+     */
+    @Override
+    public void bestRound()
+    {
+        bestPage.showBest();
+        navigate(BEST);
     }
 
     /*
@@ -461,6 +476,14 @@ public final class AppPanel extends JPanel implements Shell
     RoundPage roundPage()
     {
         return roundPage;
+    }
+
+    /*
+     * bestPage(): the Best Round page (for tests).
+     */
+    RoundPage bestPage()
+    {
+        return bestPage;
     }
 
     /*

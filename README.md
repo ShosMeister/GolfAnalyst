@@ -1,4 +1,4 @@
-# GolfAnalyst v4.41 (Java)
+# GolfAnalyst v4.50 (Java)
 
 Golf Analyst with its window. It has the one-window layout of the earlier versions: a wood header
 with Home, Help and Info buttons that stays the same on every screen, a status footer that stays
@@ -58,7 +58,7 @@ Pages so far: **Home** (handicap, statistics and the buttons), **Round** (enter 
 or look back through saved ones with the four arrow buttons, limited to one course or set of tees with the
 Show box) and **New Course** (a course and up to four sets of tees). The Home buttons are in two columns:
 data entry on the left (New Course, New Round, Edit Round, Import, Clear) and viewing on the right (Rounds,
-Stats Board, Analyzer, Best Round, Print). New Course, New Round, Edit Round, Rounds and Stats Board work so far; the
+Stats Board, Analyzer, Best Round, Print). New Course, New Round, Edit Round, Rounds, Stats Board and Best Round work so far; the
 others are in place and say "not built yet" in the footer.
 
 - **Editing a round:** Edit Round on the Home screen opens the saved rounds at the latest one. Step to the
@@ -105,6 +105,9 @@ others are in place and say "not built yet" in the footer.
   in their own rows (front nine, back nine, or a nine-hole course). Click a heading to sort, click a
   row to highlight it and double-click it to see its rounds. Gold marks the best figure in each
   column among the courses with two or more rounds.
+- **Best Round:** for any course and set of tees (the same kinds as the Stats Board), either your
+  lowest single round or a composite of your best score on every hole, shown like a saved round.
+  In the composite each hole's putts, fairway and sand come from the round that made that score.
 - **See the whole picture:** on any screen, press and hold the mouse on the yellow "Golf Analyst"
   version text at the bottom left. Everything but the photo disappears until you let go.
 - **Hover:** the text on every wood button turns red when the mouse is over it, as in the earlier

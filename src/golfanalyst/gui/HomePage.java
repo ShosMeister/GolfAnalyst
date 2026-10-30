@@ -113,7 +113,7 @@ public final class HomePage extends Page
         buttons.add(actionButton("Edit Round", () -> shell.editRound()));
         buttons.add(actionButton("Analyzer", () -> shell.setStatus("Analyzer is not built yet.")));
         buttons.add(actionButton("Import", () -> shell.setStatus("Import is not built yet.")));
-        buttons.add(actionButton("Best Round", () -> shell.setStatus("Best Round is not built yet.")));
+        buttons.add(actionButton("Best Round", () -> shell.bestRound()));
         buttons.add(actionButton("Clear", () -> shell.setStatus("Clear is not built yet.")));
         buttons.add(actionButton("Print", () -> shell.setStatus("Print is not built yet.")));
         JPanel buttonColumn = new JPanel(new BorderLayout());

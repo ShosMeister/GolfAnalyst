@@ -1,4 +1,4 @@
-# GolfAnalyst v4.41 (Java) - notes for Claude
+# GolfAnalyst v4.50 (Java) - notes for Claude
 
 A single-golfer golf statistics program with a Swing window. Ported from HyperCard (1991) to Excel/VBA to Java.
 Courses and rounds live in two plain tab-separated text files. Written for one user who tests on Windows.
@@ -23,7 +23,8 @@ Courses and rounds live in two plain tab-separated text files. Written for one u
   `CourseWriter` (appends or updates tees the same way, and refuses a line DataLoader would reject), `LineReplacer`
   (swaps lines in place and writes safely with a `.bak`; used by both writers), `DataStore` (the one place screens
   get data; also knows if it is the sample data), `StatsBoard` (the Stats Board's rows, totals, sorting and gold;
-  no Swing), `Main` (text reports, `--selftest`), `SelfTest`.
+  no Swing), `BestRound` (Best Round's choices, best single round and composite; no Swing), `Main` (text reports,
+  `--selftest`), `SelfTest`.
 - `src/golfanalyst/gui/`: `App` (entry), `AppFrame` (thin JFrame), `AppPanel` (ALL the window logic: pages, header,
   footer, navigation, Help/Info, the sample-data question), `Shell` (what a page may ask of the window), `Page`,
   `HomePage`, `RoundPage`, `CoursePage`, `StatsPage`, `HeaderBar`, `FooterBar`, `HelpWindow` + `HelpFormatter` (styles the help
@@ -149,6 +150,16 @@ Courses and rounds live in two plain tab-separated text files. Written for one u
   so the arrows include that tee's 18-hole and nine-hole rounds). Close on that round goes back to the Stats Board
   (v4.41; `RoundPage.backToStats`, set by `showLatestOn`, cleared by `showLatest`/`showNew`; tool tip says where it
   goes); the Home button always goes Home.
+- Best Round (v4.50): a second `RoundPage` made with `bestRound` true (card BEST in `AppPanel`), so it reuses every
+  building block and calculation of the round viewer; `fillRound(round)` shows any round, saved or not. Top bar:
+  Course / tee pulldown of `BestRound.Choice` (Stats Board kinds, sorted by course then tees, default the latest
+  round's kind) and Single / Composite radio buttons (no PCC box, as in the user's mockup); no Edit, Save, Show or
+  arrows; Close goes Home. Single = lowest total (tie: newest), title "Best Single: 00037:Edgewater:Senior".
+  Composite = per hole the lowest score (tie: fewest putts, then newest), putts/Fwy/Sand from that round, shown as
+  an unsaved Round (id `BestRound.COMPOSITE_ID`) with Date "Composite" and "-" for Diff and Index; title "Best
+  Composite: Edgewater:Senior". Historical rounds left out. Photo: `bestround` (any extension), else `BestRound`,
+  else `round`. Footer: "Best of 5 rounds on X: 83 on 2026-10-22." / "Best score on every hole from 5 rounds on X:
+  76. The best single round is 83." / "There are no rounds yet." (pulldown and buttons off).
 - Edit Round: Home's Edit Round opens the round viewer at the latest round; the viewer has an Edit button (where
   Save sits when entering). Edit mode keeps Course/tee and Holes locked and opens date, PCC, scores, putts, Fwy and
   Sand; the header says "Edit 00031:Sample Links:White"; help files `round-edit-*`. Save replaces only that round
@@ -170,7 +181,7 @@ Courses and rounds live in two plain tab-separated text files. Written for one u
 - Home buttons: data entry on the left, viewing on the right:
   left New Course, New Round, Edit Round, Import, Clear; right Rounds, Stats Board, Analyzer, Best Round, Print.
 - Help: the i button says WHAT is on the screen; the ? button says HOW to use it. Files in `help/`
-  (`home-*`, `round-new-*`, `round-view-*`, `round-edit-*`, `course-*`, `stats-*`). Update them with every feature. Keep the user's friendly
+  (`home-*`, `round-new-*`, `round-view-*`, `round-edit-*`, `course-*`, `stats-*`, `best-*`). Update them with every feature. Keep the user's friendly
   voice. The files stay plain text: the first line is the window title; a line starting with "# " is a section
   heading (put "# " in front of every new section heading); "Label: text" (colon within 45 characters, no period
   before it) shows the label in bold; "3. First sentence. More" shows the first sentence in bold
@@ -184,8 +195,8 @@ Built: Home, round entry, saved-round viewer with the Show (course/tee) filter, 
 a course or more tees to one; up to four tees at once; v4.11: wood-frame look, copy arrow, live checking), the
 sample-data title/footer and save question, styled Help/Info windows, Edit Round and Edit Course (both v4.20), the New Course style round page
 and the press-and-hold peek on the version text (v4.21), modal Help/Info windows (v4.22), historical rounds (v4.30), the
-Stats Board (v4.40).
-Not built (buttons are in place and say "not built yet"): Import, Clear, Analyzer, Best Round, Print.
+Stats Board (v4.40), Close back to the Stats Board and the close-box question (v4.41), Best Round (v4.50).
+Not built (buttons are in place and say "not built yet"): Import, Clear, Analyzer, Print.
 Not built either: deleting a round or a tee, renaming a course or changing its zip.
 - **Edit Course** (built, v4.20): no separate button. On New Course, typing a saved course's name and zip loads its
   tees (first four) into the frames; title "Edit Course"; empty frames take new tees. City/state editable (a change

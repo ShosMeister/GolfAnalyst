@@ -71,6 +71,11 @@ public interface Shell
     void statsBoard();
 
     /*
+     * bestRound(): opens the Best Round screen on the course and tees of the latest round.
+     */
+    void bestRound();
+
+    /*
      * editRound(): opens the round viewer at the latest round, with its Edit button, so a round can be picked and edited.
      */
     void editRound();

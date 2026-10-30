@@ -553,6 +553,7 @@ public final class SelfTest
                         problem.severity() == Problem.Severity.WARNING && problem.message().contains("calculated")));
 
         checkStatsBoard();
+        checkBestRound();
 
         try
         {
@@ -567,6 +568,129 @@ public final class SelfTest
 
         System.out.println(passedCount + " passed, " + failedCount + " failed");
         return failedCount == 0;
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | checkBestRound()                                                         |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Tests the BestRound calculations on rounds whose answers were worked     |
+     | out by hand.                                                             |
+     |                                                                          |
+     | It checks that:                                                          |
+     | - the pulldown lists each course, tees and kind of round once, sorted    |
+     |   by course and tees, and starts on the kind of the latest round;        |
+     | - the best single round is the lowest, and a tie goes to the newer one;  |
+     | - the composite takes the lowest score on each hole, a tie going to the  |
+     |   fewer putts and then the newer round;                                  |
+     | - the putts, fairway and sand of each hole come from that same round;    |
+     | - the composite's totals are right and it has no saved round's id;       |
+     | - front nine, back nine and nine-hole course rounds are kept apart and   |
+     |   numbered by their own holes;                                           |
+     | - historical rounds are left out;                                        |
+     | - one round, and no rounds at all, are handled.                          |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing                                                      |
+     +--------------------------------------------------------------------------+
+     */
+    private static void checkBestRound()
+    {
+        Tee links = testTee(0, 0);
+        int[] pars = links.pars();
+        int[] ninePars = {4, 3, 5, 4, 4, 3, 5, 4, 4};
+        int[] nineIndex = {1, 2, 3, 4, 5, 6, 7, 8, 9};
+        Tee park = new Tee(2, "Nine Park", "", "", "", "Red", Tee.NINE, 34.0, 110, 3000,
+                ninePars, nineIndex, 0, 0, 0, 0);
+        Map<Integer, Tee> tees = Map.of(1, links, 2, park);
+        int[] twoPutts = new int[Tee.HOLES];
+        Arrays.fill(twoPutts, PLAIN_PUTTS);
+        boolean[] none = new boolean[Tee.HOLES];
+
+        // Round 2: a birdie 3 on hole 1 with 1 putt and the fairway hit, bogeys everywhere else: 88
+        int[] scores2 = new int[Tee.HOLES];
+        for (int hole = 0; hole < Tee.HOLES; hole = hole + 1)
+        {
+            scores2[hole] = pars[hole] + 1;
+        }
+        scores2[0] = 3;
+        int[] putts2 = twoPutts.clone();
+        putts2[0] = 1;
+        boolean[] fairway2 = new boolean[Tee.HOLES];
+        fairway2[0] = true;
+        Round round2 = new Round(2, 1, LocalDate.parse("2026-02-01"), 0, 0, Tee.HOLES, scores2, putts2, fairway2, none.clone());
+        // Round 3: also 3 on hole 1 but 2 putts, a birdie 2 on hole 2 from the sand, pars elsewhere: 70
+        int[] scores3 = pars.clone();
+        scores3[0] = 3;
+        scores3[1] = 2;
+        int[] putts3 = twoPutts.clone();
+        putts3[1] = 1;
+        boolean[] sand3 = new boolean[Tee.HOLES];
+        sand3[1] = true;
+        Round round3 = new Round(3, 1, LocalDate.parse("2026-03-01"), 0, 0, Tee.HOLES, scores3, putts3, none.clone(), sand3);
+        // Round 4: birdies on holes 5 and 6, pars elsewhere: also 70, and newer
+        int[] scores4 = pars.clone();
+        scores4[4] = 3;
+        scores4[5] = 2;
+        int[] putts4 = twoPutts.clone();
+        putts4[5] = 1;
+        Round round4 = new Round(4, 1, LocalDate.parse("2026-04-01"), 0, 0, Tee.HOLES, scores4, putts4, none.clone(), none.clone());
+        Round oldLow = new Round(5, 1, LocalDate.parse("2005-06-19"), 0, 0, Tee.HOLES, pars.clone(), new int[Tee.HOLES],
+                none.clone(), none.clone(), true);
+        Arrays.fill(oldLow.scores(), 3);
+        Arrays.fill(oldLow.putts(), 1);
+        int[] parkScores = {4, 3, 5, 4, 4, 3, 5, 4, 5};
+        int[] parkPutts = {2, 2, 2, 2, 2, 2, 2, 2, 2};
+        boolean[] noNine = new boolean[Tee.NINE];
+        Round parkRound = new Round(9, 2, LocalDate.parse("2026-06-01"), 0, 0, Tee.NINE, parkScores, parkPutts, noNine, noNine);
+        List<Round> rounds = List.of(roundOver(1, Tee.HOLES, "2026-01-01", links), round2, round3, round4, oldLow,
+                nineRound(10, 0, 9, "2026-05-01", links), nineRound(11, 0, 0, "2026-05-02", links),
+                nineRound(12, 9, 0, "2026-05-03", links), parkRound);
+
+        List<BestRound.Choice> choices = BestRound.choices(rounds, tees);
+        check("best round: one choice per course, tees and kind, sorted by course then tees", choices.size() == 4
+                && choices.get(0).label().equals("Nine Park:Red")
+                && choices.get(1).label().equals("Test Links:White")
+                && choices.get(2).label().equals("Test Links:White (Front 9)")
+                && choices.get(3).label().equals("Test Links:White (Back 9)"));
+        check("best round: it starts on the kind of the latest round", BestRound.latestChoice(rounds, tees).key().equals("2:NINE_COURSE"));
+        BestRound.Choice eighteen = choices.get(1);
+        List<Round> eighteenRounds = BestRound.roundsOf(eighteen, rounds, tees);
+        check("best round: only that kind's rounds are used, historical ones left out", eighteenRounds.size() == 4
+                && eighteenRounds.stream().noneMatch(Round::historical) && eighteenRounds.stream().noneMatch(Round::isNineHole));
+        check("best single: the lowest total, and a tie goes to the newer round", BestRound.bestSingle(eighteenRounds) == round4);
+
+        List<BestRound.HoleResult> holes = BestRound.composite(eighteenRounds);
+        check("composite: one result per hole, numbered 1 to 18", holes.size() == 18 && holes.get(0).hole() == 1 && holes.get(17).hole() == 18);
+        check("composite: the lowest score on a hole wins", holes.get(1).score() == 2 && holes.get(1).from() == round3
+                && holes.get(4).score() == 3 && holes.get(4).from() == round4);
+        check("composite: a tied score goes to the fewer putts", holes.get(0).score() == 3 && holes.get(0).putts() == 1
+                && holes.get(0).from() == round2);
+        check("composite: a tie in score and putts goes to the newer round", holes.get(17).from() == round4);
+        check("composite: the fairway comes from the round that made the score", holes.get(0).fairway());
+        check("composite: so does the sand", holes.get(1).sand() && !holes.get(4).sand());
+        Round composite = BestRound.compositeRound(eighteen, eighteenRounds);
+        check("composite: the best of every hole adds up to 68 with 33 putts", composite.totalScore() == 68 && composite.totalPutts() == 33);
+        check("composite: it is not a saved round and is dated by the newest round", composite.id() == BestRound.COMPOSITE_ID
+                && composite.date().equals(LocalDate.parse("2026-04-01")) && composite.holes() == Tee.HOLES);
+
+        BestRound.Choice front = choices.get(2);
+        List<Round> frontRounds = BestRound.roundsOf(front, rounds, tees);
+        List<BestRound.HoleResult> frontHoles = BestRound.composite(frontRounds);
+        check("composite: a front nine uses only front-nine rounds, holes 1 to 9", frontRounds.size() == 2
+                && frontHoles.size() == 9 && frontHoles.get(8).hole() == 9 && BestRound.compositeRound(front, frontRounds).totalScore() == 36);
+        BestRound.Choice back = choices.get(3);
+        List<BestRound.HoleResult> backHoles = BestRound.composite(BestRound.roundsOf(back, rounds, tees));
+        check("composite: a back nine is holes 10 to 18", backHoles.size() == 9 && backHoles.get(0).hole() == 10
+                && backHoles.get(8).hole() == 18);
+        List<Round> parkRounds = BestRound.roundsOf(choices.get(0), rounds, tees);
+        Round parkComposite = BestRound.compositeRound(choices.get(0), parkRounds);
+        check("composite: with one round it is that round", parkRounds.size() == 1 && parkComposite.totalScore() == 37
+                && BestRound.bestSingle(parkRounds) == parkRound && parkComposite.startHole() == 0 && parkComposite.holes() == Tee.NINE);
+        check("best round: no rounds give no choices, no best and no composite", BestRound.choices(List.of(), tees).isEmpty()
+                && BestRound.latestChoice(List.of(), tees) == null && BestRound.bestSingle(List.of()) == null
+                && BestRound.composite(List.of()).isEmpty() && BestRound.compositeRound(eighteen, List.of()) == null);
     }
 
     /*

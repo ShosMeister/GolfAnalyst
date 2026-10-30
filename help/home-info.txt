@@ -42,7 +42,7 @@ On the left: New Course adds a course and its tees, or fixes a course you have a
 
 On the right: Rounds is the screen for looking at the rounds you have saved. Stats Board, Analyzer and Best Round show your statistics in more detail, and Print prints what you are looking at.
 
-Import, Clear, Analyzer, Best Round and Print are not built yet. They are in place and will be added.
+Import, Clear, Analyzer and Print are not built yet. They are in place and will be added.
 
 # Across the top and bottom
 
@@ -96,3 +96,5 @@ Golf Analyst v4.30: Old rounds can be kept as historical rounds. You can still l
 Golf Analyst v4.40: Added the Stats Board, which shows your statistics course by course and tee by tee, with your nine-hole rounds kept apart. Click a heading to sort it, and the best figure in each column is marked in gold. Double-click a course to see its rounds.
 
 Golf Analyst v4.41: Close on the Rounds screen goes back to the Stats Board when you came from there, instead of to the Home screen. Closing the window, pressing Home or pressing Cancel while you are part way through typing a new round or a course now asks "Discard your changes?" first.
+
+Golf Analyst v4.50: Added the Best Round screen. For any course and set of tees it shows your lowest single round, or a composite of your best score on every hole, so you can see how close your best day is to your potential.

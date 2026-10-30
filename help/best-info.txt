@@ -1,0 +1,25 @@
+Best Round - Info
+
+This is the Best Round screen. It shows your best golf on one course and set of tees, laid out like a saved round on the Rounds screen. Nothing on it can be changed, which is why every box is grey.
+
+# Across the top
+
+Course / tee: The course and set of tees you are looking at. Only courses you have played are listed, the same way as on the Stats Board: an 18-hole set of tees, the front nine or back nine of an 18-hole course marked (Front 9) or (Back 9), and a nine-hole course. 18-hole and nine-hole rounds are never mixed.
+
+Single: Your lowest real round on those tees. If two rounds tie, it shows the more recent one.
+
+Composite: A round you never actually played. It takes your best score on every hole from all your rounds on those tees and puts them together, so it shows what you could shoot if every hole went as well as it ever has.
+
+# Where the composite's figures come from
+
+For each hole the composite uses your lowest score there. If you made that score more than once, it uses the time with the fewest putts, and if that ties too, the most recent one. The putts, the fairway and the sand for that hole all come from that same round, so each hole is something you really did.
+
+The totals, the eagles to others, the fairways, greens in regulation, two-putts and sand saves are then worked out from those holes the usual way.
+
+The composite is not a real round, so it has no date (it says Composite), and no 18-Hole Diff or Index After. It never counts toward your handicap or your statistics. The Rating is the rating of the tees.
+
+# The rest of the screen
+
+Everything else is the same as on the Rounds screen: the hole-by-hole tables, the column on the right and the frame underneath. The Info on the Rounds screen explains each box.
+
+The bar along the bottom says how many rounds the best was picked from, and for a composite it also gives your best single round, so you can see how far apart they are. Historical rounds are not used.
