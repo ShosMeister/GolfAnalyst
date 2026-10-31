@@ -2,6 +2,16 @@ package golfanalyst.gui;
 
 import java.awt.BasicStroke;
 import java.awt.Color;
+import java.awt.Cursor;
+import java.awt.Dimension;
+import java.awt.GraphicsEnvironment;
+import java.awt.Point;
+import java.awt.Shape;
+import java.awt.Toolkit;
+import java.awt.geom.AffineTransform;
+import java.awt.geom.Area;
+import java.awt.geom.Line2D;
+import java.awt.geom.RoundRectangle2D;
 import java.awt.FontMetrics;
 import java.awt.Font;
 import java.awt.Graphics2D;
@@ -34,12 +44,15 @@ import javax.imageio.ImageIO;
  | load(dir), image(name), backdrop(page) - pictures                        |
  | font(style, size)                      - the program's font              |
  | smooth(graphics)                       - turns on smooth drawing         |
+ | openHandCursor()                       - the open hand mouse pointer     |
  | drawCentered(...), paintStretched(...), paintBevel(...) - drawing helpers|
  +--------------------------------------------------------------------------+
  */
 public final class Theme
 {
 
+    private static final int HAND_SIZE = 32;
+    private static Cursor openHand = null;
     public static final Color TEXT_LIGHT = Color.WHITE;
     public static final Color TEXT_HOVER = new Color(255, 60, 60);
     public static final Color TEXT_DISABLED = new Color(165, 155, 145);
@@ -157,6 +170,95 @@ public final class Theme
     public static Font font(int style, float size)
     {
         return new Font(Font.SANS_SERIF, style, 12).deriveFont(size);
+    }
+
+    /*
+     * openHandCursor(): the open-hand mouse pointer shown over the version text (drawn once, then remembered); the pointing hand where a custom pointer cannot be made, as in the headless tests.
+     * Passed in:  nothing
+     * Passed out: the cursor
+     */
+    public static Cursor openHandCursor()
+    {
+        if (openHand == null)
+        {
+            openHand = makeOpenHandCursor();
+        }
+        return openHand;
+    }
+
+    /*
+     * makeOpenHandCursor(): turns openHandPicture into a mouse pointer at the size the system wants, with the hot spot in the middle of the palm.
+     * Passed in:  nothing
+     * Passed out: the cursor, or the pointing hand if a custom one cannot be made
+     */
+    private static Cursor makeOpenHandCursor()
+    {
+        Cursor fallback = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR);
+        if (GraphicsEnvironment.isHeadless())
+        {
+            return fallback;
+        }
+        try
+        {
+            Toolkit toolkit = Toolkit.getDefaultToolkit();
+            Dimension best = toolkit.getBestCursorSize(HAND_SIZE, HAND_SIZE);
+            if (best.width <= 0 || best.height <= 0)
+            {
+                return fallback;
+            }
+            BufferedImage picture = openHandPicture(Math.min(best.width, best.height));
+            Point hotSpot = new Point(picture.getWidth() / 2, picture.getHeight() / 2);
+            return toolkit.createCustomCursor(picture, hotSpot, "open hand");
+        }
+        catch (RuntimeException notPossible)
+        {
+            return fallback;
+        }
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | openHandPicture(size)                                                    |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Draws the open hand ("grab here") pointer: a white palm with four        |
+     | fingers spread up and the thumb out to the left, outlined in black,      |
+     | on a see-through square. Java has no open hand of its own (its hand      |
+     | pointer is the pointing finger), so it is drawn here on a 32 x 32        |
+     | grid and scaled to the size asked for.                                   |
+     |                                                                          |
+     | Passed in:  size - the width and height in pixels                        |
+     | Passed out: the picture                                                  |
+     +--------------------------------------------------------------------------+
+     */
+    static BufferedImage openHandPicture(int size)
+    {
+        BufferedImage picture = new BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D canvas = picture.createGraphics();
+        smooth(canvas);
+        canvas.scale(size / (double) HAND_SIZE, size / (double) HAND_SIZE);
+        Area hand = new Area(new RoundRectangle2D.Double(8, 14, 17, 13, 9, 9));
+        double[][] fingers = {{8.5, 6}, {12.5, 3}, {16.5, 4}, {20.5, 7}};
+        for (double[] finger : fingers)
+        {
+            hand.add(new Area(new RoundRectangle2D.Double(finger[0], finger[1], 4, 18 - finger[1], 4, 4)));
+        }
+        Shape thumb = AffineTransform.getRotateInstance(Math.toRadians(40), 10, 20)
+                .createTransformedShape(new RoundRectangle2D.Double(1, 18, 11, 4.5, 4.5, 4.5));
+        hand.add(new Area(thumb));
+        canvas.setColor(Color.WHITE);
+        canvas.fill(hand);
+        canvas.setColor(Color.BLACK);
+        canvas.setStroke(new BasicStroke(1.3f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+        canvas.draw(hand);
+        for (int lp = 1; lp < fingers.length; lp = lp + 1)
+        {
+            double lineX = fingers[lp][0];
+            double lineTop = Math.max(fingers[lp - 1][1], fingers[lp][1]) + 3;
+            canvas.draw(new Line2D.Double(lineX, lineTop, lineX, 16));
+        }
+        canvas.dispose();
+        return picture;
     }
 
     /*

@@ -77,6 +77,14 @@ public final class FooterBar extends JPanel
     }
 
     /*
+     * statusCursor(): the mouse pointer over the message (for the self-test).
+     */
+    Cursor statusCursor()
+    {
+        return statusLabel.getCursor();
+    }
+
+    /*
      * status(): the message currently shown on the left of the footer.
      */
     public String status()

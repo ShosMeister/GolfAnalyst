@@ -829,6 +829,7 @@ public final class GuiSelfTest
         checkRoundEditing(page, store, shell, temp);
         checkRoundLook(page);
         checkPeek();
+        checkFooterHand();
         checkHistoricalScreens();
         checkHistoricalBox();
         checkIncludeHistoricalScreens();
@@ -1346,7 +1347,10 @@ public final class GuiSelfTest
         int insideX = label.x + label.width / 2;
         int insideY = label.y + label.height / 2;
         sendMouse(backdrop, java.awt.event.MouseEvent.MOUSE_MOVED, insideX, insideY);
-        check("the mouse shows a hand over the label", backdrop.getCursor().getType() == java.awt.Cursor.HAND_CURSOR);
+        check("the mouse shows the open hand over the label", backdrop.getCursor() == Theme.openHandCursor());
+        java.awt.image.BufferedImage hand = Theme.openHandPicture(32);
+        check("the open hand is drawn white on a see-through square", hand.getWidth() == 32
+                && (hand.getRGB(16, 20) & 0xFFFFFF) == 0xFFFFFF && (hand.getRGB(0, 0) >>> 24) == 0 && (hand.getRGB(31, 0) >>> 24) == 0);
         check("the label has the peek tool tip", BackdropPanel.PEEK_TIP.equals(backdrop.getToolTipText(
                 mouseEvent(backdrop, java.awt.event.MouseEvent.MOUSE_MOVED, insideX, insideY))));
         check("the peek tool tip says what to do", BackdropPanel.PEEK_TIP.equals("Press and hold to see the whole picture."));
@@ -1433,6 +1437,39 @@ public final class GuiSelfTest
     private static void sendMouse(Component target, int kind, int x, int y)
     {
         target.dispatchEvent(mouseEvent(target, kind, x, y));
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | checkFooterHand()                                                        |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Clicking the footer message lists the problems found in the data files.  |
+     | Checks that the message shows the pointing hand only while there are     |
+     | problems to list: not on the sample data (which has none), but on a      |
+     | data folder with a bad round line.                                       |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing (throws IOException if a temporary file fails)       |
+     +--------------------------------------------------------------------------+
+     */
+    private static void checkFooterHand() throws IOException
+    {
+        AppPanel clean = new AppPanel(new DataStore(Path.of("sample-data")), Path.of("help"), "");
+        check("footer: with no problems in the data the message shows the ordinary arrow",
+                clean.footer().statusCursor().getType() == java.awt.Cursor.DEFAULT_CURSOR);
+        clean.setStatus("Something else.");
+        check("footer: it stays the arrow after another message", clean.footer().statusCursor().getType() == java.awt.Cursor.DEFAULT_CURSOR);
+
+        Path temp = Files.createTempDirectory("golfanalyst-footer-test");
+        Files.copy(Path.of("sample-data", DataLoader.COURSES_FILE), temp.resolve(DataLoader.COURSES_FILE));
+        Files.writeString(temp.resolve(DataLoader.ROUNDS_FILE), golfanalyst.RoundWriter.STANDARD_HEADER + "\n1\t1\tnot a date\t\t\t5\t2\t0\t0\n",
+                StandardCharsets.UTF_8);
+        DataStore broken = new DataStore(temp);
+        AppPanel withProblems = new AppPanel(broken, Path.of("help"), "");
+        check("footer: with problems in the data the message shows the pointing hand", !broken.dataset().problems().isEmpty()
+                && withProblems.footer().statusCursor().getType() == java.awt.Cursor.HAND_CURSOR);
+        deleteFolder(temp);
     }
 
     /*

@@ -118,8 +118,6 @@ public final class AppPanel extends JPanel implements Shell
         header.homeButton().addActionListener(event -> leaveForHome());
         header.helpButton().addActionListener(event -> showHelp(false));
         header.infoButton().addActionListener(event -> showHelp(true));
-        footer.setStatusClickAction(() -> showProblems());
-
         navigate(HOME);
         setStatus(startStatus(startNote));
     }
@@ -234,12 +232,13 @@ public final class AppPanel extends JPanel implements Shell
     }
 
     /*
-     * setStatus(text): shows a message in the footer.
+     * setStatus(text): shows a message in the footer. Clicking the message lists the problems in the data files, so it is clickable (with the pointing hand) only while there are problems to list.
      */
     @Override
     public void setStatus(String text)
     {
         footer.setStatus(text);
+        footer.setStatusClickAction((store.dataset().problems().isEmpty() ? null : () -> showProblems()));
     }
 
     /*

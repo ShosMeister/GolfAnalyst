@@ -179,13 +179,13 @@ public class BackdropPanel extends JPanel
     }
 
     /*
-     * showHand(over): the hand cursor while over the version text, the ordinary arrow elsewhere.
+     * showHand(over): the open hand cursor while over the version text, the ordinary arrow elsewhere.
      * Passed in:  over - true when the mouse is over the text
      * Passed out: nothing
      */
     private void showHand(boolean over)
     {
-        setCursor(over ? Cursor.getPredefinedCursor(Cursor.HAND_CURSOR) : null);
+        setCursor(over ? Theme.openHandCursor() : null);
     }
 
     /*
