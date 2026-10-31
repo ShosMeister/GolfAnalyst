@@ -25,9 +25,10 @@ import java.util.Properties;
  | files. It knows nothing about windows, so it can be tested without       |
  | one.                                                                     |
  |                                                                          |
- | Also keeps the golfer's name in settings.txt in the data folder, and     |
- | knows whether it is showing the sample data rather than the golfer's     |
- | own.                                                                     |
+ | Also keeps the golfer's name and the "Include historical rounds" choice  |
+ | in settings.txt in the data folder, and knows whether it is showing the  |
+ | sample data rather than the golfer's own. That choice decides which      |
+ | rounds overall() counts; the handicap never counts historical rounds.    |
  |                                                                          |
  | Constants:                                                               |
  | DATA_FOLDER   - the name of the golfer's own data folder ("data")        |
@@ -47,6 +48,7 @@ import java.util.Properties;
  | roundsOnTee(teeId)        - how many rounds were played on a tee         |
  | project(draft)            - the handicap line a round would get          |
  | golferName(), setGolferName(name)                                        |
+ | includeHistorical(), setIncludeHistorical(flag) - the Home screen's box  |
  | isSampleData()            - whether this is the sample data folder       |
  | dataFolderBeside()        - where the golfer's own data folder goes      |
  | createEmptyFolder(dir)    - makes a data folder with header rows only    |
@@ -59,11 +61,13 @@ public final class DataStore
     public static final String SAMPLE_FOLDER = "sample-data";
     private static final String SETTINGS_FILE = "settings.txt";
     private static final String GOLFER_KEY = "golfer";
+    static final String INCLUDE_HISTORICAL_KEY = "IncludeHistorical";
     private final Path dir;
     private Dataset dataset;
     private Handicap.Result handicap;
     private Stats.Summary overall;
     private List<Round> roundsByDate = new ArrayList<>();
+    private boolean includeHistorical = true;
 
     /*
      * DataStore(dir): opens a data folder and loads it.
@@ -81,8 +85,9 @@ public final class DataStore
      | reload()                                                                 |
      +--------------------------------------------------------------------------+
      | Purpose:                                                                 |
-     | Reads courses.tsv and rounds.tsv again and recalculates the              |
-     | handicap and statistics. Called at start-up and after every change.      |
+     | Reads courses.tsv, rounds.tsv and the "Include historical rounds"        |
+     | setting again and recalculates the handicap and statistics. Called at    |
+     | start-up and after every change.                                         |
      |                                                                          |
      | Passed in:  nothing                                                      |
      | Passed out: nothing (throws IOException if a file cannot be read)        |
@@ -93,7 +98,8 @@ public final class DataStore
         dataset = DataLoader.load(dir);
         Map<Integer, Tee> tees = dataset.teeMap();
         handicap = Handicap.compute(dataset.rounds(), tees);
-        overall = Stats.summarize(Stats.current(dataset.rounds()), tees);
+        includeHistorical = !readSettings().getProperty(INCLUDE_HISTORICAL_KEY, "true").trim().equalsIgnoreCase("false");
+        overall = Stats.summarize(Stats.counted(dataset.rounds(), includeHistorical), tees);
         List<Round> sorted = new ArrayList<>(dataset.rounds());
         sorted.sort(Comparator.comparing(Round::date).thenComparingInt(Round::id));
         roundsByDate = sorted;
@@ -124,7 +130,7 @@ public final class DataStore
     }
 
     /*
-     * overall(): statistics over every round that is not historical.
+     * overall(): statistics over the rounds counted: every round, or only those that are not historical when the Home screen's box is unticked.
      */
     public Stats.Summary overall()
     {
@@ -360,43 +366,91 @@ public final class DataStore
     }
 
     /*
+     * readSettings(): everything in settings.txt, or nothing if the file is missing or cannot be read.
+     * Passed in:  nothing
+     * Passed out: the settings
+     */
+    private Properties readSettings()
+    {
+        Properties settings = new Properties();
+        Path file = dir.resolve(SETTINGS_FILE);
+        if (Files.exists(file))
+        {
+            try (Reader reader = Files.newBufferedReader(file, StandardCharsets.UTF_8))
+            {
+                settings.load(reader);
+            }
+            catch (IOException unreadable)
+            {
+                settings.clear();
+            }
+        }
+        return settings;
+    }
+
+    /*
+     * writeSetting(key, value): changes one line of settings.txt and keeps the others (so saving the name does not lose the historical choice).
+     * Passed in:  key - the setting's name, value - its new value
+     * Passed out: nothing (throws IOException if the file cannot be written)
+     */
+    private void writeSetting(String key, String value) throws IOException
+    {
+        Properties settings = readSettings();
+        settings.setProperty(key, value);
+        Files.createDirectories(dir);
+        try (Writer writer = Files.newBufferedWriter(dir.resolve(SETTINGS_FILE), StandardCharsets.UTF_8))
+        {
+            settings.store(writer, "Golf Analyst settings");
+        }
+    }
+
+    /*
      * golferName(): reads the golfer's name from settings.txt.
      * Passed in:  nothing
      * Passed out: the name, or "" if none has been entered
      */
     public String golferName()
     {
-        Path file = dir.resolve(SETTINGS_FILE);
-        if (!Files.exists(file))
-        {
-            return "";
-        }
-        try (Reader reader = Files.newBufferedReader(file, StandardCharsets.UTF_8))
-        {
-            Properties settings = new Properties();
-            settings.load(reader);
-            return settings.getProperty(GOLFER_KEY, "");
-        }
-        catch (IOException unreadable)
-        {
-            return "";
-        }
+        return readSettings().getProperty(GOLFER_KEY, "");
     }
 
     /*
-     * setGolferName(name): saves the golfer's name in settings.txt.
+     * setGolferName(name): saves the golfer's name in settings.txt, keeping the other settings.
      * Passed in:  name - the name to keep
      * Passed out: nothing (throws IOException if the file cannot be written)
      */
     public void setGolferName(String name) throws IOException
     {
-        Properties settings = new Properties();
-        settings.setProperty(GOLFER_KEY, name);
-        Files.createDirectories(dir);
-        try (Writer writer = Files.newBufferedWriter(dir.resolve(SETTINGS_FILE), StandardCharsets.UTF_8))
-        {
-            settings.store(writer, "Golf Analyst settings");
-        }
+        writeSetting(GOLFER_KEY, name);
+    }
+
+    /*
+     * includeHistorical(): the Home screen's "Include historical rounds" box, as read from settings.txt (ticked when the line is missing).
+     */
+    public boolean includeHistorical()
+    {
+        return includeHistorical;
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | setIncludeHistorical(flag)                                               |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Saves the "Include historical rounds" choice in settings.txt             |
+     | (IncludeHistorical=true or false) and works the statistics out again     |
+     | with it. The handicap does not change: it never counts historical        |
+     | rounds.                                                                  |
+     |                                                                          |
+     | Passed in:  flag - true to count historical rounds in the statistics     |
+     | Passed out: nothing (throws IOException if the file cannot be written)   |
+     +--------------------------------------------------------------------------+
+     */
+    public void setIncludeHistorical(boolean flag) throws IOException
+    {
+        writeSetting(INCLUDE_HISTORICAL_KEY, Boolean.toString(flag));
+        includeHistorical = flag;
+        overall = Stats.summarize(Stats.counted(dataset.rounds(), includeHistorical), dataset.teeMap());
     }
 
     /*

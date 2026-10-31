@@ -43,6 +43,7 @@ import java.util.Map;
  | Public Methods:                                                          |
  | summarize(rounds, tees) - calculates a Summary                           |
  | current(rounds)         - the rounds that are not historical             |
+ | counted(rounds, includeHistorical) - every round, or only current ones   |
  | pct(part, whole)        - safe percentage (NaN if whole is 0)            |
  | isGreenInRegulation(...), isSandSave(...) - the calculated rules         |
  +--------------------------------------------------------------------------+
@@ -203,6 +204,16 @@ public final class Stats
             }
         }
         return kept;
+    }
+
+    /*
+     * counted(rounds, includeHistorical): the rounds the statistics count, following the Home screen's "Include historical rounds" box.
+     * Passed in:  rounds - any rounds, includeHistorical - true to keep the historical ones too
+     * Passed out: every round when includeHistorical is true, otherwise current(rounds)
+     */
+    public static List<Round> counted(List<Round> rounds, boolean includeHistorical)
+    {
+        return (includeHistorical ? new ArrayList<>(rounds) : current(rounds));
     }
 
     /*

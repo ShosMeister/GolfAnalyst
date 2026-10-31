@@ -52,7 +52,7 @@ Greens In Reg: Holes where the strokes before your first putt (your score minus 
 
 2-Putt: Holes where you took two putts or fewer.
 
-Historical: A box to tick for an old round that you want to keep for looking back at. A historical round is left out of your Handicap Index and your statistics.
+Historical: A box to tick for an old round that you want to keep for looking back at. A historical round is never part of your Handicap Index. Whether it counts in your statistics is set by Include historical rounds on the Home screen.
 
 Save and Cancel: Save adds the round to your data. Cancel throws away what you have typed. The ? button explains how to use them.
 

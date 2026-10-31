@@ -1,4 +1,4 @@
-# GolfAnalyst v4.50 (Java) - notes for Claude
+# GolfAnalyst v4.60 (Java) - notes for Claude
 
 A single-golfer golf statistics program with a Swing window. Ported from HyperCard (1991) to Excel/VBA to Java.
 Courses and rounds live in two plain tab-separated text files. Written for one user who tests on Windows.
@@ -90,13 +90,21 @@ Courses and rounds live in two plain tab-separated text files. Written for one u
   FrontRating, FrontSlope, BackRating, BackSlope) and `rounds.tsv` (RoundID, TeeID, Date, Holes, PCC, Scores, Putts,
   Fairways, Sand, Historical). `Holes` in rounds is blank, F or B. One golfer; the name is in `data/settings.txt`.
 - Historical rounds (v4.30): `Historical` = Y (optional column; blank or N otherwise) marks an old round kept only to
-  look back at. `Round.historical()`; `Handicap.compute` skips them; statistics use `Stats.current(rounds)` (Home,
-  `DataStore.overall`, the text reports); the viewer shows them with "historical" in the 18-Hole Diff box and a footer
+  look back at. `Round.historical()`; `Handicap.compute` always skips them (Handicap Index, Low Index, Rounds Used);
+  the text reports use `Stats.current(rounds)`; the viewer shows them with "historical" in the 18-Hole Diff box and a footer
   note; Edit keeps the flag; Home's round counts leave them out; the start-up message says how many there are.
   The round screen's Historical box (`historicalCheck`, details frame column 3 under 2-Putt, a Sand-style check cell)
   sets it: white and open in New/Edit, grey in view, Tab order Date, Historical, Save, Space ticks it; ticking shows
   "historical" in 18-Hole Diff at once. Editing the file by hand still works. Saving a ticked round to a file with
   no Historical column adds the column to the end of the header line only (`RoundWriter.withHistoricalColumn`).
+- Include historical rounds (v4.60): last row of Home's Golfer's Stats, an `ImageCheckBox` in a value cell, default
+  ticked, saved as `IncludeHistorical=true|false` in `settings.txt` (`DataStore.includeHistorical()` /
+  `setIncludeHistorical`; settings lines are read, changed and written back so the name and the choice keep each
+  other). It decides `DataStore.overall()` (every Golfer's Stats figure and Total/18-Hole/9-Hole Rounds), the Stats
+  Board and Best Round, all through `Stats.counted(rounds, includeHistorical)` (`StatsBoard.build` and
+  `BestRound.choices/latestChoice/roundsOf` take the flag; their old forms leave historical rounds out). Never the
+  handicap; the Rounds screen still shows every round. Unticked, the Stats Board and Best Round footers end with
+  `StatsPage.HISTORICAL_LEFT_OUT`.
 - Courses: never copy ratings, slopes, front/back nine ratings or yardage from one tee to another (the Excel version
   did; invented ratings spoil the handicap). The only copy allowed is the user pressing the arrow on the FIRST tee,
   which fills its pars and stroke index into EMPTY par/SI cells of the other three tees (never overwrites). A tee
@@ -136,7 +144,7 @@ Courses and rounds live in two plain tab-separated text files. Written for one u
   band and rows per tee and nine ("Course:Tee (Front 9)" / "(Back 9)", or "Course:Tee" on a nine-hole course); never
   mixed. Columns Course : Tee Box 266 (left), Rating\Slope 96 ("70.4 / 123", "-" for an unrated nine), then eight of 62:
   Rnds, Avg, Best, Fwy %, GIR %, 2-Putt %, Putts/Rnd, Sand % (tool tip on Sand %). Home's definitions (it uses
-  `Stats.summarize` per row); historical rounds left out; one decimal with ".0" dropped (Home itself still shows
+  `Stats.summarize` per row); historical rounds follow Home's Include historical rounds box; one decimal with ".0" dropped (Home itself still shows
   ".0"); "-" for nothing to divide by. One `WoodFrame` centred with 14 px of photo round it: a pinned band (heading
   `WoodTag`s 3 px smaller than their 25 px slots, all one font size set by the headings alone, the sort shown as a
   small triangle in the tag's top right corner because no arrow fits beside "Putts/Rnd"; then tan total rows "All
@@ -161,7 +169,7 @@ Courses and rounds live in two plain tab-separated text files. Written for one u
   arrows; Close goes Home. Single = lowest total (tie: newest), title "Best Single: 00037:Edgewater:Senior".
   Composite = per hole the lowest score (tie: fewest putts, then newest), putts/Fwy/Sand from that round, shown as
   an unsaved Round (id `BestRound.COMPOSITE_ID`) with Date "Composite" and "-" for Diff and Index; title "Best
-  Composite: Edgewater:Senior". Historical rounds left out. Photo: `bestround` (any extension), else `BestRound`,
+  Composite: Edgewater:Senior". Historical rounds follow Home's Include historical rounds box. Photo: `bestround` (any extension), else `BestRound`,
   else `round`. Footer: "Best of 5 rounds on X: 83 on 2026-10-22." / "Best score on every hole from 5 rounds on X:
   76. The best single round is 83." / "There are no rounds yet." (pulldown and buttons off).
 - Edit Round: Home's Edit Round opens the round viewer at the latest round; the viewer has an Edit button (where
@@ -199,7 +207,8 @@ Built: Home, round entry, saved-round viewer with the Show (course/tee) filter, 
 a course or more tees to one; up to four tees at once; v4.11: wood-frame look, copy arrow, live checking), the
 sample-data title/footer and save question, styled Help/Info windows, Edit Round and Edit Course (both v4.20), the New Course style round page
 and the press-and-hold peek on the version text (v4.21), modal Help/Info windows (v4.22), historical rounds (v4.30), the
-Stats Board (v4.40), Close back to the Stats Board and the close-box question (v4.41), Best Round (v4.50).
+Stats Board (v4.40), Close back to the Stats Board and the close-box question (v4.41), Best Round (v4.50), the
+Historical box on the round screens and Include historical rounds on Home (v4.60).
 Not built (buttons are in place and say "not built yet"): Import, Clear, Analyzer, Print.
 Not built either: deleting a round or a tee, renaming a course or changing its zip.
 - **Edit Course** (built, v4.20): no separate button. On New Course, typing a saved course's name and zip loads its

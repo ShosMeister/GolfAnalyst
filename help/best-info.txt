@@ -22,4 +22,4 @@ The composite is not a real round, so it has no date (it says Composite), and no
 
 Everything else is the same as on the Rounds screen: the hole-by-hole tables, the column on the right and the frame underneath. The Info on the Rounds screen explains each box.
 
-The bar along the bottom says how many rounds the best was picked from, and for a composite it also gives your best single round, so you can see how far apart they are. Historical rounds are not used.
+The bar along the bottom says how many rounds the best was picked from, and for a composite it also gives your best single round, so you can see how far apart they are. Historical rounds are included when Include historical rounds is ticked on the Home screen.

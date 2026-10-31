@@ -1,4 +1,4 @@
-# GolfAnalyst v4.50 (Java)
+# GolfAnalyst v4.60 (Java)
 
 Golf Analyst with its window. It has the one-window layout of the earlier versions: a wood header
 with Home, Help and Info buttons that stays the same on every screen, a status footer that stays
@@ -179,7 +179,9 @@ the front nine or `B` for the back nine of an 18-hole tee. Scores, Putts and the
 columns (Fairways, Sand) need one value per hole played. Dates can be `2026-10-22` or
 `10/22/2026`. Flags are 1 for yes and 0 for no. PCC (normally 0) is the day's Playing Conditions Calculation.
 `Historical` is `Y` for an old round kept only to look back at: it can be stepped through in
-Rounds (marked historical) but is left out of the handicap and the statistics. Blank or `N` is
+Rounds (marked historical) but is never part of the handicap. The Home screen's "Include historical
+rounds" box (saved as `IncludeHistorical=true|false` in `settings.txt`, ticked when missing)
+decides whether the statistics, the Stats Board and Best Round count it. Blank or `N` is
 an ordinary round. The Historical box on the round screen sets it, so the file need not be edited
 by hand; saving a ticked round to a file without the column adds it to the header. Totals are
 never stored; they are always calculated, so the file cannot disagree with itself.

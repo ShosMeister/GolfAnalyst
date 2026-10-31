@@ -23,6 +23,9 @@ import javax.swing.JPanel;
  | the right and the action buttons in the middle, over the photograph of   |
  | the golfers on the tee. All of the figures come from the loaded data and |
  | are calculated, never typed in. Click the golfer's name to change it.    |
+ | The "Include historical rounds" box at the bottom of Golfer's Stats      |
+ | decides whether the statistics and round counts include historical       |
+ | rounds; the handicap figures never do.                                   |
  |                                                                          |
  | The buttons are laid out in two columns: data entry on the left (New     |
  | Course, New Round, Edit Round, Import, Clear) and viewing on the right   |
@@ -41,6 +44,9 @@ public final class HomePage extends Page
 
     private static final int LEFT_PANEL_WIDTH = 300;
     private static final int RIGHT_PANEL_WIDTH = 330;
+    private static final int CHECK_PICTURE = 18;
+    static final String INCLUDE_HISTORICAL_TIP = "Count old (historical) rounds in your averages, percentages, the Stats Board and Best Round. "
+            + "They never count toward your Handicap Index.";
     final ValueBox handicapIndex = new ValueBox();
     final ValueBox lowIndex = new ValueBox();
     final ValueBox totalRounds = new ValueBox();
@@ -55,13 +61,17 @@ public final class HomePage extends Page
     final ValueBox sandSaves = new ValueBox();
     final ValueBox greens = new ValueBox();
     final ValueBox twoPutt = new ValueBox();
+    final ValueBox includeCell = new ValueBox();
+    final ImageCheckBox includeHistorical = new ImageCheckBox();
 
     /*
      +--------------------------------------------------------------------------+
      | HomePage(shell)                                                          |
      +--------------------------------------------------------------------------+
      | Purpose:                                                                 |
-     | Builds the two wood panels and the button grid.                          |
+     | Builds the two wood panels and the button grid. The "Include             |
+     | historical rounds" box is set by onShow, not here, because the page      |
+     | must not ask the window for anything while it is being built.            |
      |                                                                          |
      | Passed in:  shell - the window this page sits in                         |
      | Passed out: the page                                                     |
@@ -102,6 +112,14 @@ public final class HomePage extends Page
         right.addRow("Sand Saves", sandSaves);
         right.addRow("Greens In Reg", greens);
         right.addRow("Two-Putt", twoPutt);
+        includeHistorical.setPictureSize(CHECK_PICTURE);
+        includeHistorical.setToolTipText(INCLUDE_HISTORICAL_TIP);
+        includeHistorical.setOnChange(() -> changeIncludeHistorical());
+        includeCell.setLayout(new BorderLayout());
+        includeCell.setBorder(BorderFactory.createEmptyBorder(2, 6, 2, 4));
+        includeCell.setToolTipText(INCLUDE_HISTORICAL_TIP);
+        includeCell.add(includeHistorical, BorderLayout.EAST);
+        right.addRow("Include historical rounds", includeCell);
         right.setPreferredSize(new Dimension(RIGHT_PANEL_WIDTH, right.getPreferredSize().height));
 
         JPanel buttons = new JPanel(new GridLayout(0, 2, 12, 12));
@@ -185,8 +203,9 @@ public final class HomePage extends Page
      +--------------------------------------------------------------------------+
      | Purpose:                                                                 |
      | Fills every box from the data store: handicap, rounds counted, and       |
-     | the overall statistics. Called each time the page is shown, so a         |
-     | round saved a moment ago is already included.                            |
+     | the overall statistics, and ticks the "Include historical rounds" box    |
+     | from the setting. Called each time the page is shown, so a round saved   |
+     | a moment ago is already included.                                        |
      |                                                                          |
      | Passed in:  nothing                                                      |
      | Passed out: nothing                                                      |
@@ -218,6 +237,7 @@ public final class HomePage extends Page
         sandSaves.setValue(percent(all.sandSavePct()));
         greens.setValue(percent(all.girPct()));
         twoPutt.setValue(percent(all.twoPuttPct()));
+        includeHistorical.setSelected(store.includeHistorical());
     }
 
     /*
@@ -247,6 +267,34 @@ public final class HomePage extends Page
         catch (IOException failure)
         {
             shell.setStatus("The name could not be saved: " + failure.getMessage());
+        }
+        onShow();
+    }
+    /*
+     +--------------------------------------------------------------------------+
+     | changeIncludeHistorical()                                                |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | What a click on the "Include historical rounds" box does: saves the      |
+     | choice in settings.txt and fills the figures again at once. Ticked,      |
+     | the statistics and round counts include historical rounds; unticked,     |
+     | they leave them out. The Handicap Index, Low Index and Rounds Used       |
+     | never include them. If the setting cannot be saved the box goes back     |
+     | and the footer says why.                                                 |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing                                                      |
+     +--------------------------------------------------------------------------+
+     */
+    private void changeIncludeHistorical()
+    {
+        try
+        {
+            shell.store().setIncludeHistorical(includeHistorical.isSelected());
+        }
+        catch (IOException failure)
+        {
+            shell.setStatus("The setting could not be saved: " + failure.getMessage());
         }
         onShow();
     }

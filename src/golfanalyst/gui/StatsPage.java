@@ -103,6 +103,7 @@ public final class StatsPage extends Page
     static final String FOOTER_HINT = "Click a course to highlight it, double-click to see its rounds. Click a heading to sort. "
             + "Gold marks the best figure among rows with two or more rounds.";
     static final String NO_ROUNDS = "There are no rounds yet, so the Stats Board is empty. Enter a round with New Round on the Home screen.";
+    static final String HISTORICAL_LEFT_OUT = " Historical rounds are left out (change this on the Home screen).";
     static final String SAND_TIP = "Sand saves: how often I was in the sand and still made par or better";
     static final Color TOTAL_FACE = new Color(236, 206, 160);
     static final Color TOTAL_EDGE = new Color(70, 35, 5);
@@ -137,7 +138,7 @@ public final class StatsPage extends Page
     private Column sortColumn = Column.COURSE;
     private boolean ascending = true;
     private String selectedKey = null;
-    private StatsBoard.Board board = null;
+    StatsBoard.Board board = null;
     private int bandRows = 3;
 
     /*
@@ -300,7 +301,8 @@ public final class StatsPage extends Page
      | Works the board out again from the data store, so a round saved a        |
      | moment ago is included, refills the band and the rows in the sort        |
      | chosen earlier in this session, keeps the highlighted row if it is       |
-     | still there, and puts the hint (or "no rounds yet") in the footer.       |
+     | still there, and puts the hint (or "no rounds yet") in the footer, with  |
+     | a note when the Home screen's box leaves historical rounds out.          |
      |                                                                          |
      | Passed in:  nothing                                                      |
      | Passed out: nothing                                                      |
@@ -310,11 +312,11 @@ public final class StatsPage extends Page
     public void onShow()
     {
         DataStore store = shell.store();
-        board = StatsBoard.build(store.roundsByDate(), store.teeMap());
+        board = StatsBoard.build(store.roundsByDate(), store.teeMap(), store.includeHistorical());
         fillBand();
         fillRows();
         boolean noRounds = board.allEighteen().rounds() == 0 && board.allNine().rounds() == 0;
-        shell.setStatus(noRounds ? NO_ROUNDS : FOOTER_HINT);
+        shell.setStatus((noRounds ? NO_ROUNDS : FOOTER_HINT) + (store.includeHistorical() ? "" : HISTORICAL_LEFT_OUT));
         list.requestFocusInWindow();
     }
 

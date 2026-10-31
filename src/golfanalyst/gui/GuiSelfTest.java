@@ -831,6 +831,7 @@ public final class GuiSelfTest
         checkPeek();
         checkHistoricalScreens();
         checkHistoricalBox();
+        checkIncludeHistoricalScreens();
         checkStatsPage();
         checkBestRoundPage();
         checkSampleSafeguard();
@@ -1442,7 +1443,8 @@ public final class GuiSelfTest
      | A historical round on the screens, in a temporary data folder with the   |
      | sample courses, one ordinary round and one historical round: the viewer  |
      | shows it with "historical" for the differential and says so in the       |
-     | footer, Home counts only the ordinary round, the start-up message says   |
+     | footer, Home counts both rounds with "Include historical rounds"         |
+     | ticked and only the ordinary one unticked, the start-up message says     |
      | how many are historical, and editing it keeps it historical.             |
      |                                                                          |
      | Passed in:  nothing                                                      |
@@ -1476,7 +1478,11 @@ public final class GuiSelfTest
                 && !shell.status.contains("Historical"));
 
         home.onShow();
-        check("Home counts only the ordinary round", home.totalRounds.getText().equals("1"));
+        check("Home counts the historical round while Include historical rounds is ticked", home.totalRounds.getText().equals("2"));
+        store.setIncludeHistorical(false);
+        home.onShow();
+        check("Home counts only the ordinary round when it is unticked", home.totalRounds.getText().equals("1"));
+        store.setIncludeHistorical(true);
         AppPanel panel = new AppPanel(store, Path.of("help"), "");
         check("the start-up message says how many rounds are historical",
                 panel.footer().status().contains("2 rounds loaded (1 historical)."));
@@ -1574,7 +1580,10 @@ public final class GuiSelfTest
                 && lines.get(4).endsWith("\tY"));
         check("historical box: the handicap leaves the ticked round out", store.handicap().entries().size() == 3
                 && java.util.Objects.equals(store.handicap().currentIndex(), indexBefore));
-        check("historical box: so do the statistics", store.overall().rounds() == 3);
+        check("historical box: the statistics count it only while Include historical rounds is ticked", store.overall().rounds() == 4);
+        store.setIncludeHistorical(false);
+        check("historical box: unticked, the statistics leave it out", store.overall().rounds() == 3);
+        store.setIncludeHistorical(true);
         check("historical box: looking at it, the box is ticked, grey and switched off", page.historicalCheck.isSelected()
                 && !page.historicalCheck.isEnabled() && page.historicalCheck.getBackground().equals(Theme.FIELD_FACE)
                 && page.differentialBox.getText().equals("historical"));
@@ -1588,6 +1597,7 @@ public final class GuiSelfTest
         page.saveButton.doClick();
         lines = Files.readAllLines(roundsFile, StandardCharsets.UTF_8);
         check("historical box: unticking and saving clears the Y", lines.get(4).startsWith("4\t1\t2026-04-01\t") && lines.get(4).endsWith("\t"));
+        store.setIncludeHistorical(false);
         check("historical box: the round now counts in the handicap and statistics", store.handicap().entries().size() == 4
                 && store.overall().rounds() == 4 && !java.util.Objects.equals(store.handicap().currentIndex(), indexBefore));
         check("historical box: looking at it now, the box is unticked and grey", !page.historicalCheck.isSelected()
@@ -1600,6 +1610,110 @@ public final class GuiSelfTest
         best.showBest();
         check("historical box: on Best Round it is grey and switched off", !best.historicalCheck.isEnabled()
                 && best.historicalCheck.getBackground().equals(Theme.FIELD_FACE) && !best.historicalCheck.isSelected());
+        deleteFolder(temp);
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | checkIncludeHistoricalScreens()                                          |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | The Home screen's "Include historical rounds" box, on its own data       |
+     | folder: the sample courses, three 90s on Sample Links:White and a        |
+     | historical 72 there.                                                     |
+     |                                                                          |
+     | It checks that:                                                          |
+     | - building Home, the Stats Board and Best Round makes no calls to the    |
+     |   window;                                                                |
+     | - the box starts ticked, with its tool tip, and the Home figures count   |
+     |   the historical round;                                                  |
+     | - unticking it updates the round counts, personal best and averages at   |
+     |   once and saves the choice, while the Handicap Index, Low Index and     |
+     |   Rounds Used stay the same;                                             |
+     | - the Stats Board and Best Round follow it each time they are shown, and |
+     |   say in the footer when historical rounds are left out;                 |
+     | - the Rounds screen still steps through every round;                     |
+     | - the choice is still there when the program starts again.               |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing (throws IOException if a temporary file fails)       |
+     +--------------------------------------------------------------------------+
+     */
+    private static void checkIncludeHistoricalScreens() throws IOException
+    {
+        Path temp = Files.createTempDirectory("golfanalyst-include-screens");
+        Files.copy(Path.of("sample-data", DataLoader.COURSES_FILE), temp.resolve(DataLoader.COURSES_FILE));
+        String fives = "5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5";
+        String fours = "4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4";
+        String twos = "2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2";
+        String zeros = "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0";
+        StringBuilder rows = new StringBuilder("RoundID\tTeeID\tDate\tHoles\tPCC\tScores\tPutts\tFairways\tSand\tHistorical\n");
+        for (int lp = 1; lp <= 3; lp = lp + 1)
+        {
+            rows.append(lp).append("\t1\t2026-0").append(lp).append("-01\t\t\t").append(fives).append('\t').append(twos)
+                    .append('\t').append(zeros).append('\t').append(zeros).append("\t\n");
+        }
+        rows.append("4\t1\t2005-06-19\t\t\t").append(fours).append('\t').append(twos).append('\t').append(zeros).append('\t')
+                .append(zeros).append("\tY\n");
+        Files.writeString(temp.resolve(DataLoader.ROUNDS_FILE), rows.toString(), StandardCharsets.UTF_8);
+        DataStore store = new DataStore(temp);
+        TestShell shell = new TestShell(store);
+        HomePage home = new HomePage(shell);
+        StatsPage stats = new StatsPage(shell);
+        RoundPage best = new RoundPage(shell, true);
+        RoundPage viewer = new RoundPage(shell);
+        check("include historical: building Home, the Stats Board and Best Round makes no calls to the window", shell.windowCalls == 0);
+
+        home.onShow();
+        String index = home.handicapIndex.getText();
+        String low = home.lowIndex.getText();
+        String used = home.scoresUsed.getText();
+        check("include historical: the box starts ticked, with its tool tip", home.includeHistorical.isSelected()
+                && home.includeHistorical.getToolTipText().equals(HomePage.INCLUDE_HISTORICAL_TIP)
+                && HomePage.INCLUDE_HISTORICAL_TIP.startsWith("Count old (historical) rounds in your averages"));
+        check("include historical: ticked, Home counts the historical round", home.totalRounds.getText().equals("4")
+                && home.rounds18.getText().equals("4") && home.personalBest.getText().startsWith("72 /"));
+        stats.onShow();
+        check("include historical: ticked, the Stats Board counts it, with no footer note", stats.board.allEighteen().rounds() == 4
+                && !shell.status.contains("Historical rounds are left out"));
+        best.showBest();
+        check("include historical: ticked, Best Round's best single round is the historical 72",
+                best.title().equals("Best Single: 00004:Sample Links:White") && !shell.status.contains("left out"));
+
+        home.includeHistorical.toggle();
+        check("include historical: unticking updates the Home counts and statistics at once", home.totalRounds.getText().equals("3")
+                && home.rounds18.getText().equals("3") && home.personalBest.getText().startsWith("90 /")
+                && home.average18.getText().equals("90.0"));
+        check("include historical: the Handicap Index, Low Index and Rounds Used stay the same", home.handicapIndex.getText().equals(index)
+                && home.lowIndex.getText().equals(low) && home.scoresUsed.getText().equals(used));
+        check("include historical: unticking is saved in settings.txt",
+                Files.readString(temp.resolve("settings.txt")).contains("IncludeHistorical=false"));
+        stats.onShow();
+        check("include historical: unticked, the Stats Board leaves it out and says so", stats.board.allEighteen().rounds() == 3
+                && shell.status.endsWith(StatsPage.HISTORICAL_LEFT_OUT));
+        best.showBest();
+        check("include historical: unticked, Best Round picks a current round and says so",
+                !best.title().contains("00004") && shell.status.endsWith(StatsPage.HISTORICAL_LEFT_OUT));
+        best.compositeButton.doClick();
+        check("include historical: unticked, the composite says so too", best.scoreBox.getText().equals("90")
+                && shell.status.endsWith(StatsPage.HISTORICAL_LEFT_OUT));
+        viewer.showRoundAt(0);
+        int steps = 1;
+        while (viewer.nextButton.isEnabled())
+        {
+            viewer.nextButton.doClick();
+            steps = steps + 1;
+        }
+        check("include historical: the Rounds screen still steps through every round", steps == 4);
+
+        TestShell again = new TestShell(new DataStore(temp));
+        HomePage homeAgain = new HomePage(again);
+        homeAgain.onShow();
+        check("include historical: the choice is still there when the program starts again", !homeAgain.includeHistorical.isSelected()
+                && homeAgain.totalRounds.getText().equals("3"));
+        homeAgain.includeHistorical.toggle();
+        check("include historical: ticking it again counts the historical round again", homeAgain.totalRounds.getText().equals("4")
+                && again.store().includeHistorical());
         deleteFolder(temp);
     }
 

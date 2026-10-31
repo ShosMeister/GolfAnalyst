@@ -28,6 +28,6 @@ Remember two things. Count a putt only when your ball is on the green. A stroke 
 
 PCC: Leave it at 0 when you enter a round the day you play it. The handicap system works the PCC out overnight from everyone's scores, so the number does not exist until later. If your handicap record (GHIN, for example) then shows a PCC for the round, press Edit Round, type it in and Save.
 
-Historical: Tick the Historical box for a round that is too old to count toward today's handicap, such as one from an older version of the program. It is saved and you can still look at it with Rounds, but it is left out of your Handicap Index and your statistics. Nothing is lost.
+Historical: Tick the Historical box for a round that is too old to count toward today's handicap, such as one from an older version of the program. It is saved and you can still look at it with Rounds, but it is left out of your Handicap Index. Whether it counts in your statistics is set by the Include historical rounds box on the Home screen. Nothing is lost.
 
 Nine-hole rounds: If the Rating box says "no rating" the round is still saved and still counts in your statistics, just not in your handicap. To add the ratings, go back to Home and press New Course, type the course name and zip, then fill in that nine's rating and slope (the Front 9 or Back 9 row) and press Save. Your handicap is worked out again as soon as the course is saved, so the round counts straight away. If you add the ratings by editing courses.tsv yourself instead, it counts the next time you start the program.

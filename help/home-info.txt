@@ -10,17 +10,17 @@ Hole limit: For the handicap, no single hole counts for more than a net double b
 
 Low Index: The lowest index you had during the last 365 days. The rules use it to stop your index from climbing too quickly. It only exists once you have 20 rounds on record.
 
-Total Rounds, 18-Hole Rounds and 9-Hole Rounds: How many rounds you have saved. A nine-hole round counts as a round of its own. It is not added to another nine to make an 18. Historical rounds are not counted here.
+Total Rounds, 18-Hole Rounds and 9-Hole Rounds: How many rounds you have saved. A nine-hole round counts as a round of its own. It is not added to another nine to make an 18. Historical rounds are counted here only when Include historical rounds (see below) is ticked.
 
 Rounds Used: How many of the rounds on record count toward your index, out of how many there are (up to 20), for example 8 of 20.
 
 # Historical rounds
 
-A historical round is an old round kept only to look back at, such as the rounds brought over from the Excel version. When you step through your rounds it says "historical" in the 18-Hole Diff box, and the bar at the bottom says so too. It does not count toward your Handicap Index or in any of the numbers on this screen.
+A historical round is an old round kept to look back at, such as the rounds brought over from the Excel version. It never counts toward your Handicap Index. Whether it counts in your statistics, the Stats Board and Best Round is up to you: tick or untick Include historical rounds under Golfer's Stats. It starts ticked, because your old rounds are still true facts about your game. Untick it to see how you play today. When you step through your rounds, a historical round says "historical" in the 18-Hole Diff box, and the bar at the bottom says so too.
 
 # The Golfer's Stats section (right)
 
-These are the numbers that help you find the weak spot in your game. They use every round you have saved, apart from historical ones, and are not course specific. The Stats Board shows them course by course. All of the percentages are rounded to one decimal place.
+These are the numbers that help you find the weak spot in your game. They use every round you have saved (old historical rounds too, if Include historical rounds is ticked) and are not course specific. The Stats Board shows them course by course. All of the percentages are rounded to one decimal place.
 
 Name: Your name, kept in settings.txt in your data folder.
 
@@ -35,6 +35,8 @@ Sand Saves: The percentage of times you were in the sand and still made par or b
 Greens In Reg: The percentage of holes where you reached the green in regulation, which means you had a putt for birdie or better. The strokes you took before your first putt (your score minus your putts) must be no more than par minus 2. That is why a putt only counts when you are on the green. A chip-in for a birdie on a par 4 is not a green in regulation. A hole in one is.
 
 Two-Putt: The percentage of holes where you took two putts or fewer. Whatever is left over was three putts or more.
+
+Include historical rounds: Decides whether old (historical) rounds count in the numbers in this section, in the round counts on the left, on the Stats Board and in Best Round. Ticked, they do. Unticked, only your recent rounds do. It never changes your Handicap Index, Low Index or Rounds Used, which never include historical rounds. The program remembers your choice.
 
 # The buttons in the middle
 
@@ -100,3 +102,5 @@ Golf Analyst v4.40: Added the Stats Board, which shows your statistics course by
 Golf Analyst v4.41: Close on the Rounds screen goes back to the Stats Board when you came from there, instead of to the Home screen. Closing the window, pressing Home or pressing Cancel while you are part way through typing a new round or a course now asks "Discard your changes?" first.
 
 Golf Analyst v4.50: Added the Best Round screen. For any course and set of tees it shows your lowest single round, or a composite of your best score on every hole, so you can see how close your best day is to your potential.
+
+Golf Analyst v4.60: Added a Historical box on the round screens, so old rounds can be marked without editing a file, and an Include historical rounds box on the Home screen, so your statistics, the Stats Board and Best Round can count your old rounds or leave them out.

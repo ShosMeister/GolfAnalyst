@@ -41,6 +41,7 @@ import java.util.Set;
  |                                                                          |
  | Public Methods:                                                          |
  | build(rounds, tees)       - works out the whole board                    |
+ | build(rounds, tees, includeHistorical) - the same, maybe with historical |
  | sort(rows, column, up)    - the rows in a column's order, "-" last       |
  | best(rows)                - the cells to mark gold in one section        |
  | number(value)             - one decimal, a trailing ".0" dropped, or "-" |
@@ -242,9 +243,7 @@ public final class StatsBoard
      | build(rounds, tees)                                                      |
      +--------------------------------------------------------------------------+
      | Purpose:                                                                 |
-     | Groups the rounds that are not historical by tees and holes played,      |
-     | works out each row and the two total rows, and returns the board with    |
-     | each section in course order (Course : Tee Box ascending).               |
+     | Builds the board without the historical rounds (see the next build).     |
      |                                                                          |
      | Passed in:  rounds - every round (historical ones are left out here)     |
      |             tees   - course/tees keyed by id                             |
@@ -253,12 +252,33 @@ public final class StatsBoard
      */
     public static Board build(List<Round> rounds, Map<Integer, Tee> tees)
     {
+        return build(rounds, tees, false);
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | build(rounds, tees, includeHistorical)                                   |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Groups the rounds by tees and holes played, works out each row and the   |
+     | two total rows, and returns the board with each section in course        |
+     | order (Course : Tee Box ascending). Historical rounds are counted only   |
+     | when includeHistorical is true (the Home screen's box).                  |
+     |                                                                          |
+     | Passed in:  rounds            - every round                              |
+     |             tees              - course/tees keyed by id                  |
+     |             includeHistorical - true to count historical rounds too      |
+     | Passed out: the Board                                                    |
+     +--------------------------------------------------------------------------+
+     */
+    public static Board build(List<Round> rounds, Map<Integer, Tee> tees, boolean includeHistorical)
+    {
         Map<String, List<Round>> groups = new LinkedHashMap<>();
         Map<String, Part> groupPart = new LinkedHashMap<>();
         Map<String, Tee> groupTee = new LinkedHashMap<>();
         List<Round> allEighteen = new ArrayList<>();
         List<Round> allNine = new ArrayList<>();
-        for (Round round : Stats.current(rounds))
+        for (Round round : Stats.counted(rounds, includeHistorical))
         {
             Tee tee = tees.get(round.teeId());
             if (tee == null)

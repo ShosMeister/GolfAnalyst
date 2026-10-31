@@ -36,6 +36,8 @@ import java.util.Map;
  |                                                                          |
  | Public Methods:                                                          |
  | choices(rounds, tees)             - every course and tees with a round   |
+ | (each of the three also takes includeHistorical, the Home screen's box;  |
+ |  without it historical rounds are left out)                              |
  | latestChoice(rounds, tees)        - the kind of the most recent round    |
  | roundsOf(choice, rounds, tees)    - the rounds of that kind              |
  | bestSingle(rounds)                - the lowest round (newest on a tie)   |
@@ -99,18 +101,20 @@ public final class BestRound
      +--------------------------------------------------------------------------+
      | Purpose:                                                                 |
      | Lists every course and tees (and kind of round) that has at least one    |
-     | round that is not historical, sorted by course name, then tee name,      |
-     | then 18 holes before the front nine before the back nine.                |
+     | round counted, sorted by course name, then tee name, then 18 holes       |
+     | before the front nine before the back nine. Historical rounds count      |
+     | only when includeHistorical is true.                                     |
      |                                                                          |
-     | Passed in:  rounds - every round                                         |
-     |             tees   - course/tees keyed by id                             |
+     | Passed in:  rounds            - every round                              |
+     |             tees              - course/tees keyed by id                  |
+     |             includeHistorical - true to count historical rounds too      |
      | Passed out: the choices                                                  |
      +--------------------------------------------------------------------------+
      */
-    public static List<Choice> choices(List<Round> rounds, Map<Integer, Tee> tees)
+    public static List<Choice> choices(List<Round> rounds, Map<Integer, Tee> tees, boolean includeHistorical)
     {
         Map<String, Choice> found = new LinkedHashMap<>();
-        for (Round round : Stats.current(rounds))
+        for (Round round : Stats.counted(rounds, includeHistorical))
         {
             Tee tee = tees.get(round.teeId());
             if (tee == null)
@@ -129,12 +133,28 @@ public final class BestRound
     }
 
     /*
-     * latestChoice(rounds, tees): the choice of the most recently played round (latest date, then highest id), or null if there are none.
+     * choices(rounds, tees): the choices without historical rounds.
+     */
+    public static List<Choice> choices(List<Round> rounds, Map<Integer, Tee> tees)
+    {
+        return choices(rounds, tees, false);
+    }
+
+    /*
+     * latestChoice(rounds, tees): the choice of the most recently played round that is not historical, or null if there are none.
      */
     public static Choice latestChoice(List<Round> rounds, Map<Integer, Tee> tees)
     {
+        return latestChoice(rounds, tees, false);
+    }
+
+    /*
+     * latestChoice(rounds, tees, includeHistorical): the choice of the most recently played round counted (latest date, then highest id), or null if there are none.
+     */
+    public static Choice latestChoice(List<Round> rounds, Map<Integer, Tee> tees, boolean includeHistorical)
+    {
         Round latest = null;
-        for (Round round : Stats.current(rounds))
+        for (Round round : Stats.counted(rounds, includeHistorical))
         {
             Tee tee = tees.get(round.teeId());
             if (tee != null && (latest == null || newer(round, latest)))
@@ -165,8 +185,16 @@ public final class BestRound
      */
     public static List<Round> roundsOf(Choice choice, List<Round> rounds, Map<Integer, Tee> tees)
     {
+        return roundsOf(choice, rounds, tees, false);
+    }
+
+    /*
+     * roundsOf(choice, rounds, tees, includeHistorical): the rounds counted on the chosen tees and of the chosen kind (historical ones only when includeHistorical is true).
+     */
+    public static List<Round> roundsOf(Choice choice, List<Round> rounds, Map<Integer, Tee> tees, boolean includeHistorical)
+    {
         List<Round> kept = new ArrayList<>();
-        for (Round round : Stats.current(rounds))
+        for (Round round : Stats.counted(rounds, includeHistorical))
         {
             Tee tee = tees.get(round.teeId());
             if (tee != null && tee.id() == choice.teeId() && StatsBoard.partOf(round, tee) == choice.part())

@@ -1,6 +1,6 @@
 Stats Board - Info
 
-This is the Stats Board. It shows your statistics course by course, so you can see where you play well and where you struggle. Every number is worked out by the program from the rounds you have saved, the same way as on the Home screen. Historical rounds are not counted.
+This is the Stats Board. It shows your statistics course by course, so you can see where you play well and where you struggle. Every number is worked out by the program from the rounds you have saved, the same way as on the Home screen. Historical rounds count here when Include historical rounds is ticked on the Home screen, and are left out when it is not.
 
 # The rows
 

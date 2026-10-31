@@ -20,7 +20,7 @@ These show the round as it would be with your changes: the eagles to others, the
 
 Date: The day you played. You can change it.
 
-Historical: Ticked for an old round that is kept only to look back at and is left out of your handicap and your statistics. You can tick or untick it.
+Historical: Ticked for an old round that is kept to look back at. It is never part of your handicap; whether it counts in your statistics is set on the Home screen. You can tick or untick it.
 
 # Save and Cancel, at the right end of the frame under the tables
 

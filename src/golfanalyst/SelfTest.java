@@ -557,6 +557,15 @@ public final class SelfTest
 
         try
         {
+            checkIncludeHistorical();
+        }
+        catch (IOException failure)
+        {
+            check("include historical: temporary files could be written (" + failure.getMessage() + ")", false);
+        }
+
+        try
+        {
             checkCourseFiles();
             checkRoundReplace();
             checkHistorical();
@@ -842,6 +851,136 @@ public final class SelfTest
         check("numbers: one decimal", StatsBoard.number(14.2857).equals("14.3"));
         check("numbers: a trailing .0 is dropped", StatsBoard.number(43.0).equals("43"));
         check("numbers: nothing to show is -", StatsBoard.number(Double.NaN).equals("-"));
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | checkIncludeHistorical()                                                 |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Tests the Home screen's "Include historical rounds" choice on rounds     |
+     | worked out by hand: a 78 and an 81 on Test Links:White, a historical     |
+     | 71 there with a birdie on hole 1 (so it would be both the best single    |
+     | round and the best score on hole 1), and a historical nine on Nine Park, |
+     | the only round there.                                                    |
+     |                                                                          |
+     | It checks that, with historical rounds included and left out:            |
+     | - the statistics count the right rounds and the right best score;        |
+     | - the Stats Board's rows and both total rows do the same;                |
+     | - Best Round's list, best single round and composite do the same;        |
+     | - the handicap is the same either way;                                   |
+     | - the choice is saved in settings.txt, read back, ticked when the line   |
+     |   is missing, and saving the golfer's name does not lose it.             |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing (throws IOException if a temporary file fails)       |
+     +--------------------------------------------------------------------------+
+     */
+    private static void checkIncludeHistorical() throws IOException
+    {
+        Tee links = testTee(0, 0);
+        int[] pars = links.pars();
+        int[] ninePars = {4, 3, 5, 4, 4, 3, 5, 4, 4};
+        int[] nineIndex = {1, 2, 3, 4, 5, 6, 7, 8, 9};
+        Tee park = new Tee(2, "Nine Park", "", "", "", "Red", Tee.NINE, 34.0, 110, 3000,
+                ninePars, nineIndex, 0, 0, 0, 0);
+        Map<Integer, Tee> tees = Map.of(1, links, 2, park);
+        Round seventyEight = roundOver(1, 6, "2026-03-01", links);
+        Round eightyOne = roundOver(2, 9, "2026-04-01", links);
+        int[] oldScores = pars.clone();
+        oldScores[0] = pars[0] - 1;
+        int[] oldPutts = new int[Tee.HOLES];
+        Arrays.fill(oldPutts, PLAIN_PUTTS);
+        boolean[] none = new boolean[Tee.HOLES];
+        Round oldBest = new Round(3, 1, LocalDate.parse("2005-06-19"), 0, 0, Tee.HOLES, oldScores, oldPutts,
+                none.clone(), none.clone(), true);
+        boolean[] noNine = new boolean[Tee.NINE];
+        Round oldNine = new Round(4, 2, LocalDate.parse("2005-07-04"), 0, 0, Tee.NINE, ninePars.clone(),
+                new int[] {2, 2, 2, 2, 2, 2, 2, 2, 2}, noNine, noNine.clone(), true);
+        List<Round> rounds = List.of(seventyEight, eightyOne, oldBest, oldNine);
+
+        Stats.Summary withOld = Stats.summarize(Stats.counted(rounds, true), tees);
+        Stats.Summary withoutOld = Stats.summarize(Stats.counted(rounds, false), tees);
+        check("include historical: the statistics count every round and the historical 71 is the best", withOld.rounds() == 4
+                && withOld.rounds18() == 3 && withOld.rounds9() == 1 && withOld.bestScore18() == 71 && withOld.bestScore9() == 36);
+        check("leave historical out: the statistics count only the 78 and the 81", withoutOld.rounds() == 2
+                && withoutOld.rounds9() == 0 && withoutOld.bestScore18() == 78);
+
+        StatsBoard.Board boardWith = StatsBoard.build(rounds, tees, true);
+        StatsBoard.Board boardWithout = StatsBoard.build(rounds, tees, false);
+        check("include historical: the Stats Board row and 18-hole total count three rounds, best 71",
+                boardWith.eighteen().size() == 1 && boardWith.eighteen().get(0).rounds() == 3
+                        && boardWith.allEighteen().rounds() == 3 && boardWith.allEighteen().best() == 71);
+        check("include historical: the historical nine has its own row and is in the nine-hole total",
+                boardWith.nine().size() == 1 && boardWith.nine().get(0).label().equals("Nine Park:Red") && boardWith.allNine().rounds() == 1);
+        check("leave historical out: the Stats Board row and totals count only the 78 and the 81",
+                boardWithout.eighteen().get(0).rounds() == 2 && boardWithout.allEighteen().rounds() == 2
+                        && boardWithout.allEighteen().best() == 78 && boardWithout.nine().isEmpty() && boardWithout.allNine().rounds() == 0);
+        check("the Stats Board without the choice leaves historical rounds out",
+                StatsBoard.build(rounds, tees).allEighteen().rounds() == 2);
+
+        List<BestRound.Choice> choicesWith = BestRound.choices(rounds, tees, true);
+        List<BestRound.Choice> choicesWithout = BestRound.choices(rounds, tees, false);
+        check("include historical: Best Round lists the course with only a historical round", choicesWith.size() == 2
+                && choicesWith.get(0).label().equals("Nine Park:Red"));
+        check("leave historical out: Best Round lists only Test Links", choicesWithout.size() == 1
+                && choicesWithout.get(0).label().equals("Test Links:White"));
+        BestRound.Choice white = choicesWithout.get(0);
+        check("include historical: the historical 71 is the best single round",
+                BestRound.bestSingle(BestRound.roundsOf(white, rounds, tees, true)) == oldBest);
+        check("leave historical out: the 78 is the best single round",
+                BestRound.bestSingle(BestRound.roundsOf(white, rounds, tees, false)) == seventyEight);
+        List<BestRound.HoleResult> compositeWith = BestRound.composite(BestRound.roundsOf(white, rounds, tees, true));
+        List<BestRound.HoleResult> compositeWithout = BestRound.composite(BestRound.roundsOf(white, rounds, tees, false));
+        check("include historical: the composite takes the historical birdie on hole 1", compositeWith.get(0).from() == oldBest
+                && compositeWith.get(0).score() == pars[0] - 1);
+        check("leave historical out: the composite's hole 1 comes from a current round", compositeWithout.get(0).from() != oldBest
+                && compositeWithout.get(0).score() == pars[0] + 1);
+        check("include historical: the latest choice is still the newest round's", BestRound.latestChoice(rounds, tees, true).key()
+                .equals(BestRound.latestChoice(rounds, tees, false).key()));
+
+        Path temp = Files.createTempDirectory("golfanalyst-include-test");
+        Files.copy(Path.of("sample-data", DataLoader.COURSES_FILE), temp.resolve(DataLoader.COURSES_FILE));
+        String fives = "5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5";
+        String fours = "4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4";
+        String twos = "2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2";
+        String zeros = "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0";
+        StringBuilder file = new StringBuilder("RoundID\tTeeID\tDate\tHoles\tPCC\tScores\tPutts\tFairways\tSand\tHistorical\n");
+        for (int lp = 1; lp <= 3; lp = lp + 1)
+        {
+            file.append(lp).append("\t1\t2026-0").append(lp).append("-01\t\t\t").append(fives).append('\t').append(twos)
+                    .append('\t').append(zeros).append('\t').append(zeros).append("\t\n");
+        }
+        file.append("4\t1\t2005-06-19\t\t\t").append(fours).append('\t').append(twos).append('\t').append(zeros).append('\t')
+                .append(zeros).append("\tY\n");
+        Files.writeString(temp.resolve(DataLoader.ROUNDS_FILE), file.toString(), StandardCharsets.UTF_8);
+        Path settingsFile = temp.resolve("settings.txt");
+        DataStore store = new DataStore(temp);
+        check("setting: with no settings.txt historical rounds are included", store.includeHistorical()
+                && store.overall().rounds() == 4 && store.overall().bestScore18() == 72);
+        Handicap.Result handicapWith = store.handicap();
+        store.setIncludeHistorical(false);
+        check("setting: unticked is saved as IncludeHistorical=false", Files.readString(settingsFile).contains("IncludeHistorical=false"));
+        check("setting: unticked, the statistics leave the historical round out at once", store.overall().rounds() == 3
+                && store.overall().bestScore18() == 90);
+        check("setting: the handicap is the same either way", store.handicap().entries().size() == 3
+                && Objects.equals(store.handicap().currentIndex(), handicapWith.currentIndex())
+                && Objects.equals(store.handicap().lowIndex(), handicapWith.lowIndex())
+                && store.handicap().currentDifferentials().equals(handicapWith.currentDifferentials()));
+        check("setting: it is read back when the program starts", !new DataStore(temp).includeHistorical()
+                && new DataStore(temp).overall().rounds() == 3);
+        store.setGolferName("Pat Golfer");
+        check("setting: saving the golfer's name keeps it", !new DataStore(temp).includeHistorical()
+                && store.golferName().equals("Pat Golfer"));
+        store.setIncludeHistorical(true);
+        check("setting: saving it keeps the golfer's name", new DataStore(temp).includeHistorical()
+                && store.golferName().equals("Pat Golfer") && Files.readString(settingsFile).contains("IncludeHistorical=true"));
+        Files.writeString(settingsFile, "golfer=Pat Golfer\n", StandardCharsets.UTF_8);
+        check("setting: a missing IncludeHistorical line means ticked", new DataStore(temp).includeHistorical());
+        Files.deleteIfExists(settingsFile);
+        Files.deleteIfExists(temp.resolve(DataLoader.ROUNDS_FILE));
+        Files.deleteIfExists(temp.resolve(DataLoader.COURSES_FILE));
+        Files.deleteIfExists(temp);
     }
 
     /*

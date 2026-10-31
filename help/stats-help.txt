@@ -4,7 +4,7 @@ Here is how to use the Stats Board.
 
 # Getting here
 
-Press Stats Board on the Home screen. The Home button at the top takes you back.
+Press Stats Board on the Home screen. The Home button at the top takes you back. Whether old (historical) rounds are counted here is set by the Include historical rounds box on the Home screen.
 
 # Picking a row
 

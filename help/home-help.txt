@@ -44,7 +44,9 @@ For example, I know, from using this program, that my weakness is my short game.
 
 # Old rounds
 
-Rounds too old to count toward today's handicap can still be kept, so nothing is lost. When you enter or edit a round, tick the Historical box. The round is saved and you can still step through it with Rounds, but it is left out of your Handicap Index and your statistics.
+Rounds too old to count toward today's handicap can still be kept, so nothing is lost. When you enter or edit a round, tick the Historical box. The round is saved and you can still step through it with Rounds, but it is left out of your Handicap Index. Whether it counts in your statistics is up to you: the Include historical rounds box under Golfer's Stats on this screen turns that on and off.
+
+To see how you play today, untick Include historical rounds. The numbers on this screen, the Stats Board and Best Round then use only your recent rounds. Tick it again to bring the old ones back. Your Handicap Index never uses old rounds either way.
 
 # Seeing the whole picture
 

@@ -1523,10 +1523,10 @@ public final class RoundPage extends Page
     public void showBest()
     {
         DataStore store = shell.store();
-        BestRound.Choice latest = BestRound.latestChoice(store.roundsByDate(), store.teeMap());
+        BestRound.Choice latest = BestRound.latestChoice(store.roundsByDate(), store.teeMap(), store.includeHistorical());
         updating = true;
         bestCombo.removeAllItems();
-        for (BestRound.Choice choice : BestRound.choices(store.roundsByDate(), store.teeMap()))
+        for (BestRound.Choice choice : BestRound.choices(store.roundsByDate(), store.teeMap(), store.includeHistorical()))
         {
             bestCombo.addItem(choice);
             if (latest != null && choice.key().equals(latest.key()))
@@ -1578,11 +1578,11 @@ public final class RoundPage extends Page
             updating = false;
             recalc();
             bestTitle = BEST_TITLE;
-            shell.setStatus(NO_ROUNDS_YET);
+            shell.setStatus(NO_ROUNDS_YET + leftOutNote());
             shell.refreshTitle();
             return;
         }
-        List<Round> rounds = BestRound.roundsOf(choice, store.roundsByDate(), store.teeMap());
+        List<Round> rounds = BestRound.roundsOf(choice, store.roundsByDate(), store.teeMap(), store.includeHistorical());
         Round single = BestRound.bestSingle(rounds);
         String count = rounds.size() + (rounds.size() == 1 ? " round" : " rounds");
         if (singleButton.isSelected())
@@ -1591,7 +1591,7 @@ public final class RoundPage extends Page
             recalc();
             Tee tee = store.teeMap().get(single.teeId());
             bestTitle = "Best Single: " + String.format("%05d:%s:%s", single.id(), tee.courseName(), tee.teeName());
-            shell.setStatus("Best of " + count + " on " + choice.label() + ": " + single.totalScore() + " on " + single.date() + ".");
+            shell.setStatus("Best of " + count + " on " + choice.label() + ": " + single.totalScore() + " on " + single.date() + "." + leftOutNote());
         }
         else
         {
@@ -1605,9 +1605,17 @@ public final class RoundPage extends Page
             recalc();
             bestTitle = "Best Composite: " + choice.label();
             shell.setStatus("Best score on every hole from " + count + " on " + choice.label() + ": " + composite.totalScore()
-                    + ". The best single round is " + single.totalScore() + ".");
+                    + ". The best single round is " + single.totalScore() + "." + leftOutNote());
         }
         shell.refreshTitle();
+    }
+
+    /*
+     * leftOutNote(): the footer note for Best Round when the Home screen's box leaves historical rounds out, or "".
+     */
+    private String leftOutNote()
+    {
+        return (shell.store().includeHistorical() ? "" : StatsPage.HISTORICAL_LEFT_OUT);
     }
 
     /*
