@@ -6,6 +6,8 @@ This is the Home screen. It shows where you stand overall and has the buttons th
 
 Handicap Index: Your current USGA Handicap Index. It follows the rules of the World Handicap System: your best 8 rounds out of your last 20, each one adjusted for the difficulty of the course and tees you played. With fewer than 20 rounds on record, fewer of your best rounds are used. You need at least 54 holes played before you have an index at all: three rounds of 18, or a mix of 18-hole and nine-hole rounds that adds up to 54 holes. Nine-hole rounds count toward your index as long as the nine you played has a rating. It shows n/a until then.
 
+Hole limit: For the handicap, no single hole counts for more than a net double bogey. That is par plus 2, plus any handicap strokes you get on that hole, so on a hole where you get a stroke it is par plus 3. Until you have a Handicap Index it is par plus 5. The program applies the limit itself, so one disaster hole cannot wreck your index. Your scores and statistics still show what you really wrote down.
+
 Low Index: The lowest index you had during the last 365 days. The rules use it to stop your index from climbing too quickly. It only exists once you have 20 rounds on record.
 
 Total Rounds, 18-Hole Rounds and 9-Hole Rounds: How many rounds you have saved. A nine-hole round counts as a round of its own. It is not added to another nine to make an 18. Historical rounds are not counted here.
@@ -48,7 +50,7 @@ Import, Clear, Analyzer and Print are not built yet. They are in place and will 
 
 The round house button on the left takes you back here from any other screen. The i button, this one, explains what is on the screen you are looking at. The ? button explains how to use it. The bar along the bottom shows messages. If a problem was found in your data files it tells you how many, and clicking it lists them.
 
-The yellow Golf Analyst text at the bottom left of every screen is the version of the program. It is also a way to see the whole photo behind the screen: hold the mouse button down on it and everything else on the screen is hidden until you let go.
+The yellow Golf Analyst text at the bottom left of every screen is the version of the program. You can also hold the mouse button down on it to see the photo; the Help explains how.
 
 # About Golf Analyst
 

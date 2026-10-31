@@ -8,19 +8,21 @@ There really isn't much more you need to do when you play a round to capture the
 
 Two rules to remember. A putt is only counted when your ball is on the putting green. A stroke from the fringe or the collar is not a putt, even if you use your putter. And if you hole out from off the green (a chip-in, for example) that hole has 0 putts.
 
+A tip for keeping up the pace of play. For the handicap, no hole counts for more than a net double bogey: par plus 2, plus any handicap strokes you get on that hole (par plus 5 until you have a Handicap Index). So once you reach that number, you can pick up, write it down and move on. Counting out an 8 on a hole that only counts as a 7 does nothing for your handicap, and the program applies the limit for you. That is also why the New Course screen asks for the handicap number of every hole: it needs them to know where you get strokes.
+
 # After you play
 
 To add the round, press New Round. Fill it in from your scorecard and press Save. You can even type the same F and S letters you marked on your card, right in the Putt box. The Help button on that screen walks you through it. When you come back to Home, your handicap and statistics already include the new round.
 
 To look back at your rounds, press Rounds. It opens at your most recent round and the arrows at the bottom step through the others. You can limit it to one course, or one set of tees, with the Show box.
 
-To fix a round you have saved, press Edit Round. Step to the round with the arrows, press Edit, change what you need and press Save. Only that round is changed, and a copy of your rounds file as it was is kept in rounds.tsv.bak, just in case.
+To fix a round you have saved, press Edit Round; the ? button on that screen walks you through it.
 
 To change the name, click it in the Golfer's Stats section, type the name and press OK.
 
 # Adding a course
 
-You cannot enter a round until its course is in the program. Press New Course, type the course name and zip, then the rating, slope, pars and handicap numbers of each set of tees straight from the scorecard, and press Save. You can put in up to four sets of tees at once, and add more tees to a course later the same way. To fix a course you have saved, type its name and zip on that screen: its tees appear, ready to change. The Help button on that screen walks you through it. If you want a front nine or back nine round on an 18-hole course to count toward your handicap, fill in that nine's own rating and slope too.
+You cannot enter a round until its course is in the program. Press New Course, type the course name and zip, then each set of tees from the scorecard, and press Save. The ? button on that screen walks you through it.
 
 # Your own data
 
@@ -42,7 +44,7 @@ For example, I know, from using this program, that my weakness is my short game.
 
 # Old rounds
 
-Rounds too old to count toward today's handicap can still be kept, so nothing is lost. In rounds.tsv in your data folder, put a Y in the Historical column of each old round. You can still step through them with Rounds, but they are left out of your Handicap Index and your statistics. Close the program and open it again after editing the file.
+Rounds too old to count toward today's handicap can still be kept, so nothing is lost. When you enter or edit a round, tick the Historical box. The round is saved and you can still step through it with Rounds, but it is left out of your Handicap Index and your statistics.
 
 # Seeing the whole picture
 

@@ -918,6 +918,24 @@ public final class SelfTest
         check("editing a historical round keeps its Y", after.get(1).startsWith("1\t1\t2005-06-19\t") && after.get(1).endsWith("\tY")
                 && after.get(1).contains("\t3,4,4,"));
         check("editing it leaves the other round alone", after.get(2).equals(lines.get(3)));
+
+        // A file from before the Historical column: marking a round adds the column to the header only
+        String oldHeader = "RoundID\tTeeID\tDate\tHoles\tScores\tPutts\tFairways\tSand";
+        String oldLine = "1\t1\t2005-06-19\t\t" + eighty + "\t" + twos + "\t" + zeros + "\t" + zeros;
+        String oldFile = "# my rounds\r\n" + oldHeader + "\r\n" + oldLine + "\r\n";
+        Files.writeString(roundsFile, oldFile, StandardCharsets.UTF_8);
+        RoundWriter.replace(roundsFile, fixed, tee);
+        String marked = Files.readString(roundsFile, StandardCharsets.UTF_8);
+        check("marking a round historical in an older file adds the column to the header",
+                marked.startsWith("# my rounds\r\n" + oldHeader + "\tHistorical\r\n1\t1\t2005-06-19\t") && marked.endsWith("\tY\r\n"));
+        Files.writeString(roundsFile, oldFile, StandardCharsets.UTF_8);
+        RoundWriter.append(roundsFile, rounds.get(2), tee);
+        check("an ordinary round added to an older file leaves the header alone",
+                Files.readString(roundsFile, StandardCharsets.UTF_8).startsWith("# my rounds\r\n" + oldHeader + "\r\n" + oldLine + "\r\n"));
+        RoundWriter.append(roundsFile, fixed, tee);
+        List<String> appended = Files.readAllLines(roundsFile, StandardCharsets.UTF_8);
+        check("a historical round added to an older file adds the column and its Y", appended.get(1).equals(oldHeader + "\tHistorical")
+                && appended.get(2).equals(oldLine) && appended.get(appended.size() - 1).endsWith("\tY"));
         Files.deleteIfExists(temp.resolve(DataLoader.ROUNDS_FILE + RoundWriter.BACKUP_SUFFIX));
         Files.deleteIfExists(roundsFile);
         Files.deleteIfExists(temp);

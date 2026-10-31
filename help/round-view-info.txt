@@ -24,26 +24,20 @@ Rating: The Course Rating and the Slope Rating for the holes that were played. I
 
 Eagles, Birdies, Pars, Bogeys, DBogeys, Others: How many holes of each kind the round had. Others means triple bogey or worse.
 
-18-Hole Diff: The round's score differential, which is what your handicap is built from. For a nine-hole round it is the nine-hole differential plus an expected score for the other nine holes, based on your index on that day. It shows "pending" for a nine-hole round played before you had a Handicap Index, until you have played 54 holes.
+18-Hole Diff: How well you played this round once the difficulty of the course is taken into account; lower is better (the Info on the New Round screen explains it). It shows "pending" for a nine-hole round played before you had a Handicap Index, until you have played 54 holes.
 
 Index After: What your Handicap Index was right after this round was added.
 
-Historical rounds: An old round kept only to look back at shows "historical" in the 18-Hole Diff box and a dash for Index After, and the bar at the bottom says it is historical. It is not part of your handicap or your statistics.
+Historical: Ticked, in the frame under the tables, for an old round that is kept only to look back at. It shows "historical" in the 18-Hole Diff box and a dash for Index After, and the bar at the bottom says so. It is not part of your handicap or your statistics.
 
 # The frame under the tables
 
 Date, Score and Putts: When the round was played and its totals.
 
-Fairway: Fairways hit out of the par 4s and par 5s that were played.
-
-Sand Saves: Times you saved par or better out of the holes where you were in the sand.
-
-Greens In Reg: Holes where the strokes before your first putt (your score minus your putts) were no more than par minus 2.
-
-2-Putt: Holes where you took two putts or fewer.
+Fairway, Sand Saves, Greens In Reg and 2-Putt: The same four figures as on the Home screen, worked out for this round.
 
 # The four arrows and the bar at the bottom
 
 The arrows are First, Previous, Next and Last round, within whatever you chose in Show. An arrow is greyed out when there is nowhere to go. The bar along the bottom says which round you are on and how many there are in your choice, for example Round 3 of 12.
 
-Edit and Close: At the right end of the frame under the tables. Edit opens the round on show so you can fix it. Close goes back to where you came from: the Stats Board if you opened the round from there, otherwise the Home screen.
+Edit and Close: At the right end of the frame under the tables. Edit opens the round so you can fix it. Close leaves the screen.

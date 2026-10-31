@@ -8,7 +8,7 @@ Course / tee: The course and tees you played, with the ID number of that set of 
 
 Holes: 18 holes, the front nine or the back nine. A nine-hole course has only one choice.
 
-PCC: The Playing Conditions Calculation for the day, from -1 to 3. It is almost always 0 and it is only used for the handicap. You can leave it alone unless you know the day's value.
+PCC: The Playing Conditions Calculation, from -1 to 3. It adjusts a round for a day when the course played harder or easier than normal, and it is almost always 0. Your handicap system works it out after the day's scores are in and shows it in your scoring record (a dash means 0). It is only used for the handicap.
 
 # The hole-by-hole tables
 
@@ -34,7 +34,7 @@ Rating: The Course Rating and the Slope Rating of the tees you chose, for the ho
 
 Eagles, Birdies, Pars, Bogeys, DBogeys, Others: How many holes of each kind you have so far. Others means triple bogey or worse.
 
-18-Hole Diff: This round's score differential, which is what your handicap is built from. It compares what you shot with what a scratch golfer would shoot on those tees, so rounds on different courses can be compared. On a very bad hole your score is cut back to the most the rules allow (net double bogey) before it is used. A nine-hole round gets an expected score for the other nine holes added to it, based on your index on the day, so that it can sit alongside your 18-hole rounds. It appears when every hole is filled in.
+18-Hole Diff: A number that says how well you played this round once the difficulty of the course is taken into account. Lower is better. It is how far your score was from what a scratch golfer would shoot on those tees, adjusted for the slope, so a round on a hard course and a round on an easy one can be compared fairly. No hole counts for more than a net double bogey (the Home Info explains), so one disaster hole cannot wreck it. Your Handicap Index is built from your best ones. For a nine-hole round the program estimates the other nine holes, which is why it still says 18-Hole. It appears when every hole is filled in.
 
 Index After: What your Handicap Index will be once this round is added. It also appears when every hole is filled in.
 
@@ -51,6 +51,8 @@ Sand Saves: How many times you saved par or better out of the holes where you we
 Greens In Reg: Holes where the strokes before your first putt (your score minus your putts) were no more than par minus 2.
 
 2-Putt: Holes where you took two putts or fewer.
+
+Historical: A box to tick for an old round that you want to keep for looking back at. A historical round is left out of your Handicap Index and your statistics.
 
 Save and Cancel: Save adds the round to your data. Cancel throws away what you have typed. The ? button explains how to use them.
 

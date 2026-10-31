@@ -12,6 +12,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
+import java.awt.Color;
 import java.awt.Component;
 import java.awt.Container;
 import javax.swing.AbstractButton;
@@ -829,6 +830,7 @@ public final class GuiSelfTest
         checkRoundLook(page);
         checkPeek();
         checkHistoricalScreens();
+        checkHistoricalBox();
         checkStatsPage();
         checkBestRoundPage();
         checkSampleSafeguard();
@@ -1489,6 +1491,115 @@ public final class GuiSelfTest
                 && after.get(1).contains("\t6,5,5,") && after.get(1).endsWith("\tY"));
         check("after saving it is still shown as historical", page.differentialBox.getText().equals("historical")
                 && store.handicap().entries().size() == 1);
+        deleteFolder(temp);
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | checkHistoricalBox()                                                     |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | The Historical check box on the round screen, on its own data folder:    |
+     | the sample courses and three 90s on Sample Links:White, in a rounds      |
+     | file with the standard header (no Historical column, like the sample     |
+     | data).                                                                   |
+     |                                                                          |
+     | It checks that:                                                          |
+     | - a new round starts unticked, with the box white and open, and the      |
+     |   cursor goes Date, Historical, Save;                                    |
+     | - Space and a click tick it, and ticking shows "historical" at once      |
+     |   and counts as a change;                                                |
+     | - saving it ticked adds a Historical column to the header (with a        |
+     |   .bak) and writes Y, and the handicap and statistics leave it out;      |
+     | - looking at it, the box is ticked, grey and switched off;               |
+     | - Edit keeps it ticked, and unticking and saving clears the Y and brings |
+     |   the round into the handicap and statistics;                            |
+     | - on Best Round the box is grey and switched off.                        |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing (throws IOException if a temporary file fails)       |
+     +--------------------------------------------------------------------------+
+     */
+    private static void checkHistoricalBox() throws IOException
+    {
+        Path temp = Files.createTempDirectory("golfanalyst-historical-box");
+        Files.copy(Path.of("sample-data", DataLoader.COURSES_FILE), temp.resolve(DataLoader.COURSES_FILE));
+        String fives = "5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5";
+        String twos = "2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2";
+        String zeros = "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0";
+        StringBuilder rows = new StringBuilder(golfanalyst.RoundWriter.STANDARD_HEADER).append('\n');
+        for (int lp = 1; lp <= 3; lp = lp + 1)
+        {
+            rows.append(lp).append("\t1\t2026-0").append(lp).append("-01\t\t\t").append(fives).append('\t').append(twos)
+                    .append('\t').append(zeros).append('\t').append(zeros).append('\n');
+        }
+        Path roundsFile = temp.resolve(DataLoader.ROUNDS_FILE);
+        Files.writeString(roundsFile, rows.toString(), StandardCharsets.UTF_8);
+        DataStore store = new DataStore(temp);
+        TestShell shell = new TestShell(store);
+        RoundPage page = new RoundPage(shell);
+        Double indexBefore = store.handicap().currentIndex();
+        int[] pars = store.teeMap().get(1).pars();
+
+        page.showNew();
+        check("historical box: a new round starts unticked, white and open", !page.historicalCheck.isSelected()
+                && page.historicalCheck.isEnabled() && page.historicalCheck.getBackground().equals(Color.WHITE));
+        for (int hole = 0; hole < 18; hole = hole + 1)
+        {
+            type(page.puttFields[hole], "2");
+            type(page.scoreFields[hole], Integer.toString(pars[hole]));
+        }
+        page.dateField.setText("2026-04-01");
+        check("historical box: the cursor goes from the date to the box, then to Save",
+                page.componentAfter(page.dateField) == page.historicalCheck && page.componentAfter(page.historicalCheck) == page.saveButton);
+        check("historical box: an ordinary new round shows its differential", !page.differentialBox.getText().equals("historical"));
+        java.awt.event.KeyEvent space = new java.awt.event.KeyEvent(page.historicalCheck, java.awt.event.KeyEvent.KEY_PRESSED,
+                System.currentTimeMillis(), 0, java.awt.event.KeyEvent.VK_SPACE, ' ');
+        for (java.awt.event.KeyListener listener : page.historicalCheck.getKeyListeners())
+        {
+            listener.keyPressed(space);
+        }
+        check("historical box: Space ticks it", page.historicalCheck.isSelected());
+        page.historicalCheck.toggle();
+        check("historical box: a click unticks it", !page.historicalCheck.isSelected());
+        page.historicalCheck.toggle();
+        check("historical box: ticking shows historical at once", page.differentialBox.getText().equals("historical")
+                && page.indexBox.getText().equals("-") && page.hasChanges());
+        page.saveButton.doClick();
+        List<String> lines = Files.readAllLines(roundsFile, StandardCharsets.UTF_8);
+        check("historical box: saving adds a Historical column to the header", lines.get(0).equals(golfanalyst.RoundWriter.STANDARD_HEADER + "\tHistorical")
+                && Files.exists(temp.resolve(DataLoader.ROUNDS_FILE + ".bak")));
+        check("historical box: the other rows are left as they were", lines.get(1).equals(rows.toString().split("\n")[1]));
+        check("historical box: saving it ticked writes Y", lines.size() == 5 && lines.get(4).startsWith("4\t1\t2026-04-01\t")
+                && lines.get(4).endsWith("\tY"));
+        check("historical box: the handicap leaves the ticked round out", store.handicap().entries().size() == 3
+                && java.util.Objects.equals(store.handicap().currentIndex(), indexBefore));
+        check("historical box: so do the statistics", store.overall().rounds() == 3);
+        check("historical box: looking at it, the box is ticked, grey and switched off", page.historicalCheck.isSelected()
+                && !page.historicalCheck.isEnabled() && page.historicalCheck.getBackground().equals(Theme.FIELD_FACE)
+                && page.differentialBox.getText().equals("historical"));
+
+        page.editButton.doClick();
+        check("historical box: Edit keeps it ticked and opens it", page.historicalCheck.isSelected()
+                && page.historicalCheck.isEnabled() && page.historicalCheck.getBackground().equals(Color.WHITE) && !page.hasChanges());
+        page.historicalCheck.toggle();
+        check("historical box: unticking shows the differential again", !page.differentialBox.getText().equals("historical")
+                && page.hasChanges());
+        page.saveButton.doClick();
+        lines = Files.readAllLines(roundsFile, StandardCharsets.UTF_8);
+        check("historical box: unticking and saving clears the Y", lines.get(4).startsWith("4\t1\t2026-04-01\t") && lines.get(4).endsWith("\t"));
+        check("historical box: the round now counts in the handicap and statistics", store.handicap().entries().size() == 4
+                && store.overall().rounds() == 4 && !java.util.Objects.equals(store.handicap().currentIndex(), indexBefore));
+        check("historical box: looking at it now, the box is unticked and grey", !page.historicalCheck.isSelected()
+                && !page.historicalCheck.isEnabled() && page.historicalCheck.getBackground().equals(Theme.FIELD_FACE));
+        page.editButton.doClick();
+        check("historical box: Edit keeps an ordinary round unticked", !page.historicalCheck.isSelected());
+        page.cancelButton.doClick();
+
+        RoundPage best = new RoundPage(shell, true);
+        best.showBest();
+        check("historical box: on Best Round it is grey and switched off", !best.historicalCheck.isEnabled()
+                && best.historicalCheck.getBackground().equals(Theme.FIELD_FACE) && !best.historicalCheck.isSelected());
         deleteFolder(temp);
     }
 

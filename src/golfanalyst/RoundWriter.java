@@ -28,6 +28,7 @@ import java.util.Set;
  | Constants:                                                               |
  | STANDARD_HEADER - the header used when a file has none                   |
  | BACKUP_SUFFIX   - added to the file name for the backup copy (".bak")    |
+ | HISTORICAL_HEADING - the Historical column's heading                     |
  |                                                                          |
  | Public Methods:                                                          |
  | append(file, round, tee)            - adds one round to the file         |
@@ -41,6 +42,7 @@ public final class RoundWriter
 
     public static final String STANDARD_HEADER = "RoundID\tTeeID\tDate\tHoles\tPCC\tScores\tPutts\tFairways\tSand";
     public static final String BACKUP_SUFFIX = LineReplacer.BACKUP_SUFFIX;
+    public static final String HISTORICAL_HEADING = "Historical";
     private static final Set<String> KNOWN_COLUMNS =
             Set.of("roundid", "teeid", "date", "holes", "pcc", "scores", "putts", "fairways", "sand", "historical");
 
@@ -170,13 +172,67 @@ public final class RoundWriter
     }
 
     /*
+     * hasHistoricalColumn(headerCells): whether the header row has a Historical column (any capitals or spaces).
+     * Passed in:  headerCells - the header row, split into its cells
+     * Passed out: true if it has one
+     */
+    static boolean hasHistoricalColumn(String[] headerCells)
+    {
+        for (String cell : headerCells)
+        {
+            if (DataLoader.normalize(cell).equals("historical"))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | withHistoricalColumn(text)                                               |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Adds a Historical column to the end of the header row, so a ticked       |
+     | Historical box has somewhere to go in a file made before v4.30 (the      |
+     | sample data has no such column). Only the header line changes: rows      |
+     | without the column read as not historical, so every other character of   |
+     | the file stays as it was.                                                |
+     |                                                                          |
+     | Passed in:  text - the whole file, with a header row                     |
+     | Passed out: the same text with "<tab>Historical" after the header        |
+     +--------------------------------------------------------------------------+
+     */
+    static String withHistoricalColumn(String text)
+    {
+        int lineStart = (!text.isEmpty() && text.charAt(0) == LineReplacer.BYTE_ORDER_MARK ? 1 : 0);
+        while (lineStart < text.length())
+        {
+            int lineEnd = lineStart;
+            while (lineEnd < text.length() && text.charAt(lineEnd) != '\n' && text.charAt(lineEnd) != '\r')
+            {
+                lineEnd = lineEnd + 1;
+            }
+            String line = text.substring(lineStart, lineEnd);
+            if (!line.isBlank() && !line.trim().startsWith("#"))
+            {
+                return text.substring(0, lineEnd) + "\t" + HISTORICAL_HEADING + text.substring(lineEnd);
+            }
+            lineStart = lineEnd + 1;
+        }
+        return text;
+    }
+
+    /*
      +--------------------------------------------------------------------------+
      | append(file, round, tee)                                                 |
      +--------------------------------------------------------------------------+
      | Purpose:                                                                 |
      | Adds a round to the end of rounds.tsv, creating the file (with the       |
      | standard header) if it does not exist or has no header. The file's       |
-     | own line ending style is kept.                                           |
+     | own line ending style is kept. A historical round going into a file      |
+     | with no Historical column first adds one to the header row (see          |
+     | withHistoricalColumn), copying the file to rounds.tsv.bak first.         |
      |                                                                          |
      | Passed in:  file  - the rounds.tsv path                                  |
      |             round - the round to add                                     |
@@ -188,6 +244,11 @@ public final class RoundWriter
     public static void append(Path file, Round round, Tee tee) throws IOException
     {
         String existing = Files.exists(file) ? Files.readString(file, StandardCharsets.UTF_8) : "";
+        if (round.historical() && findHeader(existing) != null && !hasHistoricalColumn(findHeader(existing)))
+        {
+            existing = withHistoricalColumn(existing);
+            LineReplacer.write(file, existing);
+        }
         String[] headerCells = findHeader(existing);
         String newline = existing.contains("\r\n") ? "\r\n" : "\n";
         StringBuilder addition = new StringBuilder();
@@ -197,8 +258,9 @@ public final class RoundWriter
         }
         if (headerCells == null)
         {
-            addition.append(STANDARD_HEADER).append(newline);
-            headerCells = STANDARD_HEADER.split("\t");
+            String header = STANDARD_HEADER + (round.historical() ? "\t" + HISTORICAL_HEADING : "");
+            addition.append(header).append(newline);
+            headerCells = header.split("\t");
         }
         addition.append(formatLine(round, tee, headerCells)).append(newline);
         if (file.getParent() != null)
@@ -220,7 +282,9 @@ public final class RoundWriter
      | file (other lines, comments, blank lines, line endings) is left exactly  |
      | as it was. First the file is copied to rounds.tsv.bak; the new file is   |
      | then written to a temporary file next to it and swapped in, so a         |
-     | failure part way cannot leave a half-written rounds.tsv.                 |
+     | failure part way cannot leave a half-written rounds.tsv. A historical    |
+     | round in a file with no Historical column also adds one to the header    |
+     | row.                                                                     |
      |                                                                          |
      | Passed in:  file  - the rounds.tsv path                                  |
      |             round - the edited round, with the id of the saved one       |
@@ -233,6 +297,10 @@ public final class RoundWriter
     public static void replace(Path file, Round round, Tee tee) throws IOException
     {
         String text = Files.readString(file, StandardCharsets.UTF_8);
+        if (round.historical() && findHeader(text) != null && !hasHistoricalColumn(findHeader(text)))
+        {
+            text = withHistoricalColumn(text);
+        }
         LineReplacer.LineMaker maker = (headerCells, oldCells) ->
         {
             StringBuilder line = new StringBuilder();

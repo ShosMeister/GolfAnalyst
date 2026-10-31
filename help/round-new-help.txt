@@ -8,7 +8,7 @@ Here is how to enter a round, step by step. Have your scorecard in front of you.
 
 3. Check the date. It starts as today. If you are entering an older round, change it. You can type 2026-10-22 or 10/22/2026.
 
-4. Enter the scores. The cursor starts in the Score box of hole 1. Type the score for each hole, one after the other. The cursor moves down the holes by itself, over to hole 10 after hole 9, and on to the putts after the last hole. A score from 2 to 9 moves on right away. If you type a 1 the cursor waits, because it could be a hole in one or the start of a score like 10 or 12. Press Enter to accept the 1, or type the second digit. Only digits can be typed in these boxes. To fix a box, click it and type the new digit over the old one.
+4. Enter the scores. The cursor starts in the Score box of hole 1. Type the score for each hole, one after the other. The cursor moves down the holes by itself, over to hole 10 after hole 9, and on to the putts after the last hole. A score from 2 to 9 moves on right away. If you type a 1 the cursor waits, because it could be a hole in one or the start of a score like 10 or 12. Press Enter to accept the 1, or type the second digit. Only digits can be typed in these boxes. If you picked up on a hole, type the number you wrote on your card. To fix a box, click it and type the new digit over the old one.
 
 5. Enter the putts. After the last score the cursor goes on to the Putt box of hole 1. Type the putts for each hole in the same way, one digit each.
 
@@ -26,6 +26,8 @@ The F and S keys are a shortcut, and you do not have to use them. If your scorec
 
 Remember two things. Count a putt only when your ball is on the green. A stroke from the fringe is not a putt. And if you holed out from off the green, like a chip-in, put 0 for the putts.
 
-PCC: Leave it at 0 unless you know the day's value. A wrong value changes your handicap.
+PCC: Leave it at 0 when you enter a round the day you play it. The handicap system works the PCC out overnight from everyone's scores, so the number does not exist until later. If your handicap record (GHIN, for example) then shows a PCC for the round, press Edit Round, type it in and Save.
 
-Nine-hole rounds: A nine-hole round on an 18-hole course counts toward your handicap only if the course file has ratings for that nine. If the Rating box says "no rating" the round is still saved and still counts in your statistics, just not in your handicap. To add the ratings, go back to Home and press New Course, type the course name and zip, then fill in that nine's rating and slope (the Front 9 or Back 9 row) and press Save. Your handicap is worked out again as soon as the course is saved, so the round counts straight away. If you add the ratings by editing courses.tsv yourself instead, it counts the next time you start the program.
+Historical: Tick the Historical box for a round that is too old to count toward today's handicap, such as one from an older version of the program. It is saved and you can still look at it with Rounds, but it is left out of your Handicap Index and your statistics. Nothing is lost.
+
+Nine-hole rounds: If the Rating box says "no rating" the round is still saved and still counts in your statistics, just not in your handicap. To add the ratings, go back to Home and press New Course, type the course name and zip, then fill in that nine's rating and slope (the Front 9 or Back 9 row) and press Save. Your handicap is worked out again as soon as the course is saved, so the round counts straight away. If you add the ratings by editing courses.tsv yourself instead, it counts the next time you start the program.

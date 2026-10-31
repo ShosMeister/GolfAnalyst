@@ -22,7 +22,7 @@ Yards / Par: The total yardage, which you can leave blank, and the total par, wo
 
 Par and Hdcp/SI for each hole: The par of the hole (3, 4, 5 or 6) and its handicap number, which is the number on the scorecard in the row or column marked Handicap, HCP, S.I. or Stroke Index, from 1 for the hardest hole to 18 for the easiest. Each number from 1 to 18 is used once. It is not your own handicap. The rules call it the stroke index, and it decides which holes you get handicap strokes on.
 
-The arrow next to the first tee's name copies its pars and handicap numbers into the other tees, but only into cells that are still empty. Nothing else is ever copied.
+The arrow next to the first tee's name copies its pars and handicap numbers into the other tees. The Help explains how it works.
 
 # Across the bottom
 

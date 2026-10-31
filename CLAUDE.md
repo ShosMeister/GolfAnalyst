@@ -93,6 +93,10 @@ Courses and rounds live in two plain tab-separated text files. Written for one u
   look back at. `Round.historical()`; `Handicap.compute` skips them; statistics use `Stats.current(rounds)` (Home,
   `DataStore.overall`, the text reports); the viewer shows them with "historical" in the 18-Hole Diff box and a footer
   note; Edit keeps the flag; Home's round counts leave them out; the start-up message says how many there are.
+  The round screen's Historical box (`historicalCheck`, details frame column 3 under 2-Putt, a Sand-style check cell)
+  sets it: white and open in New/Edit, grey in view, Tab order Date, Historical, Save, Space ticks it; ticking shows
+  "historical" in 18-Hole Diff at once. Editing the file by hand still works. Saving a ticked round to a file with
+  no Historical column adds the column to the end of the header line only (`RoundWriter.withHistoricalColumn`).
 - Courses: never copy ratings, slopes, front/back nine ratings or yardage from one tee to another (the Excel version
   did; invented ratings spoil the handicap). The only copy allowed is the user pressing the arrow on the FIRST tee,
   which fills its pars and stroke index into EMPTY par/SI cells of the other three tees (never overwrites). A tee

@@ -5,6 +5,8 @@ import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
@@ -17,12 +19,14 @@ import javax.swing.JComponent;
  | Purpose:                                                                 |
  | The check box used in the hole-by-hole tables, drawn with the checked    |
  | and unchecked pictures from the earlier versions. Click it to turn it    |
- | on or off. When it is disabled (a fairway on a par 3, or a hole that is  |
- | not being played) it is drawn faded and ignores clicks.                  |
+ | on or off, or press Space when the cursor is on it. When it is disabled  |
+ | (a fairway on a par 3, or a hole that is not being played) it is drawn   |
+ | faded and ignores clicks and keys.                                       |
  |                                                                          |
  | Public Methods:                                                          |
  | isSelected(), setSelected(flag) - the on/off state                       |
  | setOnChange(action)             - what to do when the user clicks it     |
+ | toggle()                        - flips it as a click would              |
  | setPictureSize(size)            - draws the picture smaller, e.g. 18     |
  |                                                                          |
  | If it is made opaque it fills its background colour first, so it can be  |
@@ -38,7 +42,7 @@ public class ImageCheckBox extends JComponent
     private int pictureSize = 0;
 
     /*
-     * ImageCheckBox(): makes an unchecked box that toggles when clicked.
+     * ImageCheckBox(): makes an unchecked box that toggles when clicked, or when Space is pressed on it.
      */
     public ImageCheckBox()
     {
@@ -49,17 +53,39 @@ public class ImageCheckBox extends JComponent
             @Override
             public void mouseClicked(MouseEvent event)
             {
-                if (isEnabled())
+                toggle();
+            }
+        });
+        addKeyListener(new KeyAdapter()
+        {
+            @Override
+            public void keyPressed(KeyEvent event)
+            {
+                if (event.getKeyCode() == KeyEvent.VK_SPACE)
                 {
-                    selected = !selected;
-                    repaint();
-                    if (onChange != null)
-                    {
-                        onChange.run();
-                    }
+                    toggle();
+                    event.consume();
                 }
             }
         });
+    }
+
+    /*
+     * toggle(): what a click or Space does: if the box is switched on, flips it and runs the change action.
+     * Passed in:  nothing
+     * Passed out: nothing
+     */
+    public void toggle()
+    {
+        if (isEnabled())
+        {
+            selected = !selected;
+            repaint();
+            if (onChange != null)
+            {
+                onChange.run();
+            }
+        }
     }
 
     /*

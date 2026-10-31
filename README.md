@@ -180,7 +180,8 @@ columns (Fairways, Sand) need one value per hole played. Dates can be `2026-10-2
 `10/22/2026`. Flags are 1 for yes and 0 for no. PCC (normally 0) is the day's Playing Conditions Calculation.
 `Historical` is `Y` for an old round kept only to look back at: it can be stepped through in
 Rounds (marked historical) but is left out of the handicap and the statistics. Blank or `N` is
-an ordinary round. Totals are
+an ordinary round. The Historical box on the round screen sets it, so the file need not be edited
+by hand; saving a ticked round to a file without the column adds it to the header. Totals are
 never stored; they are always calculated, so the file cannot disagree with itself.
 
 **Putts** count only strokes taken while the ball is on the putting green, with any club. A

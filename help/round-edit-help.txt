@@ -14,6 +14,8 @@ Changed your mind? Press Cancel and the round goes back to how it was.
 
 # A few things worth knowing
 
+Historical: You can tick or untick the Historical box at any time. Ticked, the round is kept for looking back at but left out of your handicap and statistics. Unticked, it counts again.
+
 A safety copy: Every time you save an edit, the file as it was is copied to rounds.tsv.bak in your data folder. If an edit went wrong, close the program, copy rounds.tsv.bak over rounds.tsv, and open the program again. Only the last copy is kept, so do this before you save another edit.
 
 Leaving with unsaved changes: If you press an arrow, Cancel or the Home button after changing something, the program asks "Discard your changes?" Say No to go back and press Save, or Yes to leave the round as it was.

@@ -207,6 +207,7 @@ public final class RoundPage extends Page
     final ValueBox sandBox = new ValueBox();
     final ValueBox girBox = new ValueBox();
     final ValueBox twoPuttBox = new ValueBox();
+    final ImageCheckBox historicalCheck = new ImageCheckBox();
     final ValueBox differentialBox = new ValueBox();
     final ValueBox indexBox = new ValueBox();
     static final String DISCARD_QUESTION = "Discard your changes?";
@@ -249,6 +250,7 @@ public final class RoundPage extends Page
     static final String BACK_TO_STATS = "Back to the Stats Board";
     static final String BACK_HOME = "Back to the Home screen";
     static final String HISTORICAL_NOTE = " Historical: kept to look back at, not in your handicap or statistics.";
+    static final String HISTORICAL_TIP = "Tick for an old round kept only to look back at: it is left out of your handicap and statistics";
     private boolean updating = false;
     private int playedStart = 0;
     private int playedCount = HOLES;
@@ -592,7 +594,7 @@ public final class RoundPage extends Page
     }
 
     /*
-     * checkCell(box, width): makes a Fwy or Sand check box a table cell: the picture shrunk to 18 x 18 and centred, hairlines, and a face set by showCheckFaces.
+     * checkCell(box, width): makes a Fwy, Sand or Historical check box a table cell: the picture shrunk to 18 x 18 and centred, hairlines, and a face set by showCheckFaces.
      * Passed in:  box - the check box, width - its width
      * Passed out: nothing
      */
@@ -748,8 +750,10 @@ public final class RoundPage extends Page
      | The wooden frame under the tables, as wide as the tables and results     |
      | column together, with the teak showing inside. Three columns of          |
      | captions and values: Date, Score, Putts; Fairway, Sand Saves, Greens In  |
-     | Reg; 2-Putt. At the right end, Save above Cancel (entering or editing)   |
-     | or Edit above Close (looking at a saved round).                          |
+     | Reg; 2-Putt and Historical (a check box like the Fwy and Sand cells:     |
+     | ticked, the round is kept to look back at and left out of the handicap   |
+     | and statistics). At the right end, Save above Cancel (entering or        |
+     | editing) or Edit above Close (looking at a saved round).                 |
      |                                                                          |
      | Passed in:  nothing                                                      |
      | Passed out: the framed form                                              |
@@ -774,6 +778,24 @@ public final class RoundPage extends Page
         addPair(form, "Sand Saves", sandBox, 1, 1);
         addPair(form, "Greens In Reg", girBox, 2, 1);
         addPair(form, "2-Putt", twoPuttBox, 0, 2);
+        checkCell(historicalCheck, COLUMN_WIDTHS[SAND_COL]);
+        historicalCheck.setToolTipText(HISTORICAL_TIP);
+        historicalCheck.setOnChange(() -> recalc());
+        historicalCheck.addFocusListener(new FocusAdapter()
+        {
+            @Override
+            public void focusGained(FocusEvent event)
+            {
+                historicalCheck.setBorder(CURSOR_OUTLINE);
+            }
+
+            @Override
+            public void focusLost(FocusEvent event)
+            {
+                historicalCheck.setBorder(hairlines());
+            }
+        });
+        addPair(form, "Historical", historicalCheck, 1, 2);
         Dimension buttonSize = new Dimension(BUTTON_WIDTH, BUTTON_HEIGHT);
         for (WoodButton button : new WoodButton[] {saveButton, editButton, cancelButton})
         {
@@ -894,10 +916,11 @@ public final class RoundPage extends Page
      | it can land on: the course, holes and PCC boxes, the Show box, then      |
      | the score of every hole being played in turn (hole 1 down to hole 9,     |
      | then hole 10 down to hole 18), then the putts of every hole in the       |
-     | same order, then the date, the Save and Cancel buttons and the four      |
-     | arrows. Holes that are not being played, and boxes that cannot be        |
-     | typed in, are left out. Swing's own order goes by position on the        |
-     | screen, which would jump between the Out and In tables.                  |
+     | same order, then the date, the Historical box, the Save and Cancel       |
+     | buttons and the four arrows. Holes that are not being played, and        |
+     | boxes that cannot be typed in or ticked, are left out. Swing's own       |
+     | order goes by position on the screen, which would jump between the Out   |
+     | and In tables.                                                           |
      |                                                                          |
      | Passed in:  nothing                                                      |
      | Passed out: the list, in visiting order                                  |
@@ -924,7 +947,7 @@ public final class RoundPage extends Page
                 }
             }
         }
-        Component[] after = {dateField, saveButton, editButton, cancelButton, firstButton, previousButton, nextButton, lastButton};
+        Component[] after = {dateField, historicalCheck, saveButton, editButton, cancelButton, firstButton, previousButton, nextButton, lastButton};
         for (Component component : after)
         {
             if (usable(component))
@@ -1270,6 +1293,8 @@ public final class RoundPage extends Page
         holesCombo.setEnabled(newMode == Mode.NEW);
         pccField.setEditable(typing);
         dateField.setEditable(typing);
+        historicalCheck.setEnabled(typing);
+        historicalCheck.setBackground(typing ? Color.WHITE : Theme.FIELD_FACE);
         saveButton.setVisible(typing);
         editButton.setVisible(!typing && !bestRound);
         filterLabel.setVisible(!typing && !bestRound);
@@ -1302,6 +1327,7 @@ public final class RoundPage extends Page
         viewIndex = -1;
         viewedRoundId = -1;
         viewedHistorical = false;
+        historicalCheck.setSelected(false);
         fillTeeChoices(-1);
         rebuildFilter();
         rebuildHolesChoices(selectedTee());
@@ -1392,6 +1418,7 @@ public final class RoundPage extends Page
         showingComposite = false;
         viewedRoundId = round.id();
         viewedHistorical = round.historical();
+        historicalCheck.setSelected(round.historical());
         fillTeeChoices(round.teeId());
         rebuildHolesChoices(tee);
         int choice = 0;
@@ -1543,6 +1570,7 @@ public final class RoundPage extends Page
             showingComposite = false;
             viewedRoundId = -1;
             viewedHistorical = false;
+            historicalCheck.setSelected(false);
             dateField.setText("");
             pccField.setText("");
             clearEntries();
@@ -2040,7 +2068,8 @@ public final class RoundPage extends Page
      | round they come from the handicap history. For a round being             |
      | entered, the history is replayed with this round added (without          |
      | saving it), so you can see what it will do to your index. A historical   |
-     | round has no differential: the box says "historical".                    |
+     | round (the Historical box ticked, as soon as it is ticked) has no        |
+     | differential: the box says "historical".                                 |
      |                                                                          |
      | Passed in:  ready - true when every played hole is complete and valid    |
      |             date  - the typed date (null if not valid)                   |
@@ -2057,7 +2086,7 @@ public final class RoundPage extends Page
             indexBox.setValue("-");
             return;
         }
-        if (mode != Mode.NEW && viewedHistorical)
+        if (historicalCheck.isSelected())
         {
             differentialBox.setValue("historical");
             indexBox.setValue("-");
@@ -2094,7 +2123,8 @@ public final class RoundPage extends Page
      | Purpose:                                                                 |
      | Turns the typed values into a Round. Only the holes being played are     |
      | included. Call it only when every played hole is complete and valid.     |
-     | A historical round being edited stays historical.                        |
+     | It is historical when the Historical box is ticked (a saved round's box  |
+     | is ticked from the file, so editing keeps it unless it is unticked).     |
      |                                                                          |
      | Passed in:  id   - the id the round will have                            |
      |             date - the date played                                       |
@@ -2117,8 +2147,8 @@ public final class RoundPage extends Page
             fairway[lp] = fairwayChecks[hole].isSelected() && tee.pars()[hole] != 3;
             sand[lp] = sandChecks[hole].isSelected();
         }
-        boolean historical = mode == Mode.EDIT && viewedHistorical;
-        return new Round(id, tee.id(), date, pcc, playedStart, playedCount, scores, putts, fairway, sand, historical);
+        return new Round(id, tee.id(), date, pcc, playedStart, playedCount, scores, putts, fairway, sand,
+                historicalCheck.isSelected());
     }
 
     /*
@@ -2185,7 +2215,8 @@ public final class RoundPage extends Page
      */
     private String entries()
     {
-        StringBuilder text = new StringBuilder(dateField.getText()).append('|').append(pccField.getText());
+        StringBuilder text = new StringBuilder(dateField.getText()).append('|').append(pccField.getText())
+                .append('|').append(historicalCheck.isSelected());
         for (int hole = 0; hole < HOLES; hole = hole + 1)
         {
             text.append('|').append(scoreFields[hole].getText()).append(',').append(puttFields[hole].getText())
@@ -2208,7 +2239,7 @@ public final class RoundPage extends Page
      +--------------------------------------------------------------------------+
      | Purpose:                                                                 |
      | What the Edit button does: opens the saved round on show for editing.    |
-     | The date, PCC, scores, putts, Fwy and Sand open for typing; the          |
+     | The date, PCC, scores, putts, Fwy, Sand and Historical open; the         |
      | course/tee and holes stay locked. The header says "Edit ..." and the     |
      | cursor goes to the first score.                                          |
      |                                                                          |

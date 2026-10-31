@@ -44,6 +44,10 @@ Gold: The best figure in each column, among the rows with two or more rounds. Th
 
 Cream with a gold outline: The row you have picked.
 
+# The faint writing
+
+When a part of the board has nothing in it yet, its first row says so in faint grey letters. Before you have saved any rounds the top row says No rounds yet. Press New Round on the Home screen. Until you play a nine-hole round, the row under the Nine-hole rounds band says No nine-hole rounds yet. The faint writing goes away by itself as soon as there is a row to show.
+
 # Across the bottom
 
 The bar along the bottom says what you can do on this screen.

@@ -8,13 +8,13 @@ Press Best Round on the Home screen. It opens on the course and tees of the roun
 
 # Choosing the course
 
-Open the Course / tee box at the top and pick another course or set of tees. The screen changes straight away. A front nine or back nine you played on an 18-hole course has its own entry, so your nine-hole rounds are only ever compared with each other.
+Open the Course / tee box at the top and pick another course or set of tees. The screen changes straight away.
 
 # Single or Composite
 
 Click Single to see your lowest real round on those tees, exactly as you played it.
 
-Click Composite to see your best score on every hole put together into one round. It is a fun way to see your potential: every hole on it is one you have really played that well, just not all on the same day. Compare its total with your best single round in the bar along the bottom. The gap is how many shots you are leaving out there.
+Click Composite to see your best score on every hole put together into one round. It is a fun way to see your potential: what you are capable of shooting on that course and those tees. Every hole on it is one you have really played that well, just not all on the same day. Compare its total with your best single round in the bar along the bottom. The gap is how many shots you are leaving out there.
 
 # Leaving
 
