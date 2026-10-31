@@ -1,7 +1,6 @@
 package golfanalyst.gui;
 
 import java.awt.Color;
-import java.awt.Cursor;
 import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
@@ -33,8 +32,9 @@ import javax.swing.ToolTipManager;
  | the text are drawn and every control of the page is hidden, so the       |
  | whole picture can be seen. Letting go of the button, anywhere, brings    |
  | everything back. While peeking the keyboard is ignored, so nothing       |
- | hidden can be typed into. The mouse shows a hand over the text, with a   |
- | tool tip saying what it does.                                            |
+ | hidden can be typed into. The mouse shows an open hand over the text     |
+ | (images/CursorHandOpen.png) and a closed hand while the button is held   |
+ | (CursorHandClosed.png), with a tool tip saying what it does.             |
  |                                                                          |
  | Public Methods:                                                          |
  | setBackdrop(picture) - sets the photo (null gives a plain green)         |
@@ -47,6 +47,15 @@ public class BackdropPanel extends JPanel
 {
 
     static final String PEEK_TIP = "Press and hold to see the whole picture.";
+
+    /*
+     * PeekPointer: the pointers the peek label can ask for (see pointerFor).
+     */
+    enum PeekPointer
+    {
+        OPEN_HAND, CLOSED_HAND, NORMAL
+    }
+
     private static final float VERSION_FONT = 22f;
     private static final int VERSION_LEFT = 10;
     private static final int VERSION_BOTTOM = 12;
@@ -57,6 +66,7 @@ public class BackdropPanel extends JPanel
     private int scaledWidth = -1;
     private int scaledHeight = -1;
     private boolean peeking = false;
+    private PeekPointer shownPointer = PeekPointer.NORMAL;
     private final transient KeyEventDispatcher keyBlocker = event -> true;
 
     /*
@@ -66,8 +76,8 @@ public class BackdropPanel extends JPanel
      | Purpose:                                                                 |
      | Makes an opaque panel (the photo is set with setBackdrop) and listens    |
      | to the mouse for the peek: pressing the left button on the version       |
-     | text starts it, releasing the button ends it, and moving over the text   |
-     | shows the hand.                                                          |
+     | text starts it, releasing the button ends it, and the pointer follows    |
+     | pointerFor: open hand over the text, closed hand while held.             |
      |                                                                          |
      | Passed in:  nothing                                                      |
      | Passed out: the panel                                                    |
@@ -86,6 +96,13 @@ public class BackdropPanel extends JPanel
                 {
                     startPeek();
                 }
+                showPointer(peekArea().contains(event.getPoint()));
+            }
+
+            @Override
+            public void mouseDragged(MouseEvent event)
+            {
+                showPointer(peekArea().contains(event.getPoint()));
             }
 
             @Override
@@ -95,6 +112,7 @@ public class BackdropPanel extends JPanel
                 {
                     stopPeek();
                 }
+                showPointer(peekArea().contains(event.getPoint()));
             }
 
             @Override
@@ -102,16 +120,13 @@ public class BackdropPanel extends JPanel
             {
                 // a move with no button down means the release was missed: end the peek anyway
                 stopPeek();
-                showHand(peekArea().contains(event.getPoint()));
+                showPointer(peekArea().contains(event.getPoint()));
             }
 
             @Override
             public void mouseExited(MouseEvent event)
             {
-                if (!peeking)
-                {
-                    showHand(false);
-                }
+                showPointer(false);
             }
         };
         addMouseListener(peekMouse);
@@ -179,13 +194,61 @@ public class BackdropPanel extends JPanel
     }
 
     /*
-     * showHand(over): the open hand cursor while over the version text, the ordinary arrow elsewhere.
-     * Passed in:  over - true when the mouse is over the text
+     +--------------------------------------------------------------------------+
+     | pointerFor(overLabel, buttonDown)                                        |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Decides which mouse pointer the peek label wants. It needs no display,   |
+     | so the self-test can try every case. While the button is held (the       |
+     | press started on the label, so the peek is on) it is the closed hand,    |
+     | even if the pointer has moved off the label. Otherwise it is the open    |
+     | hand over the label and the normal pointer anywhere else.                |
+     |                                                                          |
+     | Passed in:  overLabel  - true when the pointer is over the label (the    |
+     |                          text bounds plus 6 px)                          |
+     |             buttonDown - true while the button pressed on the label is   |
+     |                          still held                                      |
+     | Passed out: OPEN_HAND, CLOSED_HAND or NORMAL                             |
+     +--------------------------------------------------------------------------+
+     */
+    static PeekPointer pointerFor(boolean overLabel, boolean buttonDown)
+    {
+        if (buttonDown)
+        {
+            return PeekPointer.CLOSED_HAND;
+        }
+        return (overLabel ? PeekPointer.OPEN_HAND : PeekPointer.NORMAL);
+    }
+
+    /*
+     * showPointer(overLabel): sets the panel's mouse pointer from pointerFor, using whether the peek is on as "the button is held".
+     * Passed in:  overLabel - true when the pointer is over the label
      * Passed out: nothing
      */
-    private void showHand(boolean over)
+    private void showPointer(boolean overLabel)
     {
-        setCursor(over ? Theme.openHandCursor() : null);
+        PeekPointer pointer = pointerFor(overLabel, peeking);
+        shownPointer = pointer;
+        if (pointer == PeekPointer.CLOSED_HAND)
+        {
+            setCursor(Theme.closedHandCursor());
+        }
+        else if (pointer == PeekPointer.OPEN_HAND)
+        {
+            setCursor(Theme.openHandCursor());
+        }
+        else
+        {
+            setCursor(null);
+        }
+    }
+
+    /*
+     * shownPointer(): the pointer the panel is showing now (for the self-test, which has no real pointers).
+     */
+    PeekPointer shownPointer()
+    {
+        return shownPointer;
     }
 
     /*

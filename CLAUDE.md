@@ -137,8 +137,11 @@ Courses and rounds live in two plain tab-separated text files. Written for one u
   8 px below. The group is centred on the photo; the arithmetic is in the `RoundPage` class comment.
 - Peek (in `BackdropPanel`, so every page has it): press and hold the left button on the yellow version text (its
   bounds + 6 px) and only the photo and the text are painted (`paintChildren` skipped, `isPaintingOrigin` true so
-  self-repainting controls stay hidden, keys swallowed); releasing anywhere shows everything. Hand cursor and the
-  tool tip "Press and hold to see the whole picture." No page may put a control that takes the mouse over the label
+  self-repainting controls stay hidden, keys swallowed); releasing anywhere shows everything. Pointer from
+  `BackdropPanel.pointerFor(overLabel, buttonDown)`: open hand over the label, closed hand while the button pressed on
+  it is held (even off the label), normal elsewhere; pictures `images/CursorHandOpen.png` and `CursorHandClosed.png`
+  (32 x 32, hot spot 16,16, made once in `Theme`, scaled to the system size), falling back to `Cursor.HAND_CURSOR`
+  when headless, unsupported or missing. Tool tip "Press and hold to see the whole picture." No page may put a control that takes the mouse over the label
   (see-through layout panels without mouse listeners are fine).
 - Stats Board (v4.40, `StatsPage` on `StatsBoard`): one row per tee for 18-hole rounds, then a tan "Nine-hole rounds"
   band and rows per tee and nine ("Course:Tee (Front 9)" / "(Back 9)", or "Course:Tee" on a nine-hole course); never
