@@ -42,11 +42,11 @@ Include historical rounds: Decides whether old (historical) rounds count in the 
 
 The buttons on the left are for putting information in. The buttons on the right are for looking at it.
 
-On the left: New Course adds a course and its tees, or fixes a course you have already saved. New Round is the screen for entering a round. Edit Round is for correcting a round you have saved, Import is for loading many rounds or courses at once, and Clear is for clearing out old data to start over.
+On the left: New Course adds a course and its tees, or fixes a course you have already saved. New Round is the screen for entering a round. Edit Round is for correcting or deleting a round you have saved, Import is for loading many rounds or courses at once, and Clear empties your rounds, or everything, so you can start fresh. It asks twice and keeps a copy of your files first.
 
 On the right: Rounds is the screen for looking at the rounds you have saved. Stats Board, Analyzer and Best Round show your statistics in more detail, and Print prints what you are looking at.
 
-Import, Clear, Analyzer and Print are not built yet. They are in place and will be added.
+Import, Analyzer and Print are not built yet. They are in place and will be added.
 
 # Across the top and bottom
 
@@ -104,3 +104,5 @@ Golf Analyst v4.41: Close on the Rounds screen goes back to the Stats Board when
 Golf Analyst v4.50: Added the Best Round screen. For any course and set of tees it shows your lowest single round, or a composite of your best score on every hole, so you can see how close your best day is to your potential.
 
 Golf Analyst v4.60: Added a Historical box on the round screens, so old rounds can be marked without editing a file, and an Include historical rounds box on the Home screen, so your statistics, the Stats Board and Best Round can count your old rounds or leave them out.
+
+Golf Analyst v4.70: Added Delete Round and Clear, each with two confirmations. Every change to your files now keeps a dated copy in a backups folder, so nothing is ever overwritten.

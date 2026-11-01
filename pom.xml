@@ -17,7 +17,7 @@
 
   <groupId>golfanalyst</groupId>
   <artifactId>golfanalyst</artifactId>
-  <version>4.60</version>
+  <version>4.70</version>
   <packaging>jar</packaging>
   <name>GolfAnalyst</name>
 

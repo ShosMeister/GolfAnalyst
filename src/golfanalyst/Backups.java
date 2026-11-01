@@ -38,6 +38,7 @@ import java.util.stream.Stream;
  | copyBeforeChange(file, when) - the same at a given time (for the tests)  |
  | folderFor(file)              - the backups folder beside a data file     |
  | copiesOf(file)               - the copies kept of a file, oldest first   |
+ | copyForClear(dataDir, fileNames, when) - Clear's own dated folder        |
  +--------------------------------------------------------------------------+
  */
 public final class Backups
@@ -45,6 +46,7 @@ public final class Backups
 
     public static final String FOLDER = "backups";
     public static final int KEEP = 20;
+    static final String CLEAR_PREFIX = "clear-";
     private static final DateTimeFormatter STAMP = DateTimeFormatter.ofPattern("yyyy-MM-dd-HHmmss");
 
     /*
@@ -215,5 +217,51 @@ public final class Backups
     {
         int dot = fileName.lastIndexOf('.');
         return (dot > 0 ? fileName.substring(dot) : "");
+    }
+    /*
+     +--------------------------------------------------------------------------+
+     | copyForClear(dataDir, fileNames, when)                                   |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Clear's backup: copies the named files of the data folder (those that    |
+     | exist) into a folder of their own, backups\clear-YYYY-MM-DD-HHMMSS (-2,  |
+     | -3 ... in the same second). These folders are never pruned.              |
+     |                                                                          |
+     | Passed in:  dataDir   - the data folder                                  |
+     |             fileNames - the files to copy, e.g. rounds.tsv               |
+     |             when      - the time to put in the folder's name             |
+     | Passed out: the folder made; throws Failed if a copy cannot be made, so  |
+     |             the caller clears nothing                                    |
+     +--------------------------------------------------------------------------+
+     */
+    public static Path copyForClear(Path dataDir, List<String> fileNames, LocalDateTime when) throws IOException
+    {
+        try
+        {
+            Path parent = dataDir.toAbsolutePath().resolve(FOLDER);
+            Files.createDirectories(parent);
+            String base = CLEAR_PREFIX + STAMP.format(when);
+            Path folder = parent.resolve(base);
+            int count = 1;
+            while (Files.exists(folder))
+            {
+                count = count + 1;
+                folder = parent.resolve(base + "-" + count);
+            }
+            Files.createDirectories(folder);
+            for (String fileName : fileNames)
+            {
+                Path file = dataDir.resolve(fileName);
+                if (Files.exists(file))
+                {
+                    Files.copy(file, folder.resolve(fileName));
+                }
+            }
+            return folder;
+        }
+        catch (IOException failure)
+        {
+            throw new Failed("your data files", failure);
+        }
     }
 }

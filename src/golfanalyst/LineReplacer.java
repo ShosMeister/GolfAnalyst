@@ -19,13 +19,14 @@ import java.util.regex.Pattern;
  | LineReplacer                                                             |
  +--------------------------------------------------------------------------+
  | Purpose:                                                                 |
- | Changes existing lines of a data file safely. It is shared by rounds     |
- | (an edited round) and courses (edited tees).                             |
+ | Changes or removes existing lines of a data file safely. It is shared    |
+ | by rounds (an edited or deleted round) and courses (edited tees).        |
  |                                                                          |
  | splice finds the lines whose ID column holds the given IDs and swaps in  |
- | new lines for them; every other character of the file (other lines,      |
- | comments, blank lines, line endings) stays exactly as it was. It works   |
- | on text only, so nothing is written until write is called.               |
+ | new lines for them, or removes them (a line and its own line break);     |
+ | every other character of the file (other lines, comments, blank lines,   |
+ | line endings) stays exactly as it was. It works on text only, so nothing |
+ | is written until write is called.                                        |
  |                                                                          |
  | write first puts a dated copy of the file in the backups folder (see     |
  | Backups; if that fails nothing is written), then writes the new text to  |
@@ -38,6 +39,7 @@ import java.util.regex.Pattern;
  | Public Methods:                                                          |
  | splice(text, idColumn, makers, fileName) - swaps in new lines            |
  | write(file, newText)                     - backup, then safe write       |
+ | writeSafely(file, newText)               - safe write, no backup         |
  +--------------------------------------------------------------------------+
  */
 public final class LineReplacer
@@ -52,7 +54,7 @@ public final class LineReplacer
     public interface LineMaker
     {
         /*
-         * make(headerCells, oldCells): the new line, tab separated, with no line ending.
+         * make(headerCells, oldCells): the new line, tab separated, with no line ending, or null to remove the line with its line break.
          */
         String make(String[] headerCells, String[] oldCells);
     }
@@ -74,8 +76,9 @@ public final class LineReplacer
      +--------------------------------------------------------------------------+
      | Purpose:                                                                 |
      | Finds, below the header row, the line holding each ID in makers and      |
-     | puts the new line in its place. Lines that are blank or start with #     |
-     | are never touched.                                                       |
+     | puts the new line in its place, or removes the line and its own line     |
+     | break when the maker gives null. Lines that are blank or start with #    |
+     | are never touched, and nothing else in the text changes.                 |
      |                                                                          |
      | Passed in:  text     - the whole file                                    |
      |             idColumn - the ID column's name, normalized ("roundid")      |
@@ -126,7 +129,8 @@ public final class LineReplacer
                     {
                         throw new IOException("ID " + id + " is on more than one line of " + fileName);
                     }
-                    found.put(lineStart, new int[] {lineEnd, lineNumber});
+                    int nextStart = (lineEnd < text.length() ? breaks.end() : lineEnd);
+                    found.put(lineStart, new int[] {lineEnd, lineNumber, nextStart});
                     foundId.put(lineStart, id);
                 }
                 headerSeen = true;
@@ -154,8 +158,17 @@ public final class LineReplacer
             int start = place.getKey();
             int end = place.getValue()[0];
             String[] oldCells = text.substring(start, end).split("\t", -1);
-            result.append(text, copiedTo, start).append(makers.get(foundId.get(start)).make(headerCells, oldCells));
-            copiedTo = end;
+            String made = makers.get(foundId.get(start)).make(headerCells, oldCells);
+            result.append(text, copiedTo, start);
+            if (made == null)
+            {
+                copiedTo = place.getValue()[2];
+            }
+            else
+            {
+                result.append(made);
+                copiedTo = end;
+            }
             lineNumbers.add(place.getValue()[1]);
         }
         result.append(text.substring(copiedTo));
@@ -196,13 +209,24 @@ public final class LineReplacer
      |                                                                          |
      | Passed in:  file    - the data file                                      |
      |             newText - its whole new text                                 |
-     | Passed out: nothing; throws Backups.Failed if the copy cannot be made,   |
-     |             or IOException if the file cannot be written                 |
+     | Passed out: the backup copy made; throws Backups.Failed if the copy      |
+     |             cannot be made, or IOException if the file cannot be written |
      +--------------------------------------------------------------------------+
      */
-    public static void write(Path file, String newText) throws IOException
+    public static Path write(Path file, String newText) throws IOException
     {
-        Backups.copyBeforeChange(file);
+        Path copy = Backups.copyBeforeChange(file);
+        writeSafely(file, newText);
+        return copy;
+    }
+
+    /*
+     * writeSafely(file, newText): writes the new text to a temporary file next to the real one and swaps it in, so the real file is never left half written (no backup; Clear makes its own first).
+     * Passed in:  file - the data file, newText - its whole new text
+     * Passed out: nothing (throws IOException if it cannot be written)
+     */
+    public static void writeSafely(Path file, String newText) throws IOException
+    {
         Path temporary = file.resolveSibling(file.getFileName() + ".new");
         Files.writeString(temporary, newText, StandardCharsets.UTF_8);
         try

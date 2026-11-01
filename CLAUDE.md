@@ -1,4 +1,4 @@
-# GolfAnalyst v4.60 (Java) - notes for Claude
+# GolfAnalyst v4.70 (Java) - notes for Claude
 
 A single-golfer golf statistics program with a Swing window. Ported from HyperCard (1991) to Excel/VBA to Java.
 Courses and rounds live in two plain tab-separated text files. Written for one user who tests on Windows.
@@ -215,17 +215,30 @@ a course or more tees to one; up to four tees at once; v4.11: wood-frame look, c
 sample-data title/footer and save question, styled Help/Info windows, Edit Round and Edit Course (both v4.20), the New Course style round page
 and the press-and-hold peek on the version text (v4.21), modal Help/Info windows (v4.22), historical rounds (v4.30), the
 Stats Board (v4.40), Close back to the Stats Board and the close-box question (v4.41), Best Round (v4.50), the
-Historical box on the round screens and Include historical rounds on Home (v4.60).
-Not built (buttons are in place and say "not built yet"): Import, Clear, Analyzer, Print.
-Not built either: deleting a round or a tee, renaming a course or changing its zip.
+Historical box on the round screens and Include historical rounds on Home (v4.60), the backups folder, Delete Round
+and Clear (v4.70).
+Not built (buttons are in place and say "not built yet"): Import, Analyzer, Print.
+Not built either: deleting a tee, renaming a course or changing its zip.
 - **Edit Course** (built, v4.20): no separate button. On New Course, typing a saved course's name and zip loads its
   tees (first four) into the frames; title "Edit Course"; empty frames take new tees. City/state editable (a change
   rewrites every tee of the course); nine-hole box locked. A loaded tee must keep its rating. Only changed tees are
   rewritten (a backup copy first); "Ready to save." adds a note when a changed tee has rounds. If the name/zip
   stops matching after edits, nothing is wiped: Save stays off until it matches again. Tidying a name never
   triggers a lookup (setText empties the box for a moment, which once wiped the frames).
-- **Clear**: always ask twice and make a dated backup of the files first; it is how the program is reset for a
-  different golfer.
+- **Delete Round** (built, v4.70): `RoundPage.deleteButton` (WoodButton 112 x 24, 12 pt) in the details frame's third
+  column under Historical, visible only in EDIT mode (never NEW, VIEW or Best Round). `readyToSave()` first, then
+  `Shell.confirmTwice` (question naming the SAVED round, "Keep it" default / "Delete...", plus
+  `RoundPage.UNSAVED_IGNORED` when boxes were changed; then "To confirm, type DELETE."). `DataStore.deleteRound` ->
+  `RoundWriter.delete` (a `LineMaker` returning null removes the line and its own line break) -> `LineReplacer.write`
+  (backup first). Then the previous round (else the next) read-only, or Home if none; footer "Round 00037 deleted. A
+  copy of your rounds file as it was is in backups\rounds-....tsv."
+- **Clear** (built, v4.70): Home's Clear -> `Shell.clearData()` -> `AppPanel.clearData`: `ConfirmForm.clearChoice`
+  (two radio buttons, neither ticked, Continue off until one is), summary ("Keep my data" default / "Clear..."),
+  type CLEAR. `DataStore.clear(everything)`: `Backups.copyForClear` into `backups/clear-YYYY-MM-DD-HHMMSS/` (never
+  pruned; failure clears nothing), then each file keeps only its own header row via `LineReplacer.writeSafely`;
+  everything also resets settings.txt. Goes Home; footer "Cleared. A copy of everything as it was is in
+  backups\clear-....". Sample data: `CLEAR_SAMPLE_QUESTION` (Yes only makes the data folder) and `DataStore.clear`
+  refuses it too. Dialogs are `ConfirmForm` panels shown by `AppPanel`'s `Confirmer`, which the tests replace.
 - **Import**: bulk rounds and/or courses from the program's own tab-separated format; show what will be added and
   what is rejected (with line numbers) before writing anything; give duplicate IDs fresh numbers.
 

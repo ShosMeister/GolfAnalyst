@@ -1,4 +1,4 @@
-# GolfAnalyst v4.60 (Java)
+# GolfAnalyst v4.70 (Java)
 
 Golf Analyst with its window. It has the one-window layout of the earlier versions: a wood header
 with Home, Help and Info buttons that stays the same on every screen, a status footer that stays
@@ -58,8 +58,8 @@ Pages so far: **Home** (handicap, statistics and the buttons), **Round** (enter 
 or look back through saved ones with the four arrow buttons, limited to one course or set of tees with the
 Show box) and **New Course** (a course and up to four sets of tees). The Home buttons are in two columns:
 data entry on the left (New Course, New Round, Edit Round, Import, Clear) and viewing on the right (Rounds,
-Stats Board, Analyzer, Best Round, Print). New Course, New Round, Edit Round, Rounds, Stats Board and Best Round work so far; the
-others are in place and say "not built yet" in the footer.
+Stats Board, Analyzer, Best Round, Print). Import, Analyzer and Print are in place and say "not built yet" in
+the footer; the rest work.
 
 - **Editing a round:** Edit Round on the Home screen opens the saved rounds at the latest one. Step to the
   round with the arrows (or narrow them with the Show box) and press Edit. The date, PCC, scores, putts,
@@ -68,6 +68,13 @@ others are in place and say "not built yet" in the footer.
   columns of your own are left exactly as they were) and the handicap and statistics are worked out again.
   Before each save a dated copy of the file as it was goes in the `backups` folder inside the data folder
   (`rounds-YYYY-MM-DD-HHMMSS.tsv`, the 20 newest kept), so a bad edit can be undone by copying it back. Cancel, the arrows and the Home button ask "Discard your changes?" if anything was changed.
+- **Deleting a round:** in Edit mode a small Delete round button sits under Historical. It asks twice (the
+  round named, Keep it as the default; then type DELETE), makes the dated copy, removes only that round's
+  line (nothing renumbered) and shows the round before it.
+- **Clear:** Home's Clear button clears your rounds only, or everything (courses, name and settings too),
+  after a choice, a summary (Keep my data as the default) and typing CLEAR. First courses.tsv, rounds.tsv
+  and settings.txt are copied into `backups/clear-YYYY-MM-DD-HHMMSS/` (never pruned); each file keeps only
+  its header row. The sample data is never cleared.
 
 - **Entering a course:** the page looks like the round page: a centred row of wood frames over the
   photo, captions down the left frame and one frame per tee, with spreadsheet-style cells (the cell with

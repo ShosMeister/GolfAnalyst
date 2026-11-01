@@ -20,4 +20,18 @@ A safety copy: Every time you save an edit, the file as it was is copied into th
 
 Leaving with unsaved changes: If you press an arrow, Cancel or the Home button after changing something, the program asks "Discard your changes?" Say No to go back and press Save, or Yes to leave the round as it was.
 
-The wrong course: The course and tees cannot be changed here. If you entered a round on the wrong course, enter it again on the right one. Deleting a round is not built yet, so for now remove the wrong one by deleting its line from rounds.tsv with a text editor (the program tells you if a line is wrong).
+The wrong course: The course and tees cannot be changed here. If you entered a round on the wrong course, enter it again on the right one, then delete the wrong one (see below).
+
+# Deleting a round
+
+1. Open the round for editing. Find it with Edit Round and the arrows, then press Edit.
+
+2. Press Delete round. It is the small button under Historical, and you only see it while you are editing.
+
+3. Check it is the right round. The first question names the round by its number, course, tees, date and score, as it is saved; anything you typed in the boxes is ignored. Press Keep it to stop, or Delete... to go on.
+
+4. Type DELETE. The OK button only comes on once the word is typed (capitals or not). Press OK, or Cancel to keep the round.
+
+Only that round's line is taken out of rounds.tsv. Your other rounds, your notes in the file and the round numbers are left alone. Your handicap and statistics are worked out again straight away, and the screen shows the round before it (or the Home screen, if it was your only round). The bar along the bottom gives the name of the backup copy.
+
+Getting a deleted round back: Before the round is removed, a copy of rounds.tsv as it was goes into the backups folder in your data folder, named with the date and time (for example rounds-2026-10-31-142530.tsv). To undo the delete, close the program, copy that file over rounds.tsv, and open the program again. Any round you saved after the delete has to be entered again.

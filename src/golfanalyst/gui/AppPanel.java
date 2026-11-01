@@ -47,7 +47,7 @@ import javax.swing.SwingUtilities;
  | windowTitle()       - the text for the window's title bar                |
  | the Shell methods   - store, setStatus, refreshTitle, goHome, newRound,  |
  |                       browseRounds, editRound, newCourse, readyToSave,   |
- |                       askYesNo                                           |
+ |                       askYesNo, confirmTwice, clearData                  |
  +--------------------------------------------------------------------------+
  */
 @SuppressWarnings({"serial", "this-escape"})
@@ -60,6 +60,22 @@ public final class AppPanel extends JPanel implements Shell
     public static final String STATS = "stats";
     public static final String BEST = "best";
     static final String SAMPLE_QUESTION = "This is the sample data. Create your own data folder first?";
+    static final String CLEAR_SAMPLE_QUESTION = "This is the sample data. There is nothing of yours to clear. Create your own data folder first?";
+    static final String CLEAR_TITLE = "Clear data";
+    static final String CLEAR_ROUNDS_TEXT = "Clear my rounds only (keep my courses and my name)";
+    static final String CLEAR_EVERYTHING_TEXT = "Clear everything: my rounds, my courses, my name and my settings (like a brand-new copy of the program)";
+    private static final String DIALOG_TITLE = "Golf Analyst";
+
+    /*
+     * Confirmer: shows a ConfirmForm and gives its answer (on screen normally; the self-test answers by code).
+     */
+    interface Confirmer
+    {
+        /*
+         * ask(form, title): the form's answer.
+         */
+        int ask(ConfirmForm form, String title);
+    }
 
     private final transient DataStore store;
     private final transient Path helpDir;
@@ -74,6 +90,7 @@ public final class AppPanel extends JPanel implements Shell
     private final RoundPage bestPage;
     private String current = HOME;
     private transient ToIntFunction<String> asker = question -> askOnScreen(question);
+    private transient Confirmer confirmer = (form, title) -> form.showOn(this, title);
 
     /*
      +--------------------------------------------------------------------------+
@@ -413,11 +430,20 @@ public final class AppPanel extends JPanel implements Shell
         {
             return false;
         }
+        makeOwnDataFolder();
+        return false;
+    }
+
+    /*
+     * makeOwnDataFolder(): makes an empty data folder next to sample-data (never writing over one that is there) and says in the footer to reopen the program.
+     */
+    private void makeOwnDataFolder()
+    {
         Path folder = store.dataFolderBeside();
         if (Files.isDirectory(folder))
         {
             setStatus("There is already a data folder at " + folder + ". Close Golf Analyst and open it again to use it.");
-            return false;
+            return;
         }
         try
         {
@@ -428,7 +454,101 @@ public final class AppPanel extends JPanel implements Shell
         {
             setStatus("The data folder could not be made: " + failure.getMessage());
         }
-        return false;
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | confirmTwice(question, keepLabel, goLabel, word)                         |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Asks the two careful questions (see Shell): the question with Keep as    |
+     | the default, then "To confirm, type WORD." Both go through the           |
+     | confirmer, so the self-test can answer them.                             |
+     |                                                                          |
+     | Passed in:  question, keepLabel, goLabel - the first question            |
+     |             word - the word to type                                      |
+     | Passed out: true only if both were answered yes                          |
+     +--------------------------------------------------------------------------+
+     */
+    @Override
+    public boolean confirmTwice(String question, String keepLabel, String goLabel, String word)
+    {
+        if (confirmer.ask(ConfirmForm.twoChoice(question, keepLabel, goLabel), DIALOG_TITLE) != ConfirmForm.GO)
+        {
+            return false;
+        }
+        return confirmer.ask(ConfirmForm.typed("To confirm, type " + word + ".", word), DIALOG_TITLE) == ConfirmForm.GO;
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | clearData()                                                              |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | What Home's Clear button does. On the sample data it clears nothing and  |
+     | asks CLEAR_SAMPLE_QUESTION (Yes makes the golfer's own data folder).     |
+     | Otherwise: the "Clear data" choice (rounds only, or everything), the     |
+     | summary with "Keep my data" as the default, then "To confirm, type       |
+     | CLEAR." If all three are answered, DataStore.clear copies the files      |
+     | into backups\clear-... first (if that fails nothing is cleared and the   |
+     | footer says why), clears, and the window goes Home.                      |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing                                                      |
+     +--------------------------------------------------------------------------+
+     */
+    @Override
+    public void clearData()
+    {
+        if (store.isSampleData())
+        {
+            if (asker.applyAsInt(CLEAR_SAMPLE_QUESTION) == JOptionPane.YES_OPTION)
+            {
+                makeOwnDataFolder();
+            }
+            return;
+        }
+        int rounds = store.roundsByDate().size();
+        int tees = store.dataset().tees().size();
+        String name = store.golferName();
+        String roundsText = rounds + (rounds == 1 ? " round" : " rounds");
+        String teesText = tees + (tees == 1 ? " course and tee" : " courses and tees");
+        String counts = "You have " + roundsText + " and " + teesText + (name.isEmpty() ? "" : ", and your name is " + name) + ".";
+        int choice = confirmer.ask(ConfirmForm.clearChoice(counts, CLEAR_ROUNDS_TEXT, CLEAR_EVERYTHING_TEXT), CLEAR_TITLE);
+        if (choice == ConfirmForm.CANCELLED)
+        {
+            return;
+        }
+        boolean everything = choice == ConfirmForm.EVERYTHING;
+        String removed = (everything ? roundsText + ", " + teesText + (name.isEmpty() ? "" : " and your name") : roundsText);
+        String summary = "This will remove " + removed + ".\nA copy of everything is kept first.";
+        if (!confirmTwice(summary, "Keep my data", "Clear...", "CLEAR"))
+        {
+            return;
+        }
+        Path folder;
+        try
+        {
+            folder = store.clear(everything);
+        }
+        catch (IOException failure)
+        {
+            setStatus((failure instanceof golfanalyst.Backups.Failed ? "" : "The data could not be cleared: ") + failure.getMessage());
+            return;
+        }
+        navigate(HOME);
+        setStatus("Cleared. A copy of everything as it was is in " + golfanalyst.Backups.FOLDER + java.io.File.separator
+                + folder.getFileName() + ".");
+    }
+
+    /*
+     * setConfirmer(newConfirmer): replaces the on-screen careful questions with answers given by code (for the self-test).
+     * Passed in:  newConfirmer - takes the form and its title and gives its answer
+     * Passed out: nothing
+     */
+    void setConfirmer(Confirmer newConfirmer)
+    {
+        confirmer = newConfirmer;
     }
 
     /*
@@ -499,5 +619,21 @@ public final class AppPanel extends JPanel implements Shell
     CoursePage coursePage()
     {
         return coursePage;
+    }
+
+    /*
+     * homePage(): the Home page (for tests).
+     */
+    HomePage homePage()
+    {
+        return (HomePage) pages.get(HOME);
+    }
+
+    /*
+     * currentPageName(): the name of the page on show, e.g. HOME (for tests).
+     */
+    String currentPageName()
+    {
+        return current;
     }
 }

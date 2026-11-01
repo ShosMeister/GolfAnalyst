@@ -23,6 +23,9 @@ import golfanalyst.DataStore;
  | newCourse()      - opens the screen for adding a course and its tees     |
  | askYesNo(question) - asks a Yes / No question                            |
  | readyToSave()    - asks, on the sample data, whether to save there       |
+ | confirmTwice(question, keepLabel, goLabel, word) - the two careful       |
+ |                    questions before something is removed                 |
+ | clearData()      - Clear: asks what to clear, twice, then clears it      |
  +--------------------------------------------------------------------------+
  */
 public interface Shell
@@ -106,4 +109,27 @@ public interface Shell
      +--------------------------------------------------------------------------+
      */
     boolean readyToSave();
+
+    /*
+     +--------------------------------------------------------------------------+
+     | confirmTwice(question, keepLabel, goLabel, word)                         |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | The two careful questions before something is removed: first the         |
+     | question with a Keep button (the default) and a Go button, then "To      |
+     | confirm, type WORD." with a box whose OK stays off until it holds the    |
+     | word.                                                                    |
+     |                                                                          |
+     | Passed in:  question  - the first question                               |
+     |             keepLabel - e.g. "Keep it", goLabel - e.g. "Delete..."       |
+     |             word      - the word to type, e.g. "DELETE"                  |
+     | Passed out: true only if both were answered yes                          |
+     +--------------------------------------------------------------------------+
+     */
+    boolean confirmTwice(String question, String keepLabel, String goLabel, String word);
+
+    /*
+     * clearData(): what Home's Clear button does: asks what to clear and confirms it twice, makes the backup folder, clears, and goes Home.
+     */
+    void clearData();
 }

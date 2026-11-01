@@ -89,6 +89,7 @@ public final class GuiSelfTest
         private int windowCalls = 0;
         private final List<String> asked = new ArrayList<>();
         private boolean answerYes = true;
+        private boolean confirmAnswer = false;
 
         TestShell(DataStore store)
         {
@@ -222,6 +223,27 @@ public final class GuiSelfTest
             windowCalls = windowCalls + 1;
             asked.add(question);
             return answerYes;
+        }
+
+        /*
+         * confirmTwice(question, keepLabel, goLabel, word): remembers the question and gives the answer the test has set.
+         */
+        @Override
+        public boolean confirmTwice(String question, String keepLabel, String goLabel, String word)
+        {
+            windowCalls = windowCalls + 1;
+            asked.add(question);
+            return confirmAnswer;
+        }
+
+        /*
+         * clearData(): remembers that Clear was asked for (Clear itself is tested on the real AppPanel).
+         */
+        @Override
+        public void clearData()
+        {
+            windowCalls = windowCalls + 1;
+            lastPage = "clear";
         }
     }
 
@@ -830,6 +852,9 @@ public final class GuiSelfTest
         checkRoundLook(page);
         checkPeek();
         checkBackupFailure();
+        checkConfirmForms();
+        checkDeleteRound();
+        checkClearData();
         checkFooterHand();
         checkHistoricalScreens();
         checkHistoricalBox();
@@ -1434,6 +1459,324 @@ public final class GuiSelfTest
     private static void sendMouse(Component target, int kind, int x, int y)
     {
         target.dispatchEvent(mouseEvent(target, kind, x, y));
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | checkConfirmForms()                                                      |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | The careful questions, without a screen: the two-button question has     |
+     | its Keep and Go buttons; the typed one's OK stays off until the box      |
+     | holds the word (any capitals, spaces round it ignored) and goes off      |
+     | again if it changes; Cancel answers CANCELLED; Clear's choice starts     |
+     | with neither ticked and Continue off, and gives the choice ticked.       |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing                                                      |
+     +--------------------------------------------------------------------------+
+     */
+    private static void checkConfirmForms()
+    {
+        ConfirmForm question = ConfirmForm.twoChoice("Delete it?", "Keep it", "Delete...");
+        check("confirm: the question has Keep it and Delete... buttons", question.cancelButton.getText().equals("Keep it")
+                && question.goButton.getText().equals("Delete...") && question.goButton.isEnabled() && question.message().equals("Delete it?"));
+        question.cancelButton.doClick();
+        check("confirm: Keep it answers no", question.answer() == ConfirmForm.CANCELLED);
+        question.goButton.doClick();
+        check("confirm: Delete... answers yes", question.answer() == ConfirmForm.GO);
+
+        ConfirmForm typed = ConfirmForm.typed("To confirm, type DELETE.", "DELETE");
+        check("confirm: the typed question's OK starts off", !typed.goButton.isEnabled() && typed.message().equals("To confirm, type DELETE."));
+        typed.wordField.setText("DELET");
+        check("confirm: OK stays off until the whole word is typed", !typed.goButton.isEnabled());
+        typed.wordField.setText("delete");
+        check("confirm: OK comes on for the word in any capitals", typed.goButton.isEnabled());
+        typed.wordField.setText("DELETED");
+        check("confirm: OK goes off again for another word", !typed.goButton.isEnabled());
+        typed.wordField.setText(" Delete ");
+        check("confirm: spaces round the word do not matter", typed.goButton.isEnabled());
+        typed.cancelButton.doClick();
+        check("confirm: Cancel answers no even with the word typed", typed.answer() == ConfirmForm.CANCELLED);
+
+        ConfirmForm choice = ConfirmForm.clearChoice("You have 3 rounds.", AppPanel.CLEAR_ROUNDS_TEXT, AppPanel.CLEAR_EVERYTHING_TEXT);
+        check("confirm: Clear starts with neither choice ticked and Continue off", !choice.roundsOnlyChoice.isSelected()
+                && !choice.everythingChoice.isSelected() && !choice.goButton.isEnabled() && choice.goButton.getText().equals("Continue"));
+        check("confirm: Clear's choices say what they do", choice.roundsOnlyChoice.getText().equals(
+                "Clear my rounds only (keep my courses and my name)") && choice.everythingChoice.getText().equals(
+                "Clear everything: my rounds, my courses, my name and my settings (like a brand-new copy of the program)"));
+        choice.everythingChoice.doClick();
+        check("confirm: choosing one turns Continue on", choice.goButton.isEnabled());
+        choice.goButton.doClick();
+        check("confirm: Continue gives the choice ticked", choice.answer() == ConfirmForm.EVERYTHING);
+        choice.roundsOnlyChoice.doClick();
+        choice.goButton.doClick();
+        check("confirm: or rounds only", choice.answer() == ConfirmForm.ROUNDS_ONLY);
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | checkDeleteRound()                                                       |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Delete round on its own copy of the sample data.                         |
+     |                                                                          |
+     | It checks that:                                                          |
+     | - the button shows only in Edit mode (not New Round, view or Best Round) |
+     |   and is 112 x 24;                                                       |
+     | - the question names the saved round and mentions typed changes;         |
+     | - answering no deletes nothing;                                          |
+     | - answering yes removes only that line, shows the round before it        |
+     |   read-only and says where the backup is;                                |
+     | - deleting the first round shows the next one, and deleting the last     |
+     |   one left goes Home;                                                    |
+     | - the real window's two questions only say yes when DELETE is typed.     |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing (throws IOException if a temporary file fails)       |
+     +--------------------------------------------------------------------------+
+     */
+    private static void checkDeleteRound() throws IOException
+    {
+        Path temp = Files.createTempDirectory("golfanalyst-delete-round");
+        Files.copy(Path.of("sample-data", DataLoader.COURSES_FILE), temp.resolve(DataLoader.COURSES_FILE));
+        Files.copy(Path.of("sample-data", DataLoader.ROUNDS_FILE), temp.resolve(DataLoader.ROUNDS_FILE));
+        Path roundsFile = temp.resolve(DataLoader.ROUNDS_FILE);
+        DataStore store = new DataStore(temp);
+        TestShell shell = new TestShell(store);
+        RoundPage page = new RoundPage(shell);
+        RoundPage best = new RoundPage(shell, true);
+        page.showNew();
+        check("delete: no Delete round button while entering a new round", !page.deleteButton.isVisible());
+        page.showLatest();
+        check("delete: no Delete round button while looking at a round", !page.deleteButton.isVisible());
+        best.showBest();
+        check("delete: no Delete round button on Best Round", !best.deleteButton.isVisible());
+        page.editButton.doClick();
+        check("delete: the Delete round button shows in Edit mode, 112 x 24", page.deleteButton.isVisible()
+                && page.deleteButton.getText().equals("Delete round") && page.deleteButton.getPreferredSize().width == 112
+                && page.deleteButton.getPreferredSize().height == 24);
+
+        int count = store.roundsByDate().size();
+        Round last = store.roundsByDate().get(count - 1);
+        Round before = store.roundsByDate().get(count - 2);
+        golfanalyst.Tee tee = store.teeMap().get(last.teeId());
+        String before0 = Files.readString(roundsFile, StandardCharsets.UTF_8);
+        type(page.scoreFields[0], Integer.toString(last.scores()[0] + 1));
+        shell.confirmAnswer = false;
+        page.deleteButton.doClick();
+        String asked = shell.asked.get(shell.asked.size() - 1);
+        check("delete: the question names the saved round", asked.startsWith(String.format("Delete round %05d (%s:%s, %s, score %d)? "
+                + "It will be removed from your rounds, and your handicap and statistics will be worked out again. A copy of your file is "
+                + "kept first.", last.id(), tee.courseName(), tee.teeName(), last.date(), last.totalScore())));
+        check("delete: the question says typed changes are ignored", asked.endsWith(RoundPage.UNSAVED_IGNORED));
+        check("delete: answering no deletes nothing", Files.readString(roundsFile, StandardCharsets.UTF_8).equals(before0)
+                && store.roundsByDate().size() == count && page.title().startsWith("Edit"));
+
+        shell.confirmAnswer = true;
+        page.deleteButton.doClick();
+        List<String> beforeLines = List.of(before0.split("\n", -1));
+        List<String> afterLines = List.of(Files.readString(roundsFile, StandardCharsets.UTF_8).split("\n", -1));
+        List<String> expected = new ArrayList<>(beforeLines);
+        expected.removeIf(line -> line.startsWith(last.id() + "\t"));
+        check("delete: only that round's line is removed", afterLines.equals(expected) && expected.size() == beforeLines.size() - 1);
+        check("delete: the round before it is shown read-only", page.title().startsWith(String.format("%05d:", before.id()))
+                && page.editButton.isVisible() && !page.deleteButton.isVisible() && store.roundsByDate().size() == count - 1);
+        List<Path> copies = golfanalyst.Backups.copiesOf(roundsFile);
+        check("delete: the footer says it was deleted and where the copy is", shell.status.equals(String.format(
+                "Round %05d deleted. A copy of your rounds file as it was is in backups%s%s.", last.id(), java.io.File.separator,
+                copies.get(copies.size() - 1).getFileName())));
+        check("delete: the copy holds the file as it was", Files.readString(copies.get(copies.size() - 1), StandardCharsets.UTF_8).equals(before0));
+
+        Round first = store.roundsByDate().get(0);
+        Round second = store.roundsByDate().get(1);
+        page.showRoundAt(0);
+        page.editButton.doClick();
+        page.deleteButton.doClick();
+        check("delete: deleting the first round shows the next one", page.title().startsWith(String.format("%05d:", second.id()))
+                && store.roundsByDate().stream().noneMatch(round -> round.id() == first.id()));
+
+        Path single = Files.createTempDirectory("golfanalyst-delete-single");
+        Files.copy(Path.of("sample-data", DataLoader.COURSES_FILE), single.resolve(DataLoader.COURSES_FILE));
+        List<String> sampleLines = Files.readAllLines(Path.of("sample-data", DataLoader.ROUNDS_FILE), StandardCharsets.UTF_8);
+        String headerLine = sampleLines.stream().filter(line -> line.startsWith("RoundID")).findFirst().orElse("");
+        String oneRound = sampleLines.stream().filter(line -> line.matches("\\d+\t.*")).findFirst().orElse("");
+        Files.writeString(single.resolve(DataLoader.ROUNDS_FILE), headerLine + "\n" + oneRound + "\n", StandardCharsets.UTF_8);
+        TestShell singleShell = new TestShell(new DataStore(single));
+        singleShell.confirmAnswer = true;
+        RoundPage singlePage = new RoundPage(singleShell);
+        singlePage.showLatest();
+        singlePage.editButton.doClick();
+        singlePage.deleteButton.doClick();
+        check("delete: deleting the only round goes Home", singleShell.lastPage.equals("home")
+                && singleShell.store().roundsByDate().isEmpty() && !singlePage.hasChanges()
+                && Files.readString(single.resolve(DataLoader.ROUNDS_FILE), StandardCharsets.UTF_8).equals(headerLine + "\n"));
+        deleteFolder(single);
+
+        AppPanel panel = new AppPanel(store, Path.of("help"), "");
+        List<String> titles = new ArrayList<>();
+        panel.setConfirmer((form, title) ->
+        {
+            titles.add(form.message());
+            if (form.wordField != null)
+            {
+                form.wordField.setText("Delete");
+            }
+            form.goButton.doClick();
+            return form.answer();
+        });
+        check("delete: the window asks the question, then for DELETE, and says yes when it is typed",
+                panel.confirmTwice("Delete it?", "Keep it", "Delete...", "DELETE") && titles.equals(List.of("Delete it?", "To confirm, type DELETE.")));
+        panel.setConfirmer((form, title) ->
+        {
+            if (form.wordField != null)
+            {
+                form.wordField.setText("remove");
+                form.cancelButton.doClick();
+                return form.answer();
+            }
+            form.goButton.doClick();
+            return form.answer();
+        });
+        check("delete: the wrong word keeps the round", !panel.confirmTwice("Delete it?", "Keep it", "Delete...", "DELETE"));
+        panel.setConfirmer((form, title) ->
+        {
+            form.cancelButton.doClick();
+            return form.answer();
+        });
+        check("delete: Keep it keeps the round without the second question", !panel.confirmTwice("Delete it?", "Keep it", "Delete...", "DELETE"));
+        deleteFolder(temp);
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | checkClearData()                                                         |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Clear through the real window logic, with the questions answered by      |
+     | code: Home's Clear button; stopping at each question changes nothing;    |
+     | rounds only and everything leave the right files and go Home with the    |
+     | empty state and the footer naming the backup folder; and on the sample   |
+     | data nothing is cleared (Yes only makes the golfer's own data folder).   |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing (throws IOException if a temporary file fails)       |
+     +--------------------------------------------------------------------------+
+     */
+    private static void checkClearData() throws IOException
+    {
+        Path temp = Files.createTempDirectory("golfanalyst-clear");
+        Path data = temp.resolve(DataStore.DATA_FOLDER);
+        Files.createDirectories(data);
+        Files.copy(Path.of("sample-data", DataLoader.COURSES_FILE), data.resolve(DataLoader.COURSES_FILE));
+        Files.copy(Path.of("sample-data", DataLoader.ROUNDS_FILE), data.resolve(DataLoader.ROUNDS_FILE));
+        DataStore store = new DataStore(data);
+        store.setGolferName("Pat Golfer");
+        int rounds = store.roundsByDate().size();
+        int tees = store.dataset().tees().size();
+        String roundsText = Files.readString(data.resolve(DataLoader.ROUNDS_FILE), StandardCharsets.UTF_8);
+        String coursesText = Files.readString(data.resolve(DataLoader.COURSES_FILE), StandardCharsets.UTF_8);
+        AppPanel panel = new AppPanel(store, Path.of("help"), "");
+        TestShell homeShell = new TestShell(store);
+        HomePage home = new HomePage(homeShell);
+        ((WoodButton) findByText(home, "Clear")).doClick();
+        check("clear: Home's Clear button asks the window to clear", homeShell.lastPage.equals("clear"));
+
+        List<String> messages = new ArrayList<>();
+        int[] stopAt = {0};
+        int[] pick = {ConfirmForm.ROUNDS_ONLY};
+        panel.setConfirmer((form, title) ->
+        {
+            messages.add(form.message());
+            if (messages.size() == stopAt[0])
+            {
+                form.cancelButton.doClick();
+                return form.answer();
+            }
+            if (form.roundsOnlyChoice != null)
+            {
+                (pick[0] == ConfirmForm.EVERYTHING ? form.everythingChoice : form.roundsOnlyChoice).doClick();
+            }
+            if (form.wordField != null)
+            {
+                form.wordField.setText("clear");
+            }
+            form.goButton.doClick();
+            return form.answer();
+        });
+        for (int step = 1; step <= 3; step = step + 1)
+        {
+            messages.clear();
+            stopAt[0] = step;
+            panel.clearData();
+            check("clear: stopping at question " + step + " clears nothing", Files.readString(data.resolve(DataLoader.ROUNDS_FILE),
+                    StandardCharsets.UTF_8).equals(roundsText) && store.roundsByDate().size() == rounds && !Files.exists(data.resolve("backups")));
+        }
+        check("clear: the first question shows the counts", messages.get(0).equals("You have " + rounds + " rounds and " + tees
+                + " courses and tees, and your name is Pat Golfer."));
+        check("clear: the summary says what goes and that a copy is kept", messages.get(1).equals("This will remove " + rounds
+                + " rounds.\nA copy of everything is kept first.") && messages.get(2).equals("To confirm, type CLEAR."));
+
+        messages.clear();
+        stopAt[0] = 0;
+        panel.clearData();
+        String header = roundsText.lines().filter(line -> line.startsWith("RoundID")).findFirst().orElse("");
+        check("clear rounds only: rounds.tsv keeps its header row only, courses and name kept",
+                Files.readString(data.resolve(DataLoader.ROUNDS_FILE), StandardCharsets.UTF_8).trim().equals(header)
+                        && Files.readString(data.resolve(DataLoader.COURSES_FILE), StandardCharsets.UTF_8).equals(coursesText)
+                        && store.roundsByDate().isEmpty() && store.golferName().equals("Pat Golfer"));
+        check("clear rounds only: the window goes Home with the empty state", panel.currentPageName().equals(AppPanel.HOME)
+                && panel.homePage().totalRounds.getText().equals("0"));
+        List<Path> folders = new ArrayList<>();
+        try (Stream<Path> files = Files.list(data.resolve("backups")))
+        {
+            files.forEach(folders::add);
+        }
+        check("clear rounds only: the footer names the clear folder, which holds the files as they were", folders.size() == 1
+                && panel.footer().status().equals("Cleared. A copy of everything as it was is in backups" + java.io.File.separator
+                        + folders.get(0).getFileName() + ".")
+                && Files.readString(folders.get(0).resolve(DataLoader.ROUNDS_FILE), StandardCharsets.UTF_8).equals(roundsText));
+
+        messages.clear();
+        pick[0] = ConfirmForm.EVERYTHING;
+        panel.clearData();
+        check("clear everything: the summary names the courses and the name too", messages.get(1).startsWith("This will remove 0 rounds, "
+                + tees + " courses and tees and your name."));
+        check("clear everything: both files keep only their header rows and the name is gone",
+                Files.readString(data.resolve(DataLoader.COURSES_FILE), StandardCharsets.UTF_8).trim().equals(golfanalyst.CourseWriter.STANDARD_HEADER)
+                        && store.dataset().tees().isEmpty() && store.golferName().isEmpty() && store.includeHistorical()
+                        && panel.homePage().golferName.getText().equals("(click to enter)"));
+
+        Path parent = Files.createTempDirectory("golfanalyst-clear-sample");
+        Path sample = parent.resolve(DataStore.SAMPLE_FOLDER);
+        Files.createDirectories(sample);
+        Files.copy(Path.of("sample-data", DataLoader.COURSES_FILE), sample.resolve(DataLoader.COURSES_FILE));
+        Files.copy(Path.of("sample-data", DataLoader.ROUNDS_FILE), sample.resolve(DataLoader.ROUNDS_FILE));
+        String sampleRounds = Files.readString(sample.resolve(DataLoader.ROUNDS_FILE), StandardCharsets.UTF_8);
+        AppPanel samplePanel = new AppPanel(new DataStore(sample), Path.of("help"), "");
+        List<String> sampleAsked = new ArrayList<>();
+        int[] sampleAnswer = {javax.swing.JOptionPane.NO_OPTION};
+        samplePanel.setAsker(question ->
+        {
+            sampleAsked.add(question);
+            return sampleAnswer[0];
+        });
+        samplePanel.setConfirmer((form, title) ->
+        {
+            sampleAsked.add("confirmer");
+            return ConfirmForm.GO;
+        });
+        samplePanel.clearData();
+        check("clear: on the sample data it asks the sample question and clears nothing", sampleAsked.equals(List.of(AppPanel.CLEAR_SAMPLE_QUESTION))
+                && Files.readString(sample.resolve(DataLoader.ROUNDS_FILE), StandardCharsets.UTF_8).equals(sampleRounds)
+                && !Files.exists(parent.resolve(DataStore.DATA_FOLDER)));
+        sampleAnswer[0] = javax.swing.JOptionPane.YES_OPTION;
+        samplePanel.clearData();
+        check("clear: Yes on the sample data only makes your own data folder", Files.isDirectory(parent.resolve(DataStore.DATA_FOLDER))
+                && Files.readString(sample.resolve(DataLoader.ROUNDS_FILE), StandardCharsets.UTF_8).equals(sampleRounds)
+                && !sampleAsked.contains("confirmer"));
+        deleteFolder(parent);
+        deleteFolder(temp);
     }
 
     /*

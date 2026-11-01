@@ -22,6 +22,7 @@ import java.awt.Insets;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -103,7 +104,8 @@ import javax.swing.text.DocumentFilter;
  |        it was is copied to the backups folder) and shows it read-only;   |
  |        Cancel goes back to it unchanged. Leaving with unsaved changes    |
  |        (Cancel, the arrows or the Home button) asks "Discard your        |
- |        changes?" first.                                                  |
+ |        changes?" first. Delete round (only here) removes the round       |
+ |        after two careful questions and a backup copy.                    |
  |                                                                          |
  | A round can be 18 holes, the front nine or the back nine of an 18-hole   |
  | course, or a nine-hole course. Holes not being played are greyed.        |
@@ -153,6 +155,8 @@ public final class RoundPage extends Page
     private static final int BUTTON_WIDTH = 112;
     private static final int BUTTON_HEIGHT = 32;
     private static final int BUTTON_GAP = 6;
+    private static final int DELETE_HEIGHT = 24;
+    private static final float DELETE_FONT = 12f;
     private static final int FRAME_GAP = 10;
     private static final int DETAILS_GAP = 6;
     private static final int NAV_GAP = 8;
@@ -215,6 +219,8 @@ public final class RoundPage extends Page
     final WoodButton saveButton = new WoodButton("Save");
     final WoodButton editButton = new WoodButton("Edit");
     final WoodButton cancelButton = new WoodButton("Cancel");
+    final WoodButton deleteButton = new WoodButton("Delete round");
+    static final String UNSAVED_IGNORED = " Your unsaved changes in the boxes will be ignored.";
     final JComboBox<FilterItem> filterCombo = new JComboBox<>();
     final JLabel filterLabel = new JLabel("Show:");
     final IconButton firstButton = new IconButton("First.png", "First round", Theme.NAV_ICON_SIZE);
@@ -753,8 +759,9 @@ public final class RoundPage extends Page
      | captions and values: Date, Score, Putts; Fairway, Sand Saves, Greens In  |
      | Reg; 2-Putt and Historical (a check box like the Fwy and Sand cells:     |
      | ticked, the round is kept to look back at and left out of the handicap   |
-     | and statistics). At the right end, Save above Cancel (entering or        |
-     | editing) or Edit above Close (looking at a saved round).                 |
+     | and statistics). In Edit mode only, a small Delete round button under    |
+     | Historical. At the right end, Save above Cancel (entering or editing)    |
+     | or Edit above Close (looking at a saved round).                          |
      |                                                                          |
      | Passed in:  nothing                                                      |
      | Passed out: the framed form                                              |
@@ -797,6 +804,18 @@ public final class RoundPage extends Page
             }
         });
         addPair(form, "Historical", historicalCheck, 1, 2);
+        Dimension deleteSize = new Dimension(BUTTON_WIDTH, DELETE_HEIGHT);
+        deleteButton.setPreferredSize(deleteSize);
+        deleteButton.setMinimumSize(deleteSize);
+        deleteButton.setFont(Theme.font(Font.BOLD, DELETE_FONT));
+        deleteButton.setToolTipText("Remove this round from your rounds (you are asked twice first)");
+        GridBagConstraints deleteAt = new GridBagConstraints();
+        deleteAt.gridx = 4;
+        deleteAt.gridy = 2;
+        deleteAt.gridwidth = 2;
+        deleteAt.anchor = GridBagConstraints.WEST;
+        deleteAt.insets = new Insets(DETAIL_ROW_GAP, 0, 0, COLUMN_GAP);
+        form.add(deleteButton, deleteAt);
         Dimension buttonSize = new Dimension(BUTTON_WIDTH, BUTTON_HEIGHT);
         for (WoodButton button : new WoodButton[] {saveButton, editButton, cancelButton})
         {
@@ -892,6 +911,7 @@ public final class RoundPage extends Page
         singleButton.addActionListener(event -> showBestChoice());
         compositeButton.addActionListener(event -> showBestChoice());
         editButton.addActionListener(event -> startEdit());
+        deleteButton.addActionListener(event -> deleteRound());
         cancelButton.addActionListener(event -> cancel());
     }
 
@@ -1298,6 +1318,7 @@ public final class RoundPage extends Page
         historicalCheck.setBackground(typing ? Color.WHITE : Theme.FIELD_FACE);
         saveButton.setVisible(typing);
         editButton.setVisible(!typing && !bestRound);
+        deleteButton.setVisible(newMode == Mode.EDIT && !bestRound);
         filterLabel.setVisible(!typing && !bestRound);
         filterCombo.setVisible(!typing && !bestRound);
         cancelButton.setText(typing ? "Cancel" : "Close");
@@ -2281,6 +2302,88 @@ public final class RoundPage extends Page
         {
             SwingUtilities.invokeLater(() -> first.requestFocusInWindow());
         }
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | deleteRound()                                                            |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | What the Delete round button (Edit mode only) does. On the sample data   |
+     | it first asks the sample-data question, as saving does. Then the two     |
+     | careful questions, naming the round as it is saved (its number, course   |
+     | and tees, date and score; anything typed in the boxes is ignored, and    |
+     | the question says so). If both are answered, only that round's line is   |
+     | removed (a dated copy of rounds.tsv goes in the backups folder first;    |
+     | if that fails nothing is deleted and the footer says why). Then the      |
+     | nearest round is shown read-only (the one before it, else the one        |
+     | after), or the window goes Home if none is left.                         |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing                                                      |
+     +--------------------------------------------------------------------------+
+     */
+    private void deleteRound()
+    {
+        DataStore store = shell.store();
+        List<Round> rounds = store.roundsByDate();
+        int index = -1;
+        for (int lp = 0; lp < rounds.size(); lp = lp + 1)
+        {
+            if (rounds.get(lp).id() == viewedRoundId)
+            {
+                index = lp;
+            }
+        }
+        if (mode != Mode.EDIT || index < 0 || !shell.readyToSave())
+        {
+            return;
+        }
+        Round saved = rounds.get(index);
+        Tee tee = store.teeMap().get(saved.teeId());
+        String question = String.format("Delete round %05d (%s:%s, %s, score %d)? It will be removed from your rounds, and your "
+                + "handicap and statistics will be worked out again. A copy of your file is kept first.", saved.id(),
+                tee.courseName(), tee.teeName(), saved.date(), saved.totalScore());
+        if (hasChanges())
+        {
+            question = question + UNSAVED_IGNORED;
+        }
+        if (!shell.confirmTwice(question, "Keep it", "Delete...", "DELETE"))
+        {
+            return;
+        }
+        Path copy;
+        try
+        {
+            copy = store.deleteRound(saved.id());
+        }
+        catch (Backups.Failed noCopy)
+        {
+            shell.setStatus(noCopy.getMessage());
+            return;
+        }
+        catch (IOException failure)
+        {
+            shell.setStatus("The round could not be deleted: " + failure.getMessage());
+            return;
+        }
+        String message = String.format("Round %05d deleted. A copy of your rounds file as it was is in %s%s%s.", saved.id(),
+                Backups.FOLDER, java.io.File.separator, copy.getFileName());
+        filterCourse = null;
+        filterTeeId = -1;
+        if (store.roundsByDate().isEmpty())
+        {
+            updating = true;
+            setMode(Mode.VIEW);
+            updating = false;
+            shell.goHome();
+        }
+        else
+        {
+            rebuildFilter();
+            showRoundAt((index > 0 ? index - 1 : 0));
+        }
+        shell.setStatus(message);
     }
 
     /*

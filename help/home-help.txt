@@ -52,6 +52,22 @@ To see how you play today, untick Include historical rounds. The numbers on this
 
 Every screen has its own photo behind it. To see all of it, press and hold the mouse button on the yellow Golf Analyst text at the bottom left. The boxes and buttons disappear until you let go, and nothing you type while holding it goes anywhere.
 
+# Starting fresh
+
+Clear empties your data so you can start again, for example to hand the program to another golfer. Press Clear on the Home screen and pick one of the two choices:
+
+Clear my rounds only: Your rounds go; your courses and your name stay. Handy when the courses are right but you want to start your scoring over.
+
+Clear everything: Your rounds, your courses, your name and your settings all go, like a brand-new copy of the program.
+
+Then press Continue. The program asks twice before it clears anything. First it tells you exactly what will be removed; press Keep my data to stop there. Then it asks you to type CLEAR, and its OK button only comes on once the word is typed.
+
+A copy first: Before anything is cleared, courses.tsv, rounds.tsv and settings.txt are copied into a folder of their own inside the backups folder, named with the date and time (for example backups\clear-2026-10-31-142530). These copies are never deleted by the program.
+
+Putting it back: Close the program, copy the files from that clear folder back into your data folder over the emptied ones, and open the program again.
+
+On the sample data Clear never changes anything. It offers to make your own data folder instead.
+
 # Closing the program
 
 Close the window from any screen whenever you like. Everything is written to your files the moment you press Save, so there is nothing to tidy up first. The only thing the program checks is whether you are in the middle of typing a round or a course that you have not saved yet. If you are, it asks "Discard your changes?" first. Say No to go back and finish.

@@ -570,6 +570,7 @@ public final class SelfTest
             checkRoundReplace();
             checkHistorical();
             checkBackups();
+            checkDeleteAndClear();
         }
         catch (IOException failure)
         {
@@ -1196,6 +1197,12 @@ public final class SelfTest
         store.addRound(new Round(store.nextRoundId(), latest.teeId(), latest.date(), 0, latest.startHole(), latest.holes(),
                 latest.scores(), latest.putts(), latest.fairway(), latest.sand()));
         check("backups: adding a round makes no copy", Backups.copiesOf(roundsFile).isEmpty());
+        Tee firstTee = store.teeMap().get(latest.teeId());
+        Tee newTee = new Tee(store.nextTeeId(), firstTee.courseName(), firstTee.city(), firstTee.state(), firstTee.zip(), "Practice",
+                firstTee.holes(), firstTee.rating(), firstTee.slope(), firstTee.yardage(), firstTee.pars(), firstTee.strokeIndex(),
+                firstTee.frontRating(), firstTee.frontSlope(), firstTee.backRating(), firstTee.backSlope());
+        store.addTees(List.of(newTee));
+        check("backups: adding new tees makes no copy", Backups.copiesOf(coursesFile).isEmpty() && store.teeMap().get(newTee.id()) != null);
 
         String roundsBefore = Files.readString(roundsFile, StandardCharsets.UTF_8);
         int[] scores = latest.scores().clone();
@@ -1265,6 +1272,172 @@ public final class SelfTest
                 StandardCharsets.UTF_8).equals(blockedBefore));
         deleteTree(blocked);
         deleteTree(temp);
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | checkDeleteAndClear()                                                    |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Tests deleting a round and clearing the data on temporary folders.       |
+     |                                                                          |
+     | It checks that:                                                          |
+     | - deleting a round removes exactly its line (with its line break) and    |
+     |   leaves every other line, comment, blank line, column of your own and   |
+     |   Windows line ending alone, with no RoundID renumbered;                 |
+     | - the backup is made first and holds the file as it was;                 |
+     | - the handicap and statistics are worked out again;                      |
+     | - a round that is not there, or a backup that cannot be made, deletes    |
+     |   nothing;                                                               |
+     | - Clear rounds only leaves rounds.tsv with its own header row only and   |
+     |   keeps the courses and settings; Clear everything empties both files    |
+     |   and resets the settings; the clear folder holds all three files as     |
+     |   they were and is never pruned;                                         |
+     | - Clear stops if its backup fails, and never touches the sample data.    |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing (throws IOException if a temporary file fails)       |
+     +--------------------------------------------------------------------------+
+     */
+    private static void checkDeleteAndClear() throws IOException
+    {
+        Path temp = Files.createTempDirectory("golfanalyst-delete-test");
+        Files.copy(Path.of("sample-data", DataLoader.COURSES_FILE), temp.resolve(DataLoader.COURSES_FILE));
+        String fives = "5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5";
+        String twos = "2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2";
+        String zeros = "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0";
+        String header = RoundWriter.STANDARD_HEADER + "\tNotes";
+        List<String> lines = new ArrayList<>();
+        for (int lp = 1; lp <= 4; lp = lp + 1)
+        {
+            lines.add(lp * 10 + "\t1\t2026-0" + lp + "-01\t\t\t" + fives + "\t" + twos + "\t" + zeros + "\t" + zeros + "\tnote " + lp);
+        }
+        String original = "# my rounds\r\n" + header + "\r\n" + lines.get(0) + "\r\n\r\n# between\r\n" + lines.get(1) + "\r\n"
+                + lines.get(2) + "\r\n" + lines.get(3) + "\r\n";
+        Path roundsFile = temp.resolve(DataLoader.ROUNDS_FILE);
+        Files.writeString(roundsFile, original, StandardCharsets.UTF_8);
+        DataStore store = new DataStore(temp);
+        int entriesBefore = store.handicap().entries().size();
+
+        Path copy = store.deleteRound(30);
+        String afterDelete = Files.readString(roundsFile, StandardCharsets.UTF_8);
+        check("delete: only round 30's line and its line break are removed",
+                afterDelete.equals(original.replace(lines.get(2) + "\r\n", "")));
+        check("delete: comments, the blank line, your own column, the other rounds and the line endings are untouched",
+                afterDelete.startsWith("# my rounds\r\n" + header + "\r\n" + lines.get(0) + "\r\n\r\n# between\r\n")
+                        && afterDelete.endsWith(lines.get(1) + "\r\n" + lines.get(3) + "\r\n"));
+        check("delete: no RoundID is renumbered", store.roundsByDate().stream().map(Round::id).toList().equals(List.of(10, 20, 40)));
+        check("delete: the backup was made first and holds the file as it was", copy != null
+                && Files.readString(copy, StandardCharsets.UTF_8).equals(original) && Backups.copiesOf(roundsFile).size() == 1);
+        check("delete: the handicap and statistics are worked out again", store.overall().rounds() == 3
+                && store.handicap().entries().size() == entriesBefore - 1);
+
+        boolean refused = false;
+        try
+        {
+            store.deleteRound(99);
+        }
+        catch (IOException expected)
+        {
+            refused = expected.getMessage().contains("not in");
+        }
+        check("delete: a round that is not there is refused, with no change and no copy", refused
+                && Files.readString(roundsFile, StandardCharsets.UTF_8).equals(afterDelete) && Backups.copiesOf(roundsFile).size() == 1);
+
+        Path blocked = Files.createTempDirectory("golfanalyst-delete-blocked");
+        Files.copy(temp.resolve(DataLoader.COURSES_FILE), blocked.resolve(DataLoader.COURSES_FILE));
+        Files.writeString(blocked.resolve(DataLoader.ROUNDS_FILE), original, StandardCharsets.UTF_8);
+        Files.writeString(blocked.resolve(Backups.FOLDER), "a file where the folder should be", StandardCharsets.UTF_8);
+        DataStore blockedStore = new DataStore(blocked);
+        boolean stopped = false;
+        try
+        {
+            blockedStore.deleteRound(20);
+        }
+        catch (Backups.Failed expected)
+        {
+            stopped = true;
+        }
+        check("delete: if the backup cannot be made nothing is deleted", stopped
+                && Files.readString(blocked.resolve(DataLoader.ROUNDS_FILE), StandardCharsets.UTF_8).equals(original)
+                && blockedStore.roundsByDate().size() == 4);
+        boolean clearStopped = false;
+        Files.writeString(blocked.resolve("settings.txt"), "golfer=Pat\n", StandardCharsets.UTF_8);
+        try
+        {
+            blockedStore.clear(true);
+        }
+        catch (Backups.Failed expected)
+        {
+            clearStopped = expected.getMessage().startsWith("No backup copy of your data files could be made");
+        }
+        check("clear: if the backup cannot be made nothing is cleared", clearStopped
+                && Files.readString(blocked.resolve(DataLoader.ROUNDS_FILE), StandardCharsets.UTF_8).equals(original)
+                && blockedStore.dataset().tees().size() > 0 && blockedStore.golferName().equals("Pat"));
+        deleteTree(blocked);
+
+        Path coursesFile = temp.resolve(DataLoader.COURSES_FILE);
+        String coursesText = "# my courses\r\n" + Files.readString(coursesFile, StandardCharsets.UTF_8).replace("\r\n", "\n").replace("\n", "\r\n");
+        Files.writeString(coursesFile, coursesText, StandardCharsets.UTF_8);
+        store.setGolferName("Pat Golfer");
+        store.setIncludeHistorical(false);
+        Path settingsFile = temp.resolve("settings.txt");
+        String settingsText = Files.readString(settingsFile, StandardCharsets.UTF_8);
+        store.reload();
+        int teeCount = store.dataset().tees().size();
+        Path roundsOnly = store.clear(false);
+        check("clear rounds only: rounds.tsv keeps only its own header row", Files.readString(roundsFile, StandardCharsets.UTF_8)
+                .equals(header + "\r\n") && store.roundsByDate().isEmpty() && store.overall().rounds() == 0);
+        check("clear rounds only: the courses, the name and the settings are kept",
+                Files.readString(coursesFile, StandardCharsets.UTF_8).equals(coursesText) && store.dataset().tees().size() == teeCount
+                        && store.golferName().equals("Pat Golfer") && !store.includeHistorical());
+        check("clear: the backup folder is backups\\clear-date-time and holds all three files as they were",
+                roundsOnly.getParent().getFileName().toString().equals(Backups.FOLDER)
+                        && roundsOnly.getFileName().toString().matches("clear-\\d{4}-\\d{2}-\\d{2}-\\d{6}(-\\d+)?")
+                        && Files.readString(roundsOnly.resolve(DataLoader.ROUNDS_FILE), StandardCharsets.UTF_8).equals(afterDelete)
+                        && Files.readString(roundsOnly.resolve(DataLoader.COURSES_FILE), StandardCharsets.UTF_8).equals(coursesText)
+                        && Files.readString(roundsOnly.resolve("settings.txt"), StandardCharsets.UTF_8).equals(settingsText));
+
+        String roundsHeaderOnly = Files.readString(roundsFile, StandardCharsets.UTF_8);
+        Path everything = store.clear(true);
+        check("clear everything: courses.tsv keeps only its own header row and rounds.tsv stays empty",
+                Files.readString(coursesFile, StandardCharsets.UTF_8).equals(CourseWriter.STANDARD_HEADER + "\r\n")
+                        && Files.readString(roundsFile, StandardCharsets.UTF_8).equals(header + "\r\n")
+                        && store.dataset().tees().isEmpty() && store.dataset().errorCount() == 0);
+        check("clear everything: the name is gone and Include historical rounds is ticked again", store.golferName().isEmpty()
+                && store.includeHistorical());
+        check("clear everything: a second clear folder is made and the first is kept", !everything.equals(roundsOnly)
+                && Files.isDirectory(roundsOnly) && Files.readString(everything.resolve(DataLoader.ROUNDS_FILE),
+                        StandardCharsets.UTF_8).equals(roundsHeaderOnly)
+                && Files.readString(everything.resolve(DataLoader.COURSES_FILE), StandardCharsets.UTF_8).equals(coursesText));
+        for (int lp = 0; lp < Backups.KEEP + 3; lp = lp + 1)
+        {
+            Backups.copyBeforeChange(roundsFile, java.time.LocalDateTime.of(2031, 1, 1, 9, 0, lp));
+        }
+        check("clear: Clear's folders are never pruned with the other copies", Files.isDirectory(roundsOnly)
+                && Files.isDirectory(everything) && Backups.copiesOf(roundsFile).size() == Backups.KEEP);
+        deleteTree(temp);
+
+        Path parent = Files.createTempDirectory("golfanalyst-sample-test");
+        Path sample = parent.resolve(DataStore.SAMPLE_FOLDER);
+        Files.createDirectories(sample);
+        Files.copy(Path.of("sample-data", DataLoader.COURSES_FILE), sample.resolve(DataLoader.COURSES_FILE));
+        Files.copy(Path.of("sample-data", DataLoader.ROUNDS_FILE), sample.resolve(DataLoader.ROUNDS_FILE));
+        String sampleRounds = Files.readString(sample.resolve(DataLoader.ROUNDS_FILE), StandardCharsets.UTF_8);
+        DataStore sampleStore = new DataStore(sample);
+        boolean sampleRefused = false;
+        try
+        {
+            sampleStore.clear(true);
+        }
+        catch (IOException expected)
+        {
+            sampleRefused = expected.getMessage().contains("sample data");
+        }
+        check("clear: the sample data is never cleared", sampleRefused && sampleStore.isSampleData()
+                && Files.readString(sample.resolve(DataLoader.ROUNDS_FILE), StandardCharsets.UTF_8).equals(sampleRounds)
+                && !Files.exists(sample.resolve(Backups.FOLDER)));
+        deleteTree(parent);
     }
 
     /*

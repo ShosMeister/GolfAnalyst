@@ -41,6 +41,8 @@ import java.util.Properties;
  | nextRoundId()             - an unused round id                           |
  | addRound(round)           - adds a round to rounds.tsv and reloads       |
  | replaceRound(round)       - saves an edited round (backup first), reloads|
+ | deleteRound(roundId)      - removes one round (backup first), reloads    |
+ | clear(everything)         - Clear: backup folder, then header rows only  |
  | nextTeeId()               - an unused tee id                             |
  | teesForCourse(name, zip)  - the tees a course already has                |
  | addTees(tees)             - adds tees to courses.tsv and reloads         |
@@ -215,6 +217,85 @@ public final class DataStore
         }
         RoundWriter.replace(dir.resolve(DataLoader.ROUNDS_FILE), round, tee);
         reload();
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | deleteRound(roundId)                                                     |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Removes one saved round: only its line goes from rounds.tsv (see         |
+     | RoundWriter.delete), after a dated copy of the file is put in the        |
+     | backups folder. Then everything is loaded and calculated again.          |
+     |                                                                          |
+     | Passed in:  roundId - the round to remove                                |
+     | Passed out: the backup copy made; throws Backups.Failed if the copy      |
+     |             cannot be made (nothing is removed), or IOException if the   |
+     |             round is not in the file or the file cannot be written       |
+     +--------------------------------------------------------------------------+
+     */
+    public Path deleteRound(int roundId) throws IOException
+    {
+        Path copy = RoundWriter.delete(dir.resolve(DataLoader.ROUNDS_FILE), roundId);
+        reload();
+        return copy;
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | clear(everything)                                                        |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | What Clear does. First courses.tsv, rounds.tsv and settings.txt are      |
+     | copied into backups\clear-YYYY-MM-DD-HHMMSS (if that fails nothing is    |
+     | cleared). Then rounds.tsv keeps only its header row; with everything,    |
+     | courses.tsv keeps only its header row too and settings.txt is reset (no  |
+     | name, Include historical rounds ticked again). Each file is written      |
+     | through a temporary file, so none is ever left half written. Then        |
+     | everything is loaded again. The sample data is never cleared.            |
+     |                                                                          |
+     | Passed in:  everything - false for rounds only (courses and the name     |
+     |                          are kept), true for everything                  |
+     | Passed out: the backup folder made; throws Backups.Failed if the copy    |
+     |             cannot be made, or IOException for the sample data or if a   |
+     |             file cannot be written                                       |
+     +--------------------------------------------------------------------------+
+     */
+    public Path clear(boolean everything) throws IOException
+    {
+        if (isSampleData())
+        {
+            throw new IOException("This is the sample data, so it is never cleared.");
+        }
+        Path folder = Backups.copyForClear(dir, List.of(DataLoader.COURSES_FILE, DataLoader.ROUNDS_FILE, SETTINGS_FILE),
+                java.time.LocalDateTime.now());
+        Path rounds = dir.resolve(DataLoader.ROUNDS_FILE);
+        LineReplacer.writeSafely(rounds, headerOnly(rounds, RoundWriter.STANDARD_HEADER));
+        if (everything)
+        {
+            Path courses = dir.resolve(DataLoader.COURSES_FILE);
+            LineReplacer.writeSafely(courses, headerOnly(courses, CourseWriter.STANDARD_HEADER));
+            Path settings = dir.resolve(SETTINGS_FILE);
+            if (Files.exists(settings))
+            {
+                LineReplacer.writeSafely(settings, "#Golf Analyst settings\n");
+            }
+        }
+        reload();
+        return folder;
+    }
+
+    /*
+     * headerOnly(file, standardHeader): the file's own header row (or the standard one if it has none) with its own line ending, and nothing else.
+     * Passed in:  file - the data file, standardHeader - the header to use when the file has none
+     * Passed out: the new text
+     */
+    private static String headerOnly(Path file, String standardHeader) throws IOException
+    {
+        String text = (Files.exists(file) ? Files.readString(file, StandardCharsets.UTF_8) : "");
+        String[] header = RoundWriter.findHeader(text);
+        String newline = (text.contains("\r\n") ? "\r\n" : "\n");
+        return (header == null ? standardHeader : String.join("\t", header)) + newline;
     }
 
     /*

@@ -33,6 +33,7 @@ import java.util.Set;
  | Public Methods:                                                          |
  | append(file, round, tee)            - adds one round to the file         |
  | replace(file, round, tee)           - replaces the line of one round     |
+ | delete(file, roundId)               - removes the line of one round      |
  | formatLine(round, tee, headerCells) - builds the tab-separated line      |
  | holesText(round, tee)               - the Holes column text              |
  +--------------------------------------------------------------------------+
@@ -313,5 +314,30 @@ public final class RoundWriter
         };
         LineReplacer.Spliced spliced = LineReplacer.splice(text, "roundid", Map.of(round.id(), maker), file.getFileName().toString());
         LineReplacer.write(file, spliced.text());
+    }
+    /*
+     +--------------------------------------------------------------------------+
+     | delete(file, roundId)                                                    |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Removes one round: the one line whose RoundID is roundId, with its own   |
+     | line break. Comments, blank lines, every other line and the file's line  |
+     | endings stay exactly as they were, and no RoundID is renumbered. First   |
+     | a dated copy of the file goes in the backups folder; if that fails,      |
+     | nothing is removed.                                                      |
+     |                                                                          |
+     | Passed in:  file    - the rounds.tsv path                                |
+     |             roundId - the round to remove                                |
+     | Passed out: the backup copy made; throws Backups.Failed if the copy      |
+     |             cannot be made, or IOException if no line (or more than      |
+     |             one) has that RoundID or the file cannot be written          |
+     +--------------------------------------------------------------------------+
+     */
+    public static Path delete(Path file, int roundId) throws IOException
+    {
+        String text = Files.readString(file, StandardCharsets.UTF_8);
+        LineReplacer.LineMaker remove = (headerCells, oldCells) -> null;
+        LineReplacer.Spliced spliced = LineReplacer.splice(text, "roundid", Map.of(roundId, remove), file.getFileName().toString());
+        return LineReplacer.write(file, spliced.text());
     }
 }
