@@ -903,6 +903,7 @@ public final class GuiSelfTest
         checkCorrectCourseScreen();
         checkZipScreen();
         checkDeleteCourseScreen();
+        checkCourseBarFits();
         checkDeleteRound();
         checkClearData();
         checkFooterHand();
@@ -2080,6 +2081,60 @@ public final class GuiSelfTest
 
         checkDialogLayout("Save anyway?, long names", ConfirmForm.twoChoice(zips.saveQuestion("99950",
                 "Lake Wobegon Heights on the Northern Shore of Lake Superior", "MN"), "Go back", "Save anyway"));
+        deleteFolder(temp);
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | checkCourseBarFits()                                                     |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Lays the New Course screen out at the window's real width (916 px) in    |
+     | Edit Course, where the course bar is fullest (Correct... is showing),    |
+     | and checks that every part of the bar sits on its one row and inside     |
+     | it, so nothing is cut off; that Delete course is in the bottom bar left  |
+     | of Save, 112 x 24 and centred on Save's row; and that it stays clear of  |
+     | the yellow version text (the peek) and its 6 px margin.                  |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing (throws IOException if a temporary file fails)       |
+     +--------------------------------------------------------------------------+
+     */
+    private static void checkCourseBarFits() throws IOException
+    {
+        Path temp = Files.createTempDirectory("golfanalyst-course-bar");
+        Files.copy(Path.of("sample-data", DataLoader.COURSES_FILE), temp.resolve(DataLoader.COURSES_FILE));
+        Files.copy(Path.of("sample-data", DataLoader.ROUNDS_FILE), temp.resolve(DataLoader.ROUNDS_FILE));
+        AppPanel panel = new AppPanel(new DataStore(temp), Path.of("help"), "");
+        panel.setSize(916, 760);
+        panel.newCourse();
+        CoursePage page = panel.coursePage();
+        page.useZipCodes(golfanalyst.ZipCodes.load(temp.resolve("no-zip-list.tsv")));
+        page.courseField.setText("Edgewater");
+        page.zipField.setText("29720");
+        layoutAll(panel);
+        Container bar = page.courseField.getParent();
+        boolean oneRow = page.correctButton.isVisible();
+        StringBuilder rows = new StringBuilder();
+        for (Component part : bar.getComponents())
+        {
+            if (part.isVisible())
+            {
+                oneRow = oneRow && part.getY() < 10 && part.getY() + part.getHeight() <= bar.getHeight()
+                        && part.getX() + part.getWidth() <= bar.getWidth();
+                rows.append(part.getX()).append(',').append(part.getY()).append(' ');
+            }
+        }
+        check("course bar: in Edit Course every part fits on its one row (" + bar.getWidth() + " px wide)", oneRow);
+        java.awt.Rectangle delete = javax.swing.SwingUtilities.convertRectangle(page.deleteCourseButton.getParent(),
+                page.deleteCourseButton.getBounds(), page);
+        java.awt.Rectangle save = javax.swing.SwingUtilities.convertRectangle(page.saveButton.getParent(), page.saveButton.getBounds(), page);
+        java.awt.Rectangle peek = page.versionLabelBounds();
+        peek.grow(6, 6);
+        check("course bar: Delete course is in the bottom bar, left of Save, centred on its row", page.deleteCourseButton.isVisible()
+                && delete.width == 112 && delete.height == 24 && delete.x + delete.width < save.x
+                && Math.abs((delete.y + delete.height / 2) - (save.y + save.height / 2)) <= 1);
+        check("course bar: Delete course stays clear of the yellow version text", !delete.intersects(peek));
         deleteFolder(temp);
     }
 

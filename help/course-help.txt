@@ -61,7 +61,7 @@ Deleting a course removes all of its sets of tees and every round played on them
 
 1. Find the course. Press New Course and type its name and ZIP. The title changes to Edit Course.
 
-2. Press Delete course. It is the small button at the right end of the bar along the top.
+2. Press Delete course. It is the small button at the bottom of the screen, to the left of Save.
 
 3. Check what will go. The first question says how many sets of tees and rounds will be removed, and how many of those rounds are historical, with a list of the rounds underneath. Anything you typed on the screen is ignored. Press Keep it to stop, or Delete... to go on.
 

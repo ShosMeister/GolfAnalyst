@@ -263,8 +263,10 @@ Not built either: deleting a tee, merging two courses.
   Pages reach dialogs through `Shell` (confirmTwice with title/list/prompt, confirmOnce, showNotice, askText, askYesNo).
   `GuiSelfTest.checkDialogLayouts` lays each out with its longest text and checks the band, border, WoodButtons,
   overlaps and the 12 px gap.
-- **Delete course** (built, v4.00 before release): `CoursePage.deleteCourseButton` (112 x 24, 12 pt) at the right end of
-  the course bar, Edit Course only. `readyToSave()` first, then `Shell.confirmTwice("Delete course", ...)` with
+- **Delete course** (built, v4.00 before release): `CoursePage.deleteCourseButton` (112 x 24, 12 pt) in the bottom
+  button bar, left of Save with a 30 px gap (not at the page's left edge: the peek label is there), Edit Course only.
+  The course bar has no room for it: in Edit Course it is fullest (Correct... showing); Course box 210 px and City
+  130 px leave about 45 px to spare (`GuiSelfTest.checkCourseBarFits` lays it out at 916 px). `readyToSave()` first, then `Shell.confirmTwice("Delete course", ...)` with
   `CourseDeleter.Summary.question` (tees, rounds, historical counted; `UNSAVED_IGNORED` when the screen has changes;
   "No rounds have been played on it." with no list when there are none) and the rounds list, then "To confirm, type
   the name of the course exactly: X" (`ConfirmForm.sameWords`: capitals and extra spaces ignored).

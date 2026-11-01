@@ -25,6 +25,7 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.function.BooleanSupplier;
 import javax.swing.BorderFactory;
+import javax.swing.Box;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -139,6 +140,9 @@ public final class CoursePage extends Page
     final WoodButton deleteCourseButton = new WoodButton("Delete course");
     static final String DELETE_COURSE_TITLE = "Delete course";
     private static final int DELETE_WIDTH = 112;
+    private static final int DELETE_GAP = 30;
+    private static final int COURSE_BOX_WIDTH = 210;
+    private static final int CITY_BOX_WIDTH = 130;
     static final String CORRECT_NOTE = "Changing the name or zip corrects this course for all its tees. To add a different course, "
             + "press Cancel and start again.";
     static final String SAME_COURSE = "A course with that name and zip is already in the program.";
@@ -228,9 +232,8 @@ public final class CoursePage extends Page
      +--------------------------------------------------------------------------+
      | Purpose:                                                                 |
      | The light bar across the top: course name, zip (with the Correct...      |
-     | button for a course already in the program), city, state, the            |
-     | nine-hole box and, at the right end, Delete course (Edit Course only).   |
-     | Changing the name or zip looks the course up; a complete                 |
+     | button for a course already in the program), city, state and the         |
+     | nine-hole box. Changing the name or zip looks the course up; a complete  |
      | zip fills in an empty city and state from the zip list.                  |
      |                                                                          |
      | Passed in:  nothing                                                      |
@@ -241,9 +244,10 @@ public final class CoursePage extends Page
     {
         JPanel bar = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 3));
         bar.setBackground(Theme.PANEL_BODY);
-        nameBox(courseField, 230, BAR_BOX_HEIGHT);
+        bar.setBorder(BorderFactory.createLineBorder(Theme.FRAME_DARK, 1));
+        nameBox(courseField, COURSE_BOX_WIDTH, BAR_BOX_HEIGHT);
         numberBox(zipField, BoxFilter.Kind.ZIP, 64, BAR_BOX_HEIGHT);
-        nameBox(cityField, 150, BAR_BOX_HEIGHT);
+        nameBox(cityField, CITY_BOX_WIDTH, BAR_BOX_HEIGHT);
         numberBox(stateField, BoxFilter.Kind.STATE, 40, BAR_BOX_HEIGHT);
         courseField.setToolTipText("The name of the course, as on the scorecard");
         zipField.setToolTipText("The course's 5-digit zip code");
@@ -271,28 +275,25 @@ public final class CoursePage extends Page
         bar.add(stateField);
         bar.add(nineHoleCheck);
         bar.add(new JLabel("Nine-hole course"));
-        Dimension deleteSize = new Dimension(DELETE_WIDTH, CORRECT_HEIGHT);
-        deleteCourseButton.setPreferredSize(deleteSize);
-        deleteCourseButton.setMinimumSize(deleteSize);
-        deleteCourseButton.setFont(Theme.font(Font.BOLD, 12f));
-        deleteCourseButton.setFocusable(false);
-        deleteCourseButton.setToolTipText("Delete this course, all its tees and every round played on them (you are asked twice first)");
-        deleteCourseButton.addActionListener(event -> deleteCourse());
-        JPanel end = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 5));
-        end.setBackground(Theme.PANEL_BODY);
-        end.add(deleteCourseButton);
-        JPanel whole = new JPanel(new BorderLayout());
-        whole.setBackground(Theme.PANEL_BODY);
-        whole.setBorder(BorderFactory.createLineBorder(Theme.FRAME_DARK, 1));
-        whole.add(bar, BorderLayout.CENTER);
-        whole.add(end, BorderLayout.EAST);
-        return whole;
+        return bar;
     }
 
     /*
-     * buildButtonBar(): the Save and Cancel buttons, on the right under the scroll pane.
-     * Passed in:  nothing
-     * Passed out: the bar
+     +--------------------------------------------------------------------------+
+     | buildButtonBar()                                                         |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | The buttons under the scroll pane, on the right: Delete course (Edit     |
+     | Course only, 112 x 24, centred on the row and set apart from Save by a   |
+     | wider gap so it is not pressed by mistake), then Save and Cancel. It     |
+     | sits at the left end of that group, not at the left edge of the page,    |
+     | because the yellow version text (the peek) is down there and no button   |
+     | may cover it. (The course bar at the top has no room for it in Edit      |
+     | Course.)                                                                 |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: the bar                                                      |
+     +--------------------------------------------------------------------------+
      */
     private JPanel buildButtonBar()
     {
@@ -300,6 +301,19 @@ public final class CoursePage extends Page
         bar.setOpaque(false);
         saveButton.setPreferredSize(new Dimension(110, 32));
         cancelButton.setPreferredSize(new Dimension(110, 32));
+        Dimension deleteSize = new Dimension(DELETE_WIDTH, CORRECT_HEIGHT);
+        deleteCourseButton.setPreferredSize(deleteSize);
+        deleteCourseButton.setMinimumSize(deleteSize);
+        deleteCourseButton.setFont(Theme.font(Font.BOLD, 12f));
+        deleteCourseButton.setFocusable(false);
+        deleteCourseButton.setToolTipText("Delete this course, all its tees and every round played on them (you are asked twice first)");
+        deleteCourseButton.addActionListener(event -> deleteCourse());
+        JPanel deleteHolder = new JPanel(new GridBagLayout());
+        deleteHolder.setOpaque(false);
+        deleteHolder.setPreferredSize(new Dimension(DELETE_WIDTH, 32));
+        deleteHolder.add(deleteCourseButton);
+        bar.add(deleteHolder);
+        bar.add(Box.createHorizontalStrut(DELETE_GAP));
         bar.add(saveButton);
         bar.add(cancelButton);
         return bar;
