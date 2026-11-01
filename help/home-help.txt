@@ -22,7 +22,7 @@ To change the name, click it in the Golfer's Stats section, type the name and pr
 
 # Adding a course
 
-You cannot enter a round until its course is in the program. Press New Course, type the course name and ZIP, then each set of tees from the scorecard, and press Save. The ? button on that screen walks you through it.
+You cannot enter a round until its course is in the program. Press New Course, type the course name and ZIP, then each set of tees from the scorecard, and press Save. The ? button on that screen walks you through it, including how to fix, correct or delete a course you have already saved.
 
 # Your own data
 

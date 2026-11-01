@@ -1,5 +1,6 @@
 package golfanalyst.gui;
 
+import golfanalyst.CourseDeleter;
 import golfanalyst.DataStore;
 import golfanalyst.Tee;
 import golfanalyst.ZipCodes;
@@ -135,6 +136,9 @@ public final class CoursePage extends Page
     final WoodButton saveButton = new WoodButton("Save");
     final WoodButton cancelButton = new WoodButton("Cancel");
     final WoodButton correctButton = new WoodButton("Correct...");
+    final WoodButton deleteCourseButton = new WoodButton("Delete course");
+    static final String DELETE_COURSE_TITLE = "Delete course";
+    private static final int DELETE_WIDTH = 112;
     static final String CORRECT_NOTE = "Changing the name or zip corrects this course for all its tees. To add a different course, "
             + "press Cancel and start again.";
     static final String SAME_COURSE = "A course with that name and zip is already in the program.";
@@ -224,8 +228,9 @@ public final class CoursePage extends Page
      +--------------------------------------------------------------------------+
      | Purpose:                                                                 |
      | The light bar across the top: course name, zip (with the Correct...      |
-     | button for a course already in the program), city, state and the         |
-     | nine-hole box. Changing the name or zip looks the course up; a complete  |
+     | button for a course already in the program), city, state, the            |
+     | nine-hole box and, at the right end, Delete course (Edit Course only).   |
+     | Changing the name or zip looks the course up; a complete                 |
      | zip fills in an empty city and state from the zip list.                  |
      |                                                                          |
      | Passed in:  nothing                                                      |
@@ -236,7 +241,6 @@ public final class CoursePage extends Page
     {
         JPanel bar = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 3));
         bar.setBackground(Theme.PANEL_BODY);
-        bar.setBorder(BorderFactory.createLineBorder(Theme.FRAME_DARK, 1));
         nameBox(courseField, 230, BAR_BOX_HEIGHT);
         numberBox(zipField, BoxFilter.Kind.ZIP, 64, BAR_BOX_HEIGHT);
         nameBox(cityField, 150, BAR_BOX_HEIGHT);
@@ -267,7 +271,22 @@ public final class CoursePage extends Page
         bar.add(stateField);
         bar.add(nineHoleCheck);
         bar.add(new JLabel("Nine-hole course"));
-        return bar;
+        Dimension deleteSize = new Dimension(DELETE_WIDTH, CORRECT_HEIGHT);
+        deleteCourseButton.setPreferredSize(deleteSize);
+        deleteCourseButton.setMinimumSize(deleteSize);
+        deleteCourseButton.setFont(Theme.font(Font.BOLD, 12f));
+        deleteCourseButton.setFocusable(false);
+        deleteCourseButton.setToolTipText("Delete this course, all its tees and every round played on them (you are asked twice first)");
+        deleteCourseButton.addActionListener(event -> deleteCourse());
+        JPanel end = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 5));
+        end.setBackground(Theme.PANEL_BODY);
+        end.add(deleteCourseButton);
+        JPanel whole = new JPanel(new BorderLayout());
+        whole.setBackground(Theme.PANEL_BODY);
+        whole.setBorder(BorderFactory.createLineBorder(Theme.FRAME_DARK, 1));
+        whole.add(bar, BorderLayout.CENTER);
+        whole.add(end, BorderLayout.EAST);
+        return whole;
     }
 
     /*
@@ -914,6 +933,7 @@ public final class CoursePage extends Page
         courseField.setEditable(!lockCourse);
         zipField.setEditable(!lockCourse);
         correctButton.setVisible(editing());
+        deleteCourseButton.setVisible(editing());
         correctButton.setEnabled(!correcting);
         for (JComponent part : frontRow)
         {
@@ -2140,6 +2160,54 @@ public final class CoursePage extends Page
             cityField.setText(check.place().city());
             stateField.setText(check.place().state());
         }
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | deleteCourse()                                                           |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | What Delete course (Edit Course only) does. On the sample data it first  |
+     | asks the sample-data question, as saving does. Then the two careful      |
+     | questions: the course named with its tees and rounds counted and the     |
+     | rounds listed (anything typed on the screen is ignored, and the          |
+     | question says so), then typing the course's name. If both are answered,  |
+     | the course, all its tees and every round on them are deleted (a backup   |
+     | folder first, all or nothing; see CourseDeleter), and the window goes    |
+     | Home and says what was deleted.                                          |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing                                                      |
+     +--------------------------------------------------------------------------+
+     */
+    private void deleteCourse()
+    {
+        if (!editing() || !shell.readyToSave())
+        {
+            return;
+        }
+        DataStore store = shell.store();
+        List<Tee> tees = new ArrayList<>(existingTees);
+        CourseDeleter.Summary summary = CourseDeleter.summarize(tees, store.roundsByDate());
+        boolean unsaved = hasEdits() || courseCorrected();
+        if (!shell.confirmTwice(DELETE_COURSE_TITLE, summary.question(unsaved), (summary.rounds() > 0 ? summary.list() : null),
+                "Keep it", "Delete...", summary.prompt(), summary.courseName()))
+        {
+            return;
+        }
+        java.nio.file.Path folder;
+        try
+        {
+            folder = store.deleteCourse(tees);
+        }
+        catch (IOException failure)
+        {
+            shell.setStatus((failure instanceof golfanalyst.Backups.Failed ? "" : "The course could not be deleted: ") + failure.getMessage());
+            return;
+        }
+        prepareNew();
+        shell.goHome();
+        shell.setStatus(summary.done(folder.getFileName().toString()));
     }
 
     // ------------------------------------------------------------ small helpers

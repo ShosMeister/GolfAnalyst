@@ -902,6 +902,7 @@ public final class GuiSelfTest
         checkImportScreen();
         checkCorrectCourseScreen();
         checkZipScreen();
+        checkDeleteCourseScreen();
         checkDeleteRound();
         checkClearData();
         checkFooterHand();
@@ -2079,6 +2080,147 @@ public final class GuiSelfTest
 
         checkDialogLayout("Save anyway?, long names", ConfirmForm.twoChoice(zips.saveQuestion("99950",
                 "Lake Wobegon Heights on the Northern Shore of Lake Superior", "MN"), "Go back", "Save anyway"));
+        deleteFolder(temp);
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | checkDeleteCourseScreen()                                                |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Delete course on the New Course screen: the button only in Edit Course;  |
+     | the question (with typed changes mentioned); Keep it deletes nothing;    |
+     | Delete removes the course and goes Home with the footer; screens that    |
+     | remembered the course (a Stats Board highlight, Best Round, the round    |
+     | viewer) simply no longer show it; the sample-data question comes first   |
+     | on the sample data; the typed name; and the dialog's layout with the     |
+     | longest question and list.                                               |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing (throws IOException if a temporary file fails)       |
+     +--------------------------------------------------------------------------+
+     */
+    private static void checkDeleteCourseScreen() throws IOException
+    {
+        Path temp = Files.createTempDirectory("golfanalyst-delete-course-screen");
+        golfanalyst.SelfTest.deleteCourseFolder(temp);
+        DataStore store = new DataStore(temp);
+        TestShell shell = new TestShell(store);
+        CoursePage page = new CoursePage(shell);
+        page.useZipCodes(golfanalyst.ZipCodes.load(temp.resolve("no-zip-list.tsv")));
+        StatsPage stats = new StatsPage(shell);
+        RoundPage best = new RoundPage(shell, true);
+        RoundPage viewer = new RoundPage(shell);
+        page.showNew();
+        check("delete course: no Delete course button on a new course", !page.deleteCourseButton.isVisible());
+        page.courseField.setText("Edgewater");
+        page.zipField.setText("29720");
+        check("delete course: the button shows in Edit Course, 112 x 24", page.deleteCourseButton.isVisible()
+                && page.deleteCourseButton.getPreferredSize().width == 112 && page.deleteCourseButton.getPreferredSize().height == 24);
+        String coursesBefore = Files.readString(temp.resolve(DataLoader.COURSES_FILE), StandardCharsets.UTF_8);
+        int rounds = (int) store.roundsByDate().stream().filter(round -> round.teeId() >= 5 && round.teeId() <= 8).count();
+        shell.confirmAnswer = false;
+        page.deleteCourseButton.doClick();
+        String asked = shell.asked.get(shell.asked.size() - 1);
+        check("delete course: the question names the course and counts what goes", asked.startsWith("Delete Edgewater (29720)? This removes "
+                + "the course, its 4 sets of tees and all " + rounds + " rounds played on them (1 of them historical).")
+                && !asked.endsWith(golfanalyst.CourseDeleter.UNSAVED_IGNORED));
+        check("delete course: Keep it deletes nothing", Files.readString(temp.resolve(DataLoader.COURSES_FILE), StandardCharsets.UTF_8)
+                .equals(coursesBefore) && page.title().equals("Edit Course"));
+        page.yardageFields[0].setText("9999");
+        page.deleteCourseButton.doClick();
+        check("delete course: typed changes are mentioned", shell.asked.get(shell.asked.size() - 1)
+                .endsWith(golfanalyst.CourseDeleter.UNSAVED_IGNORED));
+
+        stats.onShow();
+        String edgewaterKey = null;
+        for (StatsPage.RowPanel row : stats.rowPanels)
+        {
+            edgewaterKey = (row.row.label().startsWith("Edgewater:") ? row.row.key() : edgewaterKey);
+        }
+        stats.select(edgewaterKey);
+        best.showBest();
+        boolean bestWasEdgewater = best.title().contains("Edgewater");
+        viewer.showLatest();
+        boolean viewerWasEdgewater = viewer.title().contains("Edgewater");
+
+        shell.confirmAnswer = true;
+        page.deleteCourseButton.doClick();
+        check("delete course: Delete removes the course and goes Home, saying so", store.teesForCourse("Edgewater", "29720").isEmpty()
+                && shell.lastPage.equals("home") && shell.status.startsWith("Deleted Edgewater: 4 sets of tees and " + rounds
+                        + " rounds. A copy of your files as they were is in backups"));
+        stats.onShow();
+        check("delete course: the Stats Board lets go of a highlight on the deleted course", edgewaterKey != null
+                && stats.selectedKey() == null && stats.rowPanels.stream().noneMatch(row -> row.row.label().startsWith("Edgewater:")));
+        best.showBest();
+        viewer.showLatest();
+        check("delete course: Best Round and the round viewer show what is left", bestWasEdgewater && viewerWasEdgewater
+                && !best.title().contains("Edgewater:") && !viewer.title().contains("Edgewater:"));
+
+        Path parent = Files.createTempDirectory("golfanalyst-delete-course-sample");
+        Path sample = parent.resolve(DataStore.SAMPLE_FOLDER);
+        Files.createDirectories(sample);
+        Files.copy(Path.of("sample-data", DataLoader.COURSES_FILE), sample.resolve(DataLoader.COURSES_FILE));
+        Files.copy(Path.of("sample-data", DataLoader.ROUNDS_FILE), sample.resolve(DataLoader.ROUNDS_FILE));
+        String sampleCourses = Files.readString(sample.resolve(DataLoader.COURSES_FILE), StandardCharsets.UTF_8);
+        AppPanel panel = new AppPanel(new DataStore(sample), Path.of("help"), "");
+        panel.coursePage().useZipCodes(golfanalyst.ZipCodes.load(sample.resolve("no-zip-list.tsv")));
+        List<String> sampleAsked = new ArrayList<>();
+        panel.setAsker(question ->
+        {
+            sampleAsked.add(question);
+            return javax.swing.JOptionPane.CANCEL_OPTION;
+        });
+        panel.setConfirmer((form, title) ->
+        {
+            sampleAsked.add("confirm");
+            return ConfirmForm.CANCELLED;
+        });
+        panel.newCourse();
+        panel.coursePage().courseField.setText("Edgewater");
+        panel.coursePage().zipField.setText("29720");
+        panel.coursePage().deleteCourseButton.doClick();
+        check("delete course: on the sample data the sample question comes first, and Cancel deletes nothing",
+                sampleAsked.equals(List.of(AppPanel.SAMPLE_QUESTION))
+                        && Files.readString(sample.resolve(DataLoader.COURSES_FILE), StandardCharsets.UTF_8).equals(sampleCourses));
+
+        List<String> steps = new ArrayList<>();
+        panel.setConfirmer((form, title) ->
+        {
+            steps.add(title);
+            if (form.wordField != null)
+            {
+                form.wordField.setText("edgewater north");
+                steps.add("wrong name: OK " + (form.goButton.isEnabled() ? "on" : "off"));
+                form.wordField.setText("  EDGEWATER ");
+                steps.add("right name: OK " + (form.goButton.isEnabled() ? "on" : "off"));
+                form.cancelButton.doClick();
+                return form.answer();
+            }
+            form.goButton.doClick();
+            return form.answer();
+        });
+        boolean deleted = panel.confirmTwice(CoursePage.DELETE_COURSE_TITLE, "Delete Edgewater (29720)?", "a list", "Keep it", "Delete...",
+                "To confirm, type the name of the course exactly: Edgewater", "Edgewater");
+        check("delete course: OK stays off until the name is typed (capitals and spaces ignored), and Cancel keeps it", !deleted
+                && steps.equals(List.of("Delete course", "Confirm", "wrong name: OK off", "right name: OK on")));
+        deleteFolder(parent);
+
+        StringBuilder list = new StringBuilder();
+        for (int lp = 0; lp < 60; lp = lp + 1)
+        {
+            list.append("2026-10-").append(10 + lp % 20).append("   Championship Blue and White Combination   104 (9 holes)   (historical)\n");
+        }
+        golfanalyst.CourseDeleter.Summary longest = new golfanalyst.CourseDeleter.Summary(
+                "The Ocean Course at Kiawah Island Golf Resort and Championship Links of the Lowcountry", "29455", 12, 999, 345,
+                list.toString().trim());
+        ConfirmForm question = ConfirmForm.twoChoiceWithList(longest.question(true), longest.list(), "Keep it", "Delete...")
+                .withTitle(CoursePage.DELETE_COURSE_TITLE);
+        checkDialogLayout("Delete course, longest", question);
+        check("delete course: Keep it is the default", question.defaultButton() == question.cancelButton
+                && question.title().equals("Delete course") && question.listArea != null && !question.listArea.isEditable());
+        checkDialogLayout("Delete course, type the name", ConfirmForm.typed(longest.prompt(), longest.courseName())
+                .withTitle(AppPanel.CONFIRM_TITLE));
         deleteFolder(temp);
     }
 

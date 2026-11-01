@@ -222,7 +222,8 @@ sample-data title/footer and save question, styled Help/Info windows, Edit Round
 and the press-and-hold peek on the version text (v4.21), modal Help/Info windows (v4.22), historical rounds (v4.30), the
 Stats Board (v4.40), Close back to the Stats Board and the close-box question (v4.41), Best Round (v4.50), the
 Historical box on the round screens and Include historical rounds on Home (v4.60), the backups folder, Delete Round
-and Clear (v4.70), dialogs sized to their text (v4.71), Import, Correct... and the ZIP code check (v4.80).
+and Clear (v4.70), dialogs sized to their text (v4.71), Import, Correct... and the ZIP code check (v4.80); since
+then, still v4.00: every dialog in the wooden look and Delete course.
 Not built (buttons are in place and say "not built yet"): Analyzer, Print.
 Not built either: deleting a tee, merging two courses.
 - **Edit Course** (built, v4.20): no separate button. On New Course, typing a saved course's name and zip loads its
@@ -245,12 +246,34 @@ Not built either: deleting a tee, merging two courses.
   everything also resets settings.txt. Goes Home; footer "Cleared. A copy of everything as it was is in
   backups\clear-....". Sample data: `CLEAR_SAMPLE_QUESTION` (Yes only makes the data folder) and `DataStore.clear`
   refuses it too. Dialogs are `ConfirmForm` panels shown by `AppPanel`'s `Confirmer`, which the tests replace.
-- `ConfirmForm` (the one dialog helper: Delete round, type DELETE, Clear data, its summary, type CLEAR, both sample-data
-  questions): 16 px padding, message in a JTextArea in `ConfirmForm.messageFont()` (the system message font,
-  Segoe UI 12 on Windows, as "Discard your changes?" uses; Label.font where there is none) wrapping at 420 px whose height is worked out for that width
-  before pack() (a wrapping text box asked for its size with no width reports too few lines; that once hid the last
-  line behind the buttons), 12 px gap, buttons on the right, window packed and at least 440 wide, default button
-  focused. `GuiSelfTest.checkDialogLayouts` lays each out with its longest text and checks overlaps and gaps.
+- `ConfirmForm` is the ONE dialog helper; no page or window code uses JOptionPane or its own JDialog (only the system
+  file picker behind Browse). Kinds: twoChoice, twoChoiceWithList, typed, clearChoice, yesNoCancel, yesNo (No default),
+  notice, textInput; `withTitle` sets the band's title (Import, Delete round, Delete course, Clear data, Confirm,
+  Discard changes, Save anyway, Sample data, Data problems, Save failed, Golfer's name). `dress(panel, title, content,
+  buttons)` gives the look (the Import window uses it too): window title always "Golf Analyst"; 3 px (70,35,5)
+  border; 46 px `Band` from Wood_Light.gif stretched, inner line (255,235,190,150) 2 px in, 3 px (70,35,5) bottom line,
+  title 21 pt bold italic white with shadow (`Theme.drawCentered`); parchment `Theme.HELP_PAPER` body, 14 px
+  top/bottom and 16 px side padding; message (60,35,10) 14 pt in `messageFont()` (system message font, Segoe UI on
+  Windows) in a JTextArea wrapping at 420 px whose height is worked out for that width before pack() (a wrapping text
+  box asked for its size with no width reports too few lines; that once hid the last line behind the buttons); 12 px
+  gap; WoodButtons (`dialogButton`, at least 100 x 32, 10 px apart, right aligned; Browse 96 x 28); the default has
+  `WoodButton.setDefaultRing` and the focus; Esc cancels, Enter presses the default; captions `caption` WoodTags
+  96 x 24; boxes `textBox` white, hairline (185,180,170), 13 pt, 5 px inside; lists `readOnlyList`; check boxes
+  ImageCheckBox + `checkLabel` 13 pt. `showPanel` packs, at least 440 wide, modal, centred on the program window.
+  Pages reach dialogs through `Shell` (confirmTwice with title/list/prompt, confirmOnce, showNotice, askText, askYesNo).
+  `GuiSelfTest.checkDialogLayouts` lays each out with its longest text and checks the band, border, WoodButtons,
+  overlaps and the 12 px gap.
+- **Delete course** (built, v4.00 before release): `CoursePage.deleteCourseButton` (112 x 24, 12 pt) at the right end of
+  the course bar, Edit Course only. `readyToSave()` first, then `Shell.confirmTwice("Delete course", ...)` with
+  `CourseDeleter.Summary.question` (tees, rounds, historical counted; `UNSAVED_IGNORED` when the screen has changes;
+  "No rounds have been played on it." with no list when there are none) and the rounds list, then "To confirm, type
+  the name of the course exactly: X" (`ConfirmForm.sameWords`: capitals and extra spaces ignored).
+  `DataStore.deleteCourse` -> `CourseDeleter.delete`: `Backups.copyIntoFolder(..., "delete-course-", ...)` (never
+  pruned; failure deletes nothing), splice out only the course's TeeIDs and the rounds on them (LineMaker null), write
+  both to `.new` files, move courses then rounds; if the rounds move fails courses.tsv is copied back from the backup.
+  Then Home with "Deleted X: 3 sets of tees and 12 rounds. A copy of your files as they were is in
+  backups\delete-course-....". Getting it back: Import the backup folder (only the missing course and rounds are
+  added). The Stats Board drops a highlight whose row is gone; Best Round and the viewer rebuild from the store.
 - **Import** (built, v4.80): `Importer` (engine) `check` reads each data row alone with the loader (`onlyLine` blanks
   the others so line numbers stay true) and returns a `Plan`; nothing is written. Tees match by `sameName` course + tee
   (zips agree when both set): matched = skipped, mine never changed; new = next TeeIDs, course spelling of mine or of

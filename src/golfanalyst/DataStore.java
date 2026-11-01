@@ -289,6 +289,18 @@ public final class DataStore
 
 
     /*
+     * deleteCourse(tees): deletes a course, all its tees and every round on them (see CourseDeleter: a backup folder first, all or nothing), then reloads.
+     * Passed in:  tees - every set of tees of the course
+     * Passed out: the backup folder made (throws Backups.Failed or IOException; then nothing is deleted)
+     */
+    public Path deleteCourse(List<Tee> tees) throws IOException
+    {
+        Path folder = CourseDeleter.delete(dir, tees, dataset.rounds());
+        reload();
+        return folder;
+    }
+
+    /*
      +--------------------------------------------------------------------------+
      | correctCourse(tees, name, zip, city, state)                              |
      +--------------------------------------------------------------------------+

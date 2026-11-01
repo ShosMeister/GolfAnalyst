@@ -574,6 +574,7 @@ public final class SelfTest
             checkImport();
             checkCorrectCourse();
             checkZipCodes();
+            checkDeleteCourse();
         }
         catch (IOException failure)
         {
@@ -1737,6 +1738,213 @@ public final class SelfTest
                 && missing.check("29708", "", "").verdict() == ZipCodes.Verdict.NONE && missing.find("29708") == null);
         check("zip: the program's zipcodes.tsv is there and knows 29708", ZipCodes.standard().find("29708") != null
                 && ZipCodes.standard().find("29708").city().equals("Fort Mill"));
+        deleteTree(temp);
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | deleteCourseFolder(temp)                                                 |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Makes the data for the Delete course tests in a folder: the sample data  |
+     | with a comment line and Windows line endings, a Historical column with   |
+     | one Edgewater round marked historical, one more Edgewater round, and a   |
+     | course with a similar name, "Edgewater North" (same zip), with one tee   |
+     | and one round of its own.                                                |
+     |                                                                          |
+     | Passed in:  temp - the folder                                            |
+     | Passed out: nothing (throws IOException if a file cannot be written)     |
+     +--------------------------------------------------------------------------+
+     */
+    public static void deleteCourseFolder(Path temp) throws IOException
+    {
+        String[] courseHeader = CourseWriter.STANDARD_HEADER.split("\t");
+        Dataset sample = DataLoader.load(Path.of("sample-data"));
+        Tee senior = sample.tees().stream().filter(tee -> tee.id() == 5).findFirst().orElse(null);
+        Tee north = new Tee(50, "Edgewater North", senior.city(), senior.state(), senior.zip(), "Blue", senior.holes(), senior.rating(),
+                senior.slope(), 0, senior.pars(), senior.strokeIndex(), 0, 0, 0, 0);
+        String courses = "# my courses\n" + Files.readString(Path.of("sample-data", DataLoader.COURSES_FILE), StandardCharsets.UTF_8)
+                .replace("\r\n", "\n") + CourseWriter.formatLine(north, courseHeader) + "\n";
+        Files.writeString(temp.resolve(DataLoader.COURSES_FILE), courses.replace("\n", "\r\n"), StandardCharsets.UTF_8);
+        String rounds = Files.readString(Path.of("sample-data", DataLoader.ROUNDS_FILE), StandardCharsets.UTF_8).replace("\r\n", "\n");
+        rounds = rounds.replaceFirst("(?m)^(RoundID\t.*)$", "$1\tHistorical");
+        Round firstOnSenior = sample.rounds().stream().filter(round -> round.teeId() == 5).findFirst().orElse(null);
+        String[] lines = rounds.split("\n", -1);
+        for (int lp = 0; lp < lines.length; lp = lp + 1)
+        {
+            if (lines[lp].startsWith(firstOnSenior.id() + "\t"))
+            {
+                lines[lp] = lines[lp] + "\tY";
+            }
+        }
+        rounds = String.join("\n", lines);
+        int[] fives = new int[Tee.HOLES];
+        int[] twos = new int[Tee.HOLES];
+        Arrays.fill(fives, 5);
+        Arrays.fill(twos, 2);
+        boolean[] none = new boolean[Tee.HOLES];
+        Round onNorth = new Round(900, 50, LocalDate.parse("2026-10-30"), 0, 0, Tee.HOLES, fives, twos, none, none.clone());
+        Tee beginner = sample.tees().stream().filter(tee -> tee.id() == 6).findFirst().orElse(null);
+        Round onBeginner = new Round(901, 6, LocalDate.parse("2026-10-29"), 0, 0, Tee.HOLES, fives, twos, none, none.clone());
+        String[] header = RoundWriter.findHeader(rounds);
+        rounds = "# my rounds\n" + rounds + RoundWriter.formatLine(onNorth, north, header) + "\n"
+                + RoundWriter.formatLine(onBeginner, beginner, header) + "\n";
+        Files.writeString(temp.resolve(DataLoader.ROUNDS_FILE), rounds.replace("\n", "\r\n"), StandardCharsets.UTF_8);
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | checkDeleteCourse()                                                      |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Tests deleting a course (Edgewater, 4 sets of tees) beside a course      |
+     | with a similar name (Edgewater North).                                   |
+     |                                                                          |
+     | It checks that:                                                          |
+     | - the question counts the tees, the rounds and the historical ones, and  |
+     |   lists every round; with no rounds it says so;                          |
+     | - only Edgewater's tee lines and only its rounds are removed (each with  |
+     |   its line break); comments, every other line and the Windows line       |
+     |   endings stay, Edgewater North and its round are untouched, nothing is  |
+     |   renumbered, and the handicap and statistics are worked out again;      |
+     | - the backup folder holds both files as they were, no temporary file is  |
+     |   left, and the footer's words;                                          |
+     | - nothing is deleted when the backup or either file move fails (the      |
+     |   first file is put back when the second move fails).                    |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing (throws IOException if a temporary file fails)       |
+     +--------------------------------------------------------------------------+
+     */
+    private static void checkDeleteCourse() throws IOException
+    {
+        Path temp = Files.createTempDirectory("golfanalyst-delete-course");
+        deleteCourseFolder(temp);
+        DataStore store = new DataStore(temp);
+        List<Tee> edgewater = store.teesForCourse("Edgewater", "29720");
+        Set<Integer> ids = new java.util.HashSet<>();
+        edgewater.forEach(tee -> ids.add(tee.id()));
+        List<Round> going = store.roundsByDate().stream().filter(round -> ids.contains(round.teeId())).toList();
+        int roundCount = store.roundsByDate().size();
+        int entriesBefore = store.handicap().entries().size();
+        String coursesBefore = Files.readString(temp.resolve(DataLoader.COURSES_FILE), StandardCharsets.UTF_8);
+        String roundsBefore = Files.readString(temp.resolve(DataLoader.ROUNDS_FILE), StandardCharsets.UTF_8);
+        check("delete course: the files are ready", store.dataset().errorCount() == 0 && edgewater.size() == 4 && going.size() >= 2
+                && store.teesForCourse("Edgewater North", "29720").size() == 1);
+
+        CourseDeleter.Summary summary = CourseDeleter.summarize(edgewater, store.roundsByDate());
+        check("delete course: the question counts the tees, the rounds and the historical ones", summary.tees() == 4
+                && summary.rounds() == going.size() && summary.historical() == 1 && summary.question(false).equals("Delete Edgewater (29720)? "
+                        + "This removes the course, its 4 sets of tees and all " + going.size() + " rounds played on them (1 of them "
+                        + "historical). Your handicap and statistics will be worked out again. A copy of your files is kept first."));
+        check("delete course: unsaved changes are mentioned", summary.question(true).endsWith(CourseDeleter.UNSAVED_IGNORED));
+        check("delete course: every round is listed, the historical one marked", summary.list().split("\n").length == going.size()
+                && summary.list().contains("(historical)") && summary.prompt().equals("To confirm, type the name of the course exactly: Edgewater"));
+        check("delete course: with no rounds it says so", CourseDeleter.summarize(edgewater, List.of()).question(false)
+                .equals("Delete Edgewater (29720)? This removes the course and its 4 sets of tees. No rounds have been played on it. "
+                        + "Your handicap and statistics will be worked out again. A copy of your files is kept first."));
+
+        boolean stopped = false;
+        try
+        {
+            CourseDeleter.delete(temp, edgewater, store.roundsByDate(), (from, to) ->
+            {
+                throw new IOException("disk full");
+            });
+        }
+        catch (IOException expected)
+        {
+            stopped = expected.getMessage().equals("disk full");
+        }
+        check("delete course: if the first file cannot be moved nothing is deleted", stopped
+                && Files.readString(temp.resolve(DataLoader.COURSES_FILE), StandardCharsets.UTF_8).equals(coursesBefore)
+                && Files.readString(temp.resolve(DataLoader.ROUNDS_FILE), StandardCharsets.UTF_8).equals(roundsBefore)
+                && !Files.exists(temp.resolve(DataLoader.COURSES_FILE + ".new")));
+        String message = "";
+        try
+        {
+            CourseDeleter.delete(temp, edgewater, store.roundsByDate(), (from, to) ->
+            {
+                if (to.getFileName().toString().equals(DataLoader.ROUNDS_FILE))
+                {
+                    throw new IOException("disk full");
+                }
+                Files.move(from, to, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            });
+        }
+        catch (IOException expected)
+        {
+            message = expected.getMessage();
+        }
+        check("delete course: if the second file cannot be moved the first is put back", message.contains("put back")
+                && Files.readString(temp.resolve(DataLoader.COURSES_FILE), StandardCharsets.UTF_8).equals(coursesBefore)
+                && Files.readString(temp.resolve(DataLoader.ROUNDS_FILE), StandardCharsets.UTF_8).equals(roundsBefore)
+                && !Files.exists(temp.resolve(DataLoader.ROUNDS_FILE + ".new")));
+
+        Path folder = store.deleteCourse(edgewater);
+        String coursesAfter = Files.readString(temp.resolve(DataLoader.COURSES_FILE), StandardCharsets.UTF_8);
+        String roundsAfter = Files.readString(temp.resolve(DataLoader.ROUNDS_FILE), StandardCharsets.UTF_8);
+        String expectedCourses = coursesBefore;
+        for (String line : coursesBefore.split("\r\n"))
+        {
+            String[] cells = line.split("\t", -1);
+            if (cells.length > 1 && cells[0].matches("\\d+") && ids.contains(Integer.parseInt(cells[0])))
+            {
+                expectedCourses = expectedCourses.replace(line + "\r\n", "");
+            }
+        }
+        String expectedRounds = roundsBefore;
+        for (Round round : going)
+        {
+            String line = java.util.Arrays.stream(roundsBefore.split("\r\n")).filter(text -> text.startsWith(round.id() + "\t"))
+                    .findFirst().orElse("missing");
+            expectedRounds = expectedRounds.replace(line + "\r\n", "");
+        }
+        check("delete course: only Edgewater's tee lines are removed; comments, other lines and line endings stay",
+                coursesAfter.equals(expectedCourses) && coursesAfter.startsWith("# my courses\r\n")
+                        && coursesBefore.split("\r\n").length - coursesAfter.split("\r\n").length == 4);
+        check("delete course: only its rounds are removed", roundsAfter.equals(expectedRounds) && roundsAfter.startsWith("# my rounds\r\n")
+                && store.roundsByDate().size() == roundCount - going.size());
+        check("delete course: Edgewater North keeps its tee and its round, nothing is renumbered",
+                store.teesForCourse("Edgewater North", "29720").size() == 1 && store.teeMap().get(50) != null
+                        && store.roundsByDate().stream().anyMatch(round -> round.id() == 900 && round.teeId() == 50)
+                        && store.teesForCourse("Edgewater", "29720").isEmpty() && store.dataset().errorCount() == 0);
+        check("delete course: the handicap and statistics are worked out again", store.handicap().entries().size() < entriesBefore
+                && store.roundsByDate().stream().noneMatch(round -> ids.contains(round.teeId())));
+        check("delete course: the backup folder holds both files as they were", folder.getFileName().toString().startsWith("delete-course-")
+                && folder.getParent().getFileName().toString().equals(Backups.FOLDER)
+                && Files.readString(folder.resolve(DataLoader.COURSES_FILE), StandardCharsets.UTF_8).equals(coursesBefore)
+                && Files.readString(folder.resolve(DataLoader.ROUNDS_FILE), StandardCharsets.UTF_8).equals(roundsBefore)
+                && !Files.exists(temp.resolve(DataLoader.COURSES_FILE + ".new")) && !Files.exists(temp.resolve(DataLoader.ROUNDS_FILE + ".new")));
+        check("delete course: the footer says what went and where the copy is", summary.done(folder.getFileName().toString())
+                .equals("Deleted Edgewater: 4 sets of tees and " + going.size() + " rounds. A copy of your files as they were is in backups"
+                        + java.io.File.separator + folder.getFileName() + "."));
+
+        Importer.Plan back = store.checkImport(folder.resolve(DataLoader.COURSES_FILE), folder.resolve(DataLoader.ROUNDS_FILE), false);
+        check("delete course: importing the backup folder adds back only the course and its rounds", back.newTees().size() == 4
+                && back.newRounds().size() == going.size() && back.rejected().isEmpty());
+        store.applyImport(back);
+        check("delete course: and then everything is back, with new numbers", store.teesForCourse("Edgewater", "29720").size() == 4
+                && store.roundsByDate().size() == roundCount && store.teeMap().get(5) == null
+                && store.roundsByDate().stream().filter(Round::historical).count() >= 1 && store.dataset().errorCount() == 0);
+
+        Path blocked = Files.createTempDirectory("golfanalyst-delete-course-blocked");
+        deleteCourseFolder(blocked);
+        String blockedCourses = Files.readString(blocked.resolve(DataLoader.COURSES_FILE), StandardCharsets.UTF_8);
+        Files.writeString(blocked.resolve(Backups.FOLDER), "a file where the folder should be", StandardCharsets.UTF_8);
+        DataStore blockedStore = new DataStore(blocked);
+        boolean noCopy = false;
+        try
+        {
+            blockedStore.deleteCourse(blockedStore.teesForCourse("Edgewater", "29720"));
+        }
+        catch (Backups.Failed expected)
+        {
+            noCopy = true;
+        }
+        check("delete course: if the backup cannot be made nothing is deleted", noCopy
+                && Files.readString(blocked.resolve(DataLoader.COURSES_FILE), StandardCharsets.UTF_8).equals(blockedCourses));
+        deleteTree(blocked);
         deleteTree(temp);
     }
 

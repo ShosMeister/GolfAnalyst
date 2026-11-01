@@ -95,10 +95,10 @@ Handicap and statistics: The Handicap Index now follows the current USGA rules (
 
 Rounds: Type in a round with the cursor moving by itself down the scores and then the putts, with F and S keys for fairways and sand. Saved rounds can be edited or deleted. Old rounds can be kept as historical rounds, which you can count in your statistics or leave out.
 
-Courses: Courses and their sets of tees are typed in on the New Course screen, with the city and state checked against the ZIP code, and can be corrected there.
+Courses: Courses and their sets of tees are typed in on the New Course screen, with the city and state checked against the ZIP code, and can be corrected or deleted there.
 
 Looking at your golf: The Stats Board shows your statistics course by course and tee by tee, with your nine-hole rounds kept apart. Best Round shows your lowest round on a course, or a composite of your best score on every hole.
 
 Looking after your data: Import adds rounds and courses from another copy of the program or from a spreadsheet, after showing you what it will add. Clear lets you start fresh. Every change to your files keeps a dated copy in a backups folder.
 
-Around the program: Every screen has its own photo. Press and hold the yellow Golf Analyst text at the bottom left of any screen to see all of it. The i and ? buttons explain every screen.
+Around the program: Every screen has its own photo. Press and hold the yellow Golf Analyst text at the bottom left of any screen to see all of it. The i and ? buttons explain every screen. Every dialog box has the same wooden look.

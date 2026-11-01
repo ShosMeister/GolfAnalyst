@@ -55,6 +55,22 @@ A few things to know: a set of tees that is already in the program must keep its
 
 To add a different course instead, press Cancel and start again.
 
+# Deleting a course
+
+Deleting a course removes all of its sets of tees and every round played on them, historical ones too. A round cannot be kept without its tees, so think twice if you have played there.
+
+1. Find the course. Press New Course and type its name and ZIP. The title changes to Edit Course.
+
+2. Press Delete course. It is the small button at the right end of the bar along the top.
+
+3. Check what will go. The first question says how many sets of tees and rounds will be removed, and how many of those rounds are historical, with a list of the rounds underneath. Anything you typed on the screen is ignored. Press Keep it to stop, or Delete... to go on.
+
+4. Type the course's name. The OK button is enabled only once the name is typed (capitals and extra spaces do not matter). Press OK, or Cancel to keep the course.
+
+Only that course's lines are taken out of courses.tsv and rounds.tsv. Your other courses and rounds, and any notes in the files, are left alone, and nothing is renumbered. Your handicap and statistics are worked out again straight away, and you are taken back to the Home screen.
+
+Getting a deleted course back: Before anything is removed, copies of courses.tsv and rounds.tsv go into a folder of their own inside the backups folder, named with the date and time (for example backups\delete-course-2026-11-01-142530). To get the course back, press Import on the Home screen, press Choose a whole data folder... and pick that backup folder, then Check files and Import. Import skips everything that is already in the program, so only the deleted course and its rounds are added back, with new numbers.
+
 # The ZIP code check
 
 The program knows the city and state of every US ZIP code, so it can catch a typing mistake.

@@ -31,3 +31,7 @@ that nothing about how it was built is lost. The wording is the help text's own,
 - Golf Analyst v4.71: Fixed all the dialog boxes that ask for your input, so their text is always fully readable.
 
 - Golf Analyst v4.80: Added Import, so rounds and courses from another copy of the program or from a spreadsheet can be added after a check. A course's name and ZIP can now be corrected. The New Course screen fills in the city and state from the ZIP code and warns if they do not match.
+
+- v4.00 (before release): Every dialog box now has the same wooden look: a wood title band, parchment, wood buttons.
+
+- v4.00 (before release): Added Delete course on the New Course screen. It removes a course, all its sets of tees and every round played on them after two confirmations, keeping copies of both files in a backups folder first.
