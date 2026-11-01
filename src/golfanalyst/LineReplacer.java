@@ -27,24 +27,22 @@ import java.util.regex.Pattern;
  | comments, blank lines, line endings) stays exactly as it was. It works   |
  | on text only, so nothing is written until write is called.               |
  |                                                                          |
- | write first copies the file to <file>.bak (so a bad edit can be undone   |
- | by hand), then writes the new text to a temporary file next to it and    |
- | swaps it in, so a failure part way cannot leave a half-written file.     |
+ | write first puts a dated copy of the file in the backups folder (see     |
+ | Backups; if that fails nothing is written), then writes the new text to  |
+ | a temporary file next to it and swaps it in, so a failure part way       |
+ | cannot leave a half-written file.                                        |
  |                                                                          |
  | Constants:                                                               |
- | BACKUP_SUFFIX   - added to the file name for the backup copy (".bak")    |
  | BYTE_ORDER_MARK - the mark some spreadsheets put at the start of a file  |
  |                                                                          |
  | Public Methods:                                                          |
  | splice(text, idColumn, makers, fileName) - swaps in new lines            |
  | write(file, newText)                     - backup, then safe write       |
- | backupOf(file)                           - where the backup goes         |
  +--------------------------------------------------------------------------+
  */
 public final class LineReplacer
 {
 
-    public static final String BACKUP_SUFFIX = ".bak";
     public static final char BYTE_ORDER_MARK = (char) 0xFEFF;
     private static final Pattern LINE_BREAK = Pattern.compile("\\R");
 
@@ -187,30 +185,24 @@ public final class LineReplacer
     }
 
     /*
-     * backupOf(file): where the backup copy of a file goes: the same name with .bak added (rounds.tsv.bak).
-     */
-    public static Path backupOf(Path file)
-    {
-        return file.resolveSibling(file.getFileName() + BACKUP_SUFFIX);
-    }
-
-    /*
      +--------------------------------------------------------------------------+
      | write(file, newText)                                                     |
      +--------------------------------------------------------------------------+
      | Purpose:                                                                 |
-     | Copies the file as it is to <file>.bak (replacing an older backup),      |
-     | then writes the new text to a temporary file next to it and swaps it     |
-     | in, so the real file is never left half written.                         |
+     | Puts a dated copy of the file as it is in the backups folder             |
+     | (Backups.copyBeforeChange), then writes the new text to a temporary      |
+     | file next to it and swaps it in, so the real file is never left half     |
+     | written. If the copy cannot be made, nothing is written.                 |
      |                                                                          |
      | Passed in:  file    - the data file                                      |
      |             newText - its whole new text                                 |
-     | Passed out: nothing; throws IOException if it cannot be written          |
+     | Passed out: nothing; throws Backups.Failed if the copy cannot be made,   |
+     |             or IOException if the file cannot be written                 |
      +--------------------------------------------------------------------------+
      */
     public static void write(Path file, String newText) throws IOException
     {
-        Files.copy(file, backupOf(file), StandardCopyOption.REPLACE_EXISTING);
+        Backups.copyBeforeChange(file);
         Path temporary = file.resolveSibling(file.getFileName() + ".new");
         Files.writeString(temporary, newText, StandardCharsets.UTF_8);
         try

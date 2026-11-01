@@ -198,7 +198,7 @@ public final class DataStore
      | Purpose:                                                                 |
      | Saves an edited round: its line in rounds.tsv (the one with the same     |
      | RoundID) is replaced and nothing else in the file changes; the file as   |
-     | it was is kept in rounds.tsv.bak (see RoundWriter.replace). Then         |
+     | it was is copied to the backups folder (see RoundWriter.replace). Then   |
      | everything is loaded and calculated again.                               |
      |                                                                          |
      | Passed in:  round - the edited round, with the id of the saved one       |
@@ -295,7 +295,7 @@ public final class DataStore
      +--------------------------------------------------------------------------+
      | Purpose:                                                                 |
      | Saves edited tees (their lines are replaced in place, the file as it     |
-     | was is kept in courses.tsv.bak) and any new tees (added at the end),     |
+     | was is copied to the backups folder) and any new tees (added at the end),|
      | then reloads, so the handicap of rounds on an edited tee is worked out   |
      | again with its new numbers. With nothing changed it is simply addTees.   |
      |                                                                          |

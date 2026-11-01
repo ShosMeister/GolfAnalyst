@@ -569,6 +569,7 @@ public final class SelfTest
             checkCourseFiles();
             checkRoundReplace();
             checkHistorical();
+            checkBackups();
         }
         catch (IOException failure)
         {
@@ -1075,9 +1076,7 @@ public final class SelfTest
         List<String> appended = Files.readAllLines(roundsFile, StandardCharsets.UTF_8);
         check("a historical round added to an older file adds the column and its Y", appended.get(1).equals(oldHeader + "\tHistorical")
                 && appended.get(2).equals(oldLine) && appended.get(appended.size() - 1).endsWith("\tY"));
-        Files.deleteIfExists(temp.resolve(DataLoader.ROUNDS_FILE + RoundWriter.BACKUP_SUFFIX));
-        Files.deleteIfExists(roundsFile);
-        Files.deleteIfExists(temp);
+        deleteTree(temp);
     }
 
     /*
@@ -1100,7 +1099,6 @@ public final class SelfTest
     {
         Path temp = Files.createTempDirectory("golfanalyst-replace-test");
         Path rounds = temp.resolve(DataLoader.ROUNDS_FILE);
-        Path backup = temp.resolve(DataLoader.ROUNDS_FILE + RoundWriter.BACKUP_SUFFIX);
         String nine = "5,5,5,5,5,5,5,5,5";
         String twos = "2,2,2,2,2,2,2,2,2";
         String zeros = "0,0,0,0,0,0,0,0,0";
@@ -1125,7 +1123,9 @@ public final class SelfTest
         check("the edited line keeps its RoundID and the column of your own", after.contains("\r\n" + newLine + "\r\n"));
         check("comments, the other rounds and the Windows line endings are untouched", after.startsWith("# my rounds\r\n")
                 && after.contains("\r\n" + first + "\r\n# a comment between\r\n\r\n") && after.endsWith("\r\n" + third + "\r\n"));
-        check("the file as it was is kept in rounds.tsv.bak", Files.readString(backup, StandardCharsets.UTF_8).equals(original));
+        List<Path> copies = Backups.copiesOf(rounds);
+        check("the file as it was is copied to the backups folder", copies.size() == 1
+                && Files.readString(copies.get(0), StandardCharsets.UTF_8).equals(original));
         List<Problem> problems = new ArrayList<>();
         Map<Integer, Tee> tees = Map.of(1, tee);
         List<Round> reloaded = DataLoader.parseRounds(Files.readAllLines(rounds), tees, problems);
@@ -1158,11 +1158,131 @@ public final class SelfTest
         }
         check("a RoundID on two lines is refused", refused);
 
-        for (Path file : List.of(rounds, backup))
+        deleteTree(temp);
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | checkBackups()                                                           |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Tests the backups folder on a copy of the sample data.                   |
+     |                                                                          |
+     | It checks that:                                                          |
+     | - adding a round makes no copy;                                          |
+     | - editing a round makes one dated copy of rounds.tsv as it was, and no   |
+     |   rounds.tsv.bak, and leaves an old .bak file alone;                     |
+     | - fixing a course makes one dated copy of courses.tsv as it was;         |
+     | - only the 20 newest copies of each file are kept, two in the same       |
+     |   second both kept, and Clear's folders are never pruned;                |
+     | - if the copy cannot be made, the edit stops and the file is unchanged.  |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing (throws IOException if a temporary file fails)       |
+     +--------------------------------------------------------------------------+
+     */
+    private static void checkBackups() throws IOException
+    {
+        Path temp = Files.createTempDirectory("golfanalyst-backups-test");
+        Files.copy(Path.of("sample-data", DataLoader.COURSES_FILE), temp.resolve(DataLoader.COURSES_FILE));
+        Files.copy(Path.of("sample-data", DataLoader.ROUNDS_FILE), temp.resolve(DataLoader.ROUNDS_FILE));
+        Path roundsFile = temp.resolve(DataLoader.ROUNDS_FILE);
+        Path coursesFile = temp.resolve(DataLoader.COURSES_FILE);
+        Path oldBak = temp.resolve(DataLoader.ROUNDS_FILE + ".bak");
+        Files.writeString(oldBak, "an old backup", StandardCharsets.UTF_8);
+        DataStore store = new DataStore(temp);
+
+        Round latest = store.roundsByDate().get(store.roundsByDate().size() - 1);
+        store.addRound(new Round(store.nextRoundId(), latest.teeId(), latest.date(), 0, latest.startHole(), latest.holes(),
+                latest.scores(), latest.putts(), latest.fairway(), latest.sand()));
+        check("backups: adding a round makes no copy", Backups.copiesOf(roundsFile).isEmpty());
+
+        String roundsBefore = Files.readString(roundsFile, StandardCharsets.UTF_8);
+        int[] scores = latest.scores().clone();
+        scores[0] = scores[0] + 1;
+        store.replaceRound(new Round(latest.id(), latest.teeId(), latest.date(), latest.pcc(), latest.startHole(), latest.holes(),
+                scores, latest.putts(), latest.fairway(), latest.sand()));
+        List<Path> roundCopies = Backups.copiesOf(roundsFile);
+        check("backups: editing a round makes one copy of rounds.tsv as it was", roundCopies.size() == 1
+                && Files.readString(roundCopies.get(0), StandardCharsets.UTF_8).equals(roundsBefore)
+                && roundCopies.get(0).getParent().getFileName().toString().equals(Backups.FOLDER)
+                && roundCopies.get(0).getFileName().toString().matches("rounds-\\d{4}-\\d{2}-\\d{2}-\\d{6}\\.tsv"));
+        check("backups: no .bak is made and an old one is left alone", Files.readString(oldBak, StandardCharsets.UTF_8).equals("an old backup")
+                && !Files.exists(temp.resolve(DataLoader.COURSES_FILE + ".bak")));
+
+        String coursesBefore = Files.readString(coursesFile, StandardCharsets.UTF_8);
+        Tee tee = store.teeMap().get(latest.teeId());
+        Tee fixed = new Tee(tee.id(), tee.courseName(), tee.city(), tee.state(), tee.zip(), tee.teeName(), tee.holes(),
+                tee.rating(), tee.slope(), tee.yardage() + 10, tee.pars(), tee.strokeIndex(),
+                tee.frontRating(), tee.frontSlope(), tee.backRating(), tee.backSlope());
+        store.updateTees(List.of(fixed), List.of());
+        List<Path> courseCopies = Backups.copiesOf(coursesFile);
+        check("backups: fixing a course makes one copy of courses.tsv as it was", courseCopies.size() == 1
+                && Files.readString(courseCopies.get(0), StandardCharsets.UTF_8).equals(coursesBefore)
+                && courseCopies.get(0).getFileName().toString().startsWith("courses-"));
+
+        Path clearFolder = Backups.folderFor(roundsFile).resolve("clear-2020-01-01-000000");
+        Files.createDirectories(clearFolder);
+        Files.writeString(clearFolder.resolve(DataLoader.ROUNDS_FILE), "cleared", StandardCharsets.UTF_8);
+        java.time.LocalDateTime start = java.time.LocalDateTime.of(2030, 1, 1, 9, 0, 0);
+        for (int lp = 0; lp < 25; lp = lp + 1)
         {
-            Files.deleteIfExists(file);
+            Backups.copyBeforeChange(roundsFile, start.plusSeconds(lp));
         }
-        Files.deleteIfExists(temp);
+        Path sameSecond = Backups.copyBeforeChange(roundsFile, start.plusSeconds(24));
+        roundCopies = Backups.copiesOf(roundsFile);
+        check("backups: only the 20 newest copies of rounds.tsv are kept", roundCopies.size() == Backups.KEEP
+                && roundCopies.get(0).getFileName().toString().equals("rounds-2030-01-01-090006.tsv"));
+        check("backups: two copies in the same second are both kept, the later one newest",
+                sameSecond.getFileName().toString().equals("rounds-2030-01-01-090024-2.tsv")
+                        && roundCopies.get(roundCopies.size() - 1).equals(sameSecond));
+        check("backups: the courses copy is not pruned with the rounds copies", Backups.copiesOf(coursesFile).size() == 1);
+        check("backups: Clear's folders are never pruned", Files.readString(clearFolder.resolve(DataLoader.ROUNDS_FILE),
+                StandardCharsets.UTF_8).equals("cleared"));
+
+        Path blocked = Files.createTempDirectory("golfanalyst-backups-blocked");
+        Files.copy(Path.of("sample-data", DataLoader.COURSES_FILE), blocked.resolve(DataLoader.COURSES_FILE));
+        Files.copy(Path.of("sample-data", DataLoader.ROUNDS_FILE), blocked.resolve(DataLoader.ROUNDS_FILE));
+        Files.writeString(blocked.resolve(Backups.FOLDER), "a file where the folder should be", StandardCharsets.UTF_8);
+        DataStore blockedStore = new DataStore(blocked);
+        String blockedBefore = Files.readString(blocked.resolve(DataLoader.ROUNDS_FILE), StandardCharsets.UTF_8);
+        Round blockedLatest = blockedStore.roundsByDate().get(blockedStore.roundsByDate().size() - 1);
+        int[] blockedScores = blockedLatest.scores().clone();
+        blockedScores[0] = blockedScores[0] + 1;
+        boolean stopped = false;
+        try
+        {
+            blockedStore.replaceRound(new Round(blockedLatest.id(), blockedLatest.teeId(), blockedLatest.date(), blockedLatest.pcc(),
+                    blockedLatest.startHole(), blockedLatest.holes(), blockedScores, blockedLatest.putts(), blockedLatest.fairway(),
+                    blockedLatest.sand()));
+        }
+        catch (Backups.Failed expected)
+        {
+            stopped = expected.getMessage().startsWith("No backup copy of rounds.tsv could be made");
+        }
+        check("backups: if the copy cannot be made the edit stops and says why", stopped);
+        check("backups: and rounds.tsv is unchanged", Files.readString(blocked.resolve(DataLoader.ROUNDS_FILE),
+                StandardCharsets.UTF_8).equals(blockedBefore));
+        deleteTree(blocked);
+        deleteTree(temp);
+    }
+
+    /*
+     * deleteTree(folder): deletes a temporary test folder and everything in it.
+     * Passed in:  folder - the folder
+     * Passed out: nothing (throws IOException if something cannot be deleted)
+     */
+    private static void deleteTree(Path folder) throws IOException
+    {
+        List<Path> paths = new ArrayList<>();
+        try (Stream<Path> walk = Files.walk(folder))
+        {
+            walk.forEach(paths::add);
+        }
+        for (int lp = paths.size() - 1; lp >= 0; lp = lp - 1)
+        {
+            Files.deleteIfExists(paths.get(lp));
+        }
     }
 
     /*
@@ -1260,8 +1380,9 @@ public final class SelfTest
                 && updatedLines[updatedLines.length - 2].startsWith("Old Links\t4\tGreen\t"));
         check("the edited line has the new numbers and keeps the column of your own",
                 updated.contains("Old Links\t1\tWhite\tkeep me\t70.2\t114\t"));
-        check("the file as it was is kept in courses.tsv.bak",
-                Files.readString(temp.resolve("courses.tsv.bak"), StandardCharsets.UTF_8).equals(after));
+        List<Path> courseCopies = Backups.copiesOf(temp.resolve(DataLoader.COURSES_FILE));
+        check("the file as it was is copied to the backups folder", !courseCopies.isEmpty()
+                && Files.readString(courseCopies.get(courseCopies.size() - 1), StandardCharsets.UTF_8).equals(after));
         check("the store reloads with the edited and the new tee", store.teeMap().get(1).rating() == 70.2
                 && store.teeMap().get(4) != null && store.dataset().errorCount() == 0);
         int[] badPars = pars.clone();

@@ -1,5 +1,6 @@
 package golfanalyst.gui;
 
+import golfanalyst.Backups;
 import golfanalyst.BestRound;
 import golfanalyst.DataLoader;
 import golfanalyst.DataStore;
@@ -99,7 +100,7 @@ import javax.swing.text.DocumentFilter;
  | EDIT - the saved round on show is open for fixing: date, PCC, scores,    |
  |        putts, Fwy and Sand (the course/tee and holes stay locked). Save  |
  |        replaces only its line in rounds.tsv (same RoundID; the file as   |
- |        it was is kept in rounds.tsv.bak) and shows it again read-only;   |
+ |        it was is copied to the backups folder) and shows it read-only;   |
  |        Cancel goes back to it unchanged. Leaving with unsaved changes    |
  |        (Cancel, the arrows or the Home button) asks "Discard your        |
  |        changes?" first.                                                  |
@@ -2195,6 +2196,11 @@ public final class RoundPage extends Page
                 shell.store().addRound(round);
             }
         }
+        catch (Backups.Failed noCopy)
+        {
+            shell.setStatus(noCopy.getMessage());
+            return;
+        }
         catch (IOException failure)
         {
             JOptionPane.showMessageDialog(this, "The round could not be saved:\n" + failure.getMessage(),
@@ -2210,7 +2216,7 @@ public final class RoundPage extends Page
             if (rounds.get(lp).id() == round.id())
             {
                 showRoundAt(lp);
-                shell.setStatus((editing ? "Changes saved; the file as it was is in rounds.tsv.bak." : "Round saved.")
+                shell.setStatus((editing ? "Changes saved; a copy of the file as it was is in the backups folder." : "Round saved.")
                         + "  Round " + (positionShown() + 1) + " of " + shown.size() + ".");
             }
         }

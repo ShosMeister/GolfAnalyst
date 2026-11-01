@@ -25,7 +25,7 @@ import java.util.Set;
  | standard header is written first. Other lines and comments are never     |
  | touched: new lines are only added at the end, with the file's own line   |
  | ending style, and an edited line is swapped in place after the file as   |
- | it was is copied to courses.tsv.bak (see LineReplacer).                  |
+ | it was is copied to the backups folder (see LineReplacer and Backups).   |
  |                                                                          |
  | Before anything is written, the whole file as it would become is read    |
  | back with DataLoader's own checks. If a new line would be refused (a     |
@@ -253,7 +253,7 @@ public final class CourseWriter
      | one with its TeeID) is replaced in place; a column the program does not  |
      | know keeps its value, and every other character of the file stays as it  |
      | was. New tees are added at the end. The result is checked with the       |
-     | loader first; then the file is copied to courses.tsv.bak and written     |
+     | loader first; then a copy goes in the backups folder and it is written   |
      | safely (see LineReplacer).                                               |
      |                                                                          |
      | Passed in:  file    - the courses.tsv path                               |

@@ -829,6 +829,7 @@ public final class GuiSelfTest
         checkRoundEditing(page, store, shell, temp);
         checkRoundLook(page);
         checkPeek();
+        checkBackupFailure();
         checkFooterHand();
         checkHistoricalScreens();
         checkHistoricalBox();
@@ -842,11 +843,7 @@ public final class GuiSelfTest
         {
             files.forEach(leftovers::add);
         }
-        for (Path file : leftovers)
-        {
-            Files.deleteIfExists(file);
-        }
-        Files.deleteIfExists(temp);
+        deleteFolder(temp);
     }
 
     /*
@@ -1002,8 +999,8 @@ public final class GuiSelfTest
      | what opens and what stays locked, the "Edit ..." title and help files,   |
      | "Discard your changes?" on the arrows and Cancel (No stays, Yes          |
      | leaves), and Save: only that round's line changes, the comments and      |
-     | every other line are untouched, rounds.tsv.bak holds the file as it      |
-     | was, and the totals are recalculated.                                    |
+     | every other line are untouched, a dated copy of the file as it was is    |
+     | in the backups folder, and the totals are recalculated.                  |
      |                                                                          |
      | Passed in:  page  - the round screen built on the test shell             |
      |             store - the test data store, shell - the test shell          |
@@ -1014,7 +1011,6 @@ public final class GuiSelfTest
     private static void checkRoundEditing(RoundPage page, DataStore store, TestShell shell, Path temp) throws IOException
     {
         Path roundsFile = temp.resolve(DataLoader.ROUNDS_FILE);
-        Path backup = temp.resolve(DataLoader.ROUNDS_FILE + golfanalyst.RoundWriter.BACKUP_SUFFIX);
         int last = store.roundsByDate().size() - 1;
         Round original = store.roundsByDate().get(last);
         page.showRoundAt(last);
@@ -1046,6 +1042,8 @@ public final class GuiSelfTest
         check("Cancel with unsaved changes asks too, and No stays", page.title().startsWith(prefix) && shell.asked.size() == 2);
 
         List<String> before = Files.readAllLines(roundsFile, StandardCharsets.UTF_8);
+        Path oldBak = temp.resolve(DataLoader.ROUNDS_FILE + ".bak");
+        String oldBakText = (Files.exists(oldBak) ? Files.readString(oldBak, StandardCharsets.UTF_8) : null);
         String beforeText = Files.readString(roundsFile, StandardCharsets.UTF_8);
         int roundsBefore = store.roundsByDate().size();
         check("an edited round that checks out can be saved", page.saveButton.isEnabled());
@@ -1063,8 +1061,10 @@ public final class GuiSelfTest
         }
         check("saving changes only that round's line, with the same RoundID", othersUntouched && changedLines == 1);
         check("the comments in rounds.tsv are untouched", after.get(0).equals(before.get(0)) && after.get(0).startsWith("#"));
-        check("the backup holds rounds.tsv as it was", Files.exists(backup)
-                && Files.readString(backup, StandardCharsets.UTF_8).equals(beforeText));
+        List<Path> copies = golfanalyst.Backups.copiesOf(roundsFile);
+        check("the backup copy holds rounds.tsv as it was, and an old .bak is left as it was", !copies.isEmpty()
+                && Files.readString(copies.get(copies.size() - 1), StandardCharsets.UTF_8).equals(beforeText)
+                && java.util.Objects.equals(oldBakText, (Files.exists(oldBak) ? Files.readString(oldBak, StandardCharsets.UTF_8) : null)));
         Round saved = null;
         for (Round round : store.roundsByDate())
         {
@@ -1074,7 +1074,7 @@ public final class GuiSelfTest
                 && saved.totalScore() == original.totalScore() + 1 && store.roundsByDate().size() == roundsBefore);
         check("after saving the round is shown read-only again", !page.title().startsWith("Edit") && page.editButton.isVisible());
         check("the footer says the changes were saved and where the backup is", shell.status.startsWith("Changes saved")
-                && shell.status.contains("rounds.tsv.bak"));
+                && shell.status.contains("backups folder"));
         check("the edited file loads with no errors", DataLoader.load(temp).errorCount() == 0);
 
         page.editButton.doClick();
@@ -1437,6 +1437,32 @@ public final class GuiSelfTest
     }
 
     /*
+     * checkBackupFailure(): when the backup copy cannot be made, saving an edited round stops, the footer says why and rounds.tsv is unchanged.
+     * Passed in:  nothing
+     * Passed out: nothing (throws IOException if a temporary file fails)
+     */
+    private static void checkBackupFailure() throws IOException
+    {
+        Path temp = Files.createTempDirectory("golfanalyst-backup-failure");
+        Files.copy(Path.of("sample-data", DataLoader.COURSES_FILE), temp.resolve(DataLoader.COURSES_FILE));
+        Files.copy(Path.of("sample-data", DataLoader.ROUNDS_FILE), temp.resolve(DataLoader.ROUNDS_FILE));
+        Files.writeString(temp.resolve(golfanalyst.Backups.FOLDER), "a file where the folder should be", StandardCharsets.UTF_8);
+        String before = Files.readString(temp.resolve(DataLoader.ROUNDS_FILE), StandardCharsets.UTF_8);
+        DataStore store = new DataStore(temp);
+        TestShell shell = new TestShell(store);
+        RoundPage page = new RoundPage(shell);
+        page.showLatest();
+        page.editButton.doClick();
+        type(page.scoreFields[0], Integer.toString(Integer.parseInt(page.scoreFields[0].getText()) + 1));
+        page.saveButton.doClick();
+        check("backup failure: the footer says no copy could be made and nothing was changed",
+                shell.status.startsWith("No backup copy of rounds.tsv could be made") && shell.status.contains("nothing was changed"));
+        check("backup failure: rounds.tsv is unchanged and the round is still being edited",
+                Files.readString(temp.resolve(DataLoader.ROUNDS_FILE), StandardCharsets.UTF_8).equals(before) && page.title().startsWith("Edit"));
+        deleteFolder(temp);
+    }
+
+    /*
      +--------------------------------------------------------------------------+
      | checkFooterHand()                                                        |
      +--------------------------------------------------------------------------+
@@ -1550,7 +1576,8 @@ public final class GuiSelfTest
      | - Space and a click tick it, and ticking shows "historical" at once      |
      |   and counts as a change;                                                |
      | - saving it ticked adds a Historical column to the header (with a        |
-     |   .bak) and writes Y, and the handicap and statistics leave it out;      |
+     |   backup copy) and writes Y, and the handicap and statistics leave it    |
+     |   out;                                                                   |
      | - looking at it, the box is ticked, grey and switched off;               |
      | - Edit keeps it ticked, and unticking and saving clears the Y and brings |
      |   the round into the handicap and statistics;                            |
@@ -1608,7 +1635,7 @@ public final class GuiSelfTest
         page.saveButton.doClick();
         List<String> lines = Files.readAllLines(roundsFile, StandardCharsets.UTF_8);
         check("historical box: saving adds a Historical column to the header", lines.get(0).equals(golfanalyst.RoundWriter.STANDARD_HEADER + "\tHistorical")
-                && Files.exists(temp.resolve(DataLoader.ROUNDS_FILE + ".bak")));
+                && golfanalyst.Backups.copiesOf(roundsFile).size() == 1);
         check("historical box: the other rows are left as they were", lines.get(1).equals(rows.toString().split("\n")[1]));
         check("historical box: saving it ticked writes Y", lines.size() == 5 && lines.get(4).startsWith("4\t1\t2026-04-01\t")
                 && lines.get(4).endsWith("\tY"));
@@ -2257,7 +2284,7 @@ public final class GuiSelfTest
         int teesBefore = store.dataset().tees().size();
         page.saveButton.doClick();
         check("Save updates the changed tee, adds the new one and says so", shell.status.equals("Updated 1 tee and added 1 tee for"
-                + " Sample Links. The file as it was is in courses.tsv.bak.  Expert was skipped because it has no rating."));
+                + " Sample Links. A copy of the file as it was is in the backups folder.  Expert was skipped because it has no rating."));
         check("after saving, the window goes Home", shell.lastPage.equals("home"));
         List<String> after = Files.readAllLines(coursesFile, StandardCharsets.UTF_8);
         boolean othersUntouched = after.size() == before.size() + 1;
@@ -2273,8 +2300,9 @@ public final class GuiSelfTest
         check("only the edited tee's line changes; comments and other tees are untouched", othersUntouched && changedLines == 1
                 && after.get(0).equals(before.get(0)) && after.get(0).startsWith("#"));
         check("the new tee is added at the end", after.get(after.size() - 1).startsWith(nextId + "\t"));
-        check("the file as it was is kept in courses.tsv.bak", Files.readString(temp.resolve("courses.tsv.bak"),
-                StandardCharsets.UTF_8).equals(beforeText));
+        List<Path> courseCopies = golfanalyst.Backups.copiesOf(coursesFile);
+        check("the file as it was is copied to the backups folder", !courseCopies.isEmpty()
+                && Files.readString(courseCopies.get(courseCopies.size() - 1), StandardCharsets.UTF_8).equals(beforeText));
         Dataset reread = DataLoader.load(temp);
         check("the course file loads back with no errors", reread.errorCount() == 0);
         check("one tee was added", reread.tees().size() == teesBefore + 1 && store.dataset().tees().size() == teesBefore + 1);

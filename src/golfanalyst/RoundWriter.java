@@ -22,12 +22,12 @@ import java.util.Set;
  | standard header is written first. Other lines and comments are never     |
  | touched: a new line is only added at the end, and a replaced line is     |
  | swapped in place with every other character of the file left as it       |
- | was. Before a line is replaced, the file as it was is copied to          |
- | rounds.tsv.bak, so a bad edit can be undone by hand.                     |
+ | was. Before a line is replaced, a dated copy of the file as it was goes  |
+ | in the backups folder (see Backups), so a bad edit can be undone by      |
+ | hand.                                                                    |
  |                                                                          |
  | Constants:                                                               |
  | STANDARD_HEADER - the header used when a file has none                   |
- | BACKUP_SUFFIX   - added to the file name for the backup copy (".bak")    |
  | HISTORICAL_HEADING - the Historical column's heading                     |
  |                                                                          |
  | Public Methods:                                                          |
@@ -41,7 +41,6 @@ public final class RoundWriter
 {
 
     public static final String STANDARD_HEADER = "RoundID\tTeeID\tDate\tHoles\tPCC\tScores\tPutts\tFairways\tSand";
-    public static final String BACKUP_SUFFIX = LineReplacer.BACKUP_SUFFIX;
     public static final String HISTORICAL_HEADING = "Historical";
     private static final Set<String> KNOWN_COLUMNS =
             Set.of("roundid", "teeid", "date", "holes", "pcc", "scores", "putts", "fairways", "sand", "historical");
@@ -232,7 +231,7 @@ public final class RoundWriter
      | standard header) if it does not exist or has no header. The file's       |
      | own line ending style is kept. A historical round going into a file      |
      | with no Historical column first adds one to the header row (see          |
-     | withHistoricalColumn), copying the file to rounds.tsv.bak first.         |
+     | withHistoricalColumn), with a backup copy first (it changes a line).     |
      |                                                                          |
      | Passed in:  file  - the rounds.tsv path                                  |
      |             round - the round to add                                     |
@@ -280,8 +279,8 @@ public final class RoundWriter
      | round's id. The new line follows the header's column order; a column     |
      | the program does not know keeps what was in it. Everything else in the   |
      | file (other lines, comments, blank lines, line endings) is left exactly  |
-     | as it was. First the file is copied to rounds.tsv.bak; the new file is   |
-     | then written to a temporary file next to it and swapped in, so a         |
+     | as it was. First a dated copy goes in the backups folder; the new file   |
+     | is then written to a temporary file next to it and swapped in, so a      |
      | failure part way cannot leave a half-written rounds.tsv. A historical    |
      | round in a file with no Historical column also adds one to the header    |
      | row.                                                                     |

@@ -1856,7 +1856,7 @@ public final class CoursePage extends Page
      | and everything checked once more first, in case tidying changed          |
      | something. Then, after the window's sample-data question, the changed    |
      | tees of a course already in the program get their lines replaced (the    |
-     | file as it was goes to courses.tsv.bak), new tees are added with new     |
+     | file as it was is copied to the backups folder), new tees are added with |
      | TeeIDs, everything is reloaded and the window goes Home with a message   |
      | such as "Updated 1 tee and added 1 tee for Sample Links." If the file    |
      | cannot be written the footer says why and nothing changes.               |
@@ -1905,7 +1905,7 @@ public final class CoursePage extends Page
         String message = Character.toUpperCase(summary.charAt(0)) + summary.substring(1) + " for " + course + ".";
         if (!changed.isEmpty())
         {
-            message = message + " The file as it was is in courses.tsv.bak.";
+            message = message + " A copy of the file as it was is in the backups folder.";
         }
         if (!skipped.isEmpty())
         {

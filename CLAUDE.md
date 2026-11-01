@@ -21,7 +21,8 @@ Courses and rounds live in two plain tab-separated text files. Written for one u
 - `src/golfanalyst/`: `Tee`, `Round`, `Problem`, `Dataset`, `DataLoader` (reads/validates the two files),
   `Handicap` (the rules), `Stats`, `RoundWriter` (appends or replaces a round, keeps the file's column order),
   `CourseWriter` (appends or updates tees the same way, and refuses a line DataLoader would reject), `LineReplacer`
-  (swaps lines in place and writes safely with a `.bak`; used by both writers), `DataStore` (the one place screens
+  (swaps lines in place and writes safely after a `Backups` copy; used by both writers), `Backups` (the one backup
+  routine: dated copies in the data folder's `backups` folder), `DataStore` (the one place screens
   get data; also knows if it is the sample data), `StatsBoard` (the Stats Board's rows, totals, sorting and gold;
   no Swing), `BestRound` (Best Round's choices, best single round and composite; no Swing), `Main` (text reports,
   `--selftest`), `SelfTest`.
@@ -50,8 +51,14 @@ Courses and rounds live in two plain tab-separated text files. Written for one u
   Cancel saves nothing). Dialogs go through `AppPanel`'s asker so tests can answer them.
 - Changing existing lines (an edited round, edited tees) goes through `LineReplacer` (via `RoundWriter.replace`
   and `CourseWriter.update`): it splices in only those lines (same ID; columns the program does not know keep their
-  value), leaves every other character of the file as it was, copies the file to `<file>.bak`, and writes via a
+  value), leaves every other character of the file as it was, makes a backup copy first, and writes via a
   temporary file. Courses are checked with the loader before writing. Then the store reloads.
+- Backups: one routine, `Backups.copyBeforeChange(file)`, called by `LineReplacer.write`, so every save
+  that changes or removes an existing line (edit round, fix course, and Delete Round / Clear when built) first copies
+  the whole file to `<data>/backups/rounds-YYYY-MM-DD-HHMMSS.tsv` (or `courses-...`; `-2`, `-3` in the same second).
+  Adding a round or tees makes no copy. The 20 newest of each kind are kept (`KEEP`); Clear's `clear-*` folders are
+  never pruned. If the copy fails it throws `Backups.Failed` (an IOException) before anything is written; RoundPage
+  shows its message in the footer. No `.bak` is made any more; old `.bak` files are left alone.
 - Never write the byte-order mark as an invisible character in source: use `LineReplacer.BYTE_ORDER_MARK`.
 - A page with unsaved changes overrides `Page.canLeave()` to ask "Discard your changes?" (`Shell.askYesNo`); the
   Home button, the arrows, Cancel and the window's close box all go through it. Round entry (anything typed since
@@ -175,7 +182,7 @@ Courses and rounds live in two plain tab-separated text files. Written for one u
 - Edit Round: Home's Edit Round opens the round viewer at the latest round; the viewer has an Edit button (where
   Save sits when entering). Edit mode keeps Course/tee and Holes locked and opens date, PCC, scores, putts, Fwy and
   Sand; the header says "Edit 00031:Sample Links:White"; help files `round-edit-*`. Save replaces only that round
-  (backup in `rounds.tsv.bak`) and shows it read-only again; Cancel goes back to it as it was.
+  (backup copy in the backups folder) and shows it read-only again; Cancel goes back to it as it was.
 - New Course looks like the Round page: course bar (light panel, ordinary boxed text fields) on top; below, a
   centred row of five `WoodFrame`s 14 px apart over the photo (not stretched): a caption frame (WoodTags Tee name,
   Rating / Slope, Front 9, Back 9, Yards / Par, Hole, then hole numbers 14 pt bold) and one frame per tee. All
@@ -214,7 +221,7 @@ Not built either: deleting a round or a tee, renaming a course or changing its z
 - **Edit Course** (built, v4.20): no separate button. On New Course, typing a saved course's name and zip loads its
   tees (first four) into the frames; title "Edit Course"; empty frames take new tees. City/state editable (a change
   rewrites every tee of the course); nine-hole box locked. A loaded tee must keep its rating. Only changed tees are
-  rewritten (`courses.tsv.bak` first); "Ready to save." adds a note when a changed tee has rounds. If the name/zip
+  rewritten (a backup copy first); "Ready to save." adds a note when a changed tee has rounds. If the name/zip
   stops matching after edits, nothing is wiped: Save stays off until it matches again. Tidying a name never
   triggers a lookup (setText empties the box for a moment, which once wiped the frames).
 - **Clear**: always ask twice and make a dated backup of the files first; it is how the program is reset for a

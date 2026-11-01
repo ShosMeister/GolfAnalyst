@@ -66,8 +66,8 @@ others are in place and say "not built yet" in the footer.
   Fwy and Sand open for changing; the course/tee and holes stay locked. The header says "Edit 00031:...".
   Save replaces only that round's line in `rounds.tsv` (same RoundID; comments, other rounds and any
   columns of your own are left exactly as they were) and the handicap and statistics are worked out again.
-  Before each save the file as it was is copied to `rounds.tsv.bak`, so a bad edit can be undone by copying
-  it back. Cancel, the arrows and the Home button ask "Discard your changes?" if anything was changed.
+  Before each save a dated copy of the file as it was goes in the `backups` folder inside the data folder
+  (`rounds-YYYY-MM-DD-HHMMSS.tsv`, the 20 newest kept), so a bad edit can be undone by copying it back. Cancel, the arrows and the Home button ask "Discard your changes?" if anything was changed.
 
 - **Entering a course:** the page looks like the round page: a centred row of wood frames over the
   photo, captions down the left frame and one frame per tee, with spreadsheet-style cells (the cell with
@@ -88,7 +88,7 @@ others are in place and say "not built yet" in the footer.
   the New Course screen. The title becomes Edit Course and its tees (the first four) load into the frames;
   empty frames take new tees. Change what you need and press Save: only the tees you changed are rewritten
   (same TeeID, columns of your own kept, everything else in the file untouched), new tees are added, and the
-  file as it was is copied to `courses.tsv.bak` first. A tee already in the program must keep its rating;
+  file as it was is copied to the `backups` folder first (`courses-YYYY-MM-DD-HHMMSS.tsv`). A tee already in the program must keep its rating;
   changing the city or state changes it for every tee of the course; the nine-hole setting is locked. If a
   changed tee already has rounds, the footer says your handicap will be worked out again for them.
 
