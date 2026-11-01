@@ -829,7 +829,6 @@ public final class GuiSelfTest
         checkRoundEditing(page, store, shell, temp);
         checkRoundLook(page);
         checkPeek();
-        checkHandCursors();
         checkFooterHand();
         checkHistoricalScreens();
         checkHistoricalBox();
@@ -1348,14 +1347,12 @@ public final class GuiSelfTest
         int insideX = label.x + label.width / 2;
         int insideY = label.y + label.height / 2;
         sendMouse(backdrop, java.awt.event.MouseEvent.MOUSE_MOVED, insideX, insideY);
-        check("the mouse shows the open hand over the label", backdrop.shownPointer() == BackdropPanel.PeekPointer.OPEN_HAND
-                && backdrop.getCursor() == Theme.openHandCursor());
+        check("the mouse shows a hand over the label", backdrop.getCursor().getType() == java.awt.Cursor.HAND_CURSOR);
         check("the label has the peek tool tip", BackdropPanel.PEEK_TIP.equals(backdrop.getToolTipText(
                 mouseEvent(backdrop, java.awt.event.MouseEvent.MOUSE_MOVED, insideX, insideY))));
         check("the peek tool tip says what to do", BackdropPanel.PEEK_TIP.equals("Press and hold to see the whole picture."));
         sendMouse(backdrop, java.awt.event.MouseEvent.MOUSE_MOVED, 400, 300);
-        check("the hand goes away off the label", backdrop.shownPointer() == BackdropPanel.PeekPointer.NORMAL
-                && backdrop.getCursor().getType() == java.awt.Cursor.DEFAULT_CURSOR);
+        check("the hand goes away off the label", backdrop.getCursor().getType() == java.awt.Cursor.DEFAULT_CURSOR);
         check("there is no tool tip off the label", backdrop.getToolTipText(mouseEvent(backdrop, java.awt.event.MouseEvent.MOUSE_MOVED, 400, 300)) == null);
 
         sendMouse(backdrop, java.awt.event.MouseEvent.MOUSE_PRESSED, 400, 300);
@@ -1368,8 +1365,6 @@ public final class GuiSelfTest
 
         sendMouse(backdrop, java.awt.event.MouseEvent.MOUSE_PRESSED, insideX, insideY);
         check("holding the button on the label peeks", backdrop.isPeeking());
-        check("holding the button shows the closed hand", backdrop.shownPointer() == BackdropPanel.PeekPointer.CLOSED_HAND
-                && backdrop.getCursor() == Theme.closedHandCursor());
         paints[0] = 0;
         backdrop.paint(canvas);
         check("while peeking the controls are not painted", paints[0] == 0);
@@ -1378,27 +1373,8 @@ public final class GuiSelfTest
         check("while peeking the keyboard is ignored", keys.swallows(key));
         sendMouse(backdrop, java.awt.event.MouseEvent.MOUSE_DRAGGED, 2000, -300);
         check("dragging off the label and out of the window still peeks", backdrop.isPeeking());
-        check("the hand stays closed off the label while the button is held",
-                backdrop.shownPointer() == BackdropPanel.PeekPointer.CLOSED_HAND);
-        sendMouse(backdrop, java.awt.event.MouseEvent.MOUSE_EXITED, 2000, -300);
-        check("the hand stays closed when the pointer leaves the panel", backdrop.shownPointer() == BackdropPanel.PeekPointer.CLOSED_HAND);
         sendMouse(backdrop, java.awt.event.MouseEvent.MOUSE_RELEASED, 2000, -300);
         check("letting go anywhere, even outside the window, ends the peek", !backdrop.isPeeking());
-        check("letting go off the label gives the normal pointer", backdrop.shownPointer() == BackdropPanel.PeekPointer.NORMAL
-                && backdrop.getCursor().getType() == java.awt.Cursor.DEFAULT_CURSOR);
-        sendMouse(backdrop, java.awt.event.MouseEvent.MOUSE_PRESSED, insideX, insideY);
-        sendMouse(backdrop, java.awt.event.MouseEvent.MOUSE_RELEASED, insideX, insideY);
-        check("letting go on the label gives the open hand", !backdrop.isPeeking()
-                && backdrop.shownPointer() == BackdropPanel.PeekPointer.OPEN_HAND);
-
-        check("pointer choice: over the label, button up, is the open hand",
-                BackdropPanel.pointerFor(true, false) == BackdropPanel.PeekPointer.OPEN_HAND);
-        check("pointer choice: over the label, button held, is the closed hand",
-                BackdropPanel.pointerFor(true, true) == BackdropPanel.PeekPointer.CLOSED_HAND);
-        check("pointer choice: off the label, button held, is still the closed hand",
-                BackdropPanel.pointerFor(false, true) == BackdropPanel.PeekPointer.CLOSED_HAND);
-        check("pointer choice: off the label, button up, is the normal pointer",
-                BackdropPanel.pointerFor(false, false) == BackdropPanel.PeekPointer.NORMAL);
         paints[0] = 0;
         backdrop.paint(canvas);
         check("after letting go the controls are painted again", paints[0] == 1);
@@ -1458,48 +1434,6 @@ public final class GuiSelfTest
     private static void sendMouse(Component target, int kind, int x, int y)
     {
         target.dispatchEvent(mouseEvent(target, kind, x, y));
-    }
-
-    /*
-     +--------------------------------------------------------------------------+
-     | checkHandCursors()                                                       |
-     +--------------------------------------------------------------------------+
-     | Purpose:                                                                 |
-     | Checks the peek label's hand pointers: both pictures are in images and   |
-     | load at 32 x 32, a picture is scaled when the system wants another       |
-     | size, and a missing file or one that is not a picture gives no picture   |
-     | and the pointing hand instead, without an error. (Headless, both hands   |
-     | are always the pointing hand.)                                           |
-     |                                                                          |
-     | Passed in:  nothing                                                      |
-     | Passed out: nothing (throws IOException if a temporary file fails)       |
-     +--------------------------------------------------------------------------+
-     */
-    private static void checkHandCursors() throws IOException
-    {
-        java.awt.Dimension size32 = new java.awt.Dimension(32, 32);
-        java.awt.image.BufferedImage open = Theme.cursorPicture(Path.of("images", Theme.OPEN_HAND_FILE), size32);
-        java.awt.image.BufferedImage closed = Theme.cursorPicture(Path.of("images", Theme.CLOSED_HAND_FILE), size32);
-        check("hand cursors: both pictures are in images and are 32 x 32", open != null && closed != null
-                && open.getWidth() == 32 && open.getHeight() == 32 && closed.getWidth() == 32 && closed.getHeight() == 32);
-        java.awt.image.BufferedImage bigger = Theme.cursorPicture(Path.of("images", Theme.OPEN_HAND_FILE), new java.awt.Dimension(48, 48));
-        check("hand cursors: a picture is scaled to the size the system wants", bigger != null
-                && bigger.getWidth() == 48 && bigger.getHeight() == 48);
-
-        Path temp = Files.createTempDirectory("golfanalyst-cursor-test");
-        Path missing = temp.resolve("NoSuchHand.png");
-        Path notPicture = temp.resolve("NotAHand.png");
-        Files.writeString(notPicture, "this is not a picture", StandardCharsets.UTF_8);
-        check("hand cursors: a missing file gives no picture", Theme.cursorPicture(missing, size32) == null);
-        check("hand cursors: a file that is not a picture gives no picture", Theme.cursorPicture(notPicture, size32) == null);
-        check("hand cursors: a missing file falls back to the pointing hand",
-                Theme.makeHandCursor(missing).getType() == java.awt.Cursor.HAND_CURSOR);
-        check("hand cursors: an unreadable file falls back to the pointing hand",
-                Theme.makeHandCursor(notPicture).getType() == java.awt.Cursor.HAND_CURSOR);
-        check("hand cursors: with no display both hands are the pointing hand", !java.awt.GraphicsEnvironment.isHeadless()
-                || (Theme.openHandCursor().getType() == java.awt.Cursor.HAND_CURSOR
-                        && Theme.closedHandCursor().getType() == java.awt.Cursor.HAND_CURSOR));
-        deleteFolder(temp);
     }
 
     /*

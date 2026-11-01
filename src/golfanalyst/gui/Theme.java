@@ -2,11 +2,6 @@ package golfanalyst.gui;
 
 import java.awt.BasicStroke;
 import java.awt.Color;
-import java.awt.Cursor;
-import java.awt.Dimension;
-import java.awt.GraphicsEnvironment;
-import java.awt.Point;
-import java.awt.Toolkit;
 import java.awt.FontMetrics;
 import java.awt.Font;
 import java.awt.Graphics2D;
@@ -39,19 +34,12 @@ import javax.imageio.ImageIO;
  | load(dir), image(name), backdrop(page) - pictures                        |
  | font(style, size)                      - the program's font              |
  | smooth(graphics)                       - turns on smooth drawing         |
- | openHandCursor(), closedHandCursor()   - the peek label's hand pointers  |
  | drawCentered(...), paintStretched(...), paintBevel(...) - drawing helpers|
  +--------------------------------------------------------------------------+
  */
 public final class Theme
 {
 
-    private static final int CURSOR_SIZE = 32;
-    private static final int CURSOR_HOT_SPOT = 16;
-    static final String OPEN_HAND_FILE = "CursorHandOpen.png";
-    static final String CLOSED_HAND_FILE = "CursorHandClosed.png";
-    private static Cursor openHand = null;
-    private static Cursor closedHand = null;
     public static final Color TEXT_LIGHT = Color.WHITE;
     public static final Color TEXT_HOVER = new Color(255, 60, 60);
     public static final Color TEXT_DISABLED = new Color(165, 155, 145);
@@ -169,106 +157,6 @@ public final class Theme
     public static Font font(int style, float size)
     {
         return new Font(Font.SANS_SERIF, style, 12).deriveFont(size);
-    }
-
-    /*
-     * openHandCursor(): the open hand shown over the version text, from images/CursorHandOpen.png (made once, then remembered).
-     * Passed in:  nothing
-     * Passed out: the cursor, or the pointing hand if a custom one cannot be made
-     */
-    public static Cursor openHandCursor()
-    {
-        if (openHand == null)
-        {
-            openHand = makeHandCursor(imagesDir.resolve(OPEN_HAND_FILE));
-        }
-        return openHand;
-    }
-
-    /*
-     * closedHandCursor(): the closed hand shown while the button is held on the version text, from images/CursorHandClosed.png (made once, then remembered).
-     * Passed in:  nothing
-     * Passed out: the cursor, or the pointing hand if a custom one cannot be made
-     */
-    public static Cursor closedHandCursor()
-    {
-        if (closedHand == null)
-        {
-            closedHand = makeHandCursor(imagesDir.resolve(CLOSED_HAND_FILE));
-        }
-        return closedHand;
-    }
-
-    /*
-     +--------------------------------------------------------------------------+
-     | makeHandCursor(file)                                                     |
-     +--------------------------------------------------------------------------+
-     | Purpose:                                                                 |
-     | Makes a mouse pointer from a 32 x 32 picture, with its hot spot in the   |
-     | middle (16,16). If the system wants another size the picture and the     |
-     | hot spot are scaled to it. When a custom pointer cannot be made (no      |
-     | display, the system says it has no custom pointers, the file is          |
-     | missing or not a picture) it quietly gives the pointing hand instead.    |
-     |                                                                          |
-     | Passed in:  file - the picture file                                      |
-     | Passed out: the cursor                                                   |
-     +--------------------------------------------------------------------------+
-     */
-    static Cursor makeHandCursor(Path file)
-    {
-        Cursor fallback = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR);
-        if (GraphicsEnvironment.isHeadless())
-        {
-            return fallback;
-        }
-        try
-        {
-            Toolkit toolkit = Toolkit.getDefaultToolkit();
-            Dimension best = toolkit.getBestCursorSize(CURSOR_SIZE, CURSOR_SIZE);
-            if (best.width <= 0 || best.height <= 0)
-            {
-                return fallback;
-            }
-            BufferedImage picture = cursorPicture(file, best);
-            if (picture == null)
-            {
-                return fallback;
-            }
-            Point hotSpot = new Point(CURSOR_HOT_SPOT * best.width / CURSOR_SIZE, CURSOR_HOT_SPOT * best.height / CURSOR_SIZE);
-            return toolkit.createCustomCursor(picture, hotSpot, file.getFileName().toString());
-        }
-        catch (RuntimeException notPossible)
-        {
-            return fallback;
-        }
-    }
-
-    /*
-     * cursorPicture(file, size): reads a cursor picture and scales it to the size asked for (it needs no display, so it can be tested).
-     * Passed in:  file - the picture file, size - the width and height wanted
-     * Passed out: the picture at that size, or null if the file is missing or not a picture
-     */
-    static BufferedImage cursorPicture(Path file, Dimension size)
-    {
-        BufferedImage original;
-        try
-        {
-            original = (Files.exists(file) ? ImageIO.read(file.toFile()) : null);
-        }
-        catch (IOException unreadable)
-        {
-            original = null;
-        }
-        if (original == null || (original.getWidth() == size.width && original.getHeight() == size.height))
-        {
-            return original;
-        }
-        BufferedImage scaledPicture = new BufferedImage(size.width, size.height, BufferedImage.TYPE_INT_ARGB);
-        Graphics2D canvas = scaledPicture.createGraphics();
-        smooth(canvas);
-        canvas.drawImage(original, 0, 0, size.width, size.height, null);
-        canvas.dispose();
-        return scaledPicture;
     }
 
     /*

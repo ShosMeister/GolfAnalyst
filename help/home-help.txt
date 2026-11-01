@@ -50,7 +50,7 @@ To see how you play today, untick Include historical rounds. The numbers on this
 
 # Seeing the whole picture
 
-Every screen has its own photo behind it. To see all of it, press and hold the mouse button on the yellow Golf Analyst text at the bottom left. The boxes and buttons disappear until you let go, and nothing you type while holding it goes anywhere. The pointer turns into an open hand over it, and a closed hand while you hold the button.
+Every screen has its own photo behind it. To see all of it, press and hold the mouse button on the yellow Golf Analyst text at the bottom left. The boxes and buttons disappear until you let go, and nothing you type while holding it goes anywhere.
 
 # Closing the program
 
