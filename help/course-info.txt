@@ -26,4 +26,4 @@ The arrow next to the first tee's name copies its pars and handicap numbers into
 
 # Across the bottom
 
-The bar along the bottom always tells you the next thing to fill in or fix. When everything is in order it says Ready to save, and the Save button comes on. If you changed a set of tees that already has rounds, it also tells you your handicap will be worked out again for them. Save puts your changes and new tees into courses.tsv and takes you back Home; when a course already in the program was changed, the file as it was is kept in courses.tsv.bak. Cancel goes back Home without saving anything.
+The bar along the bottom always tells you the next thing to fill in or fix. When everything is in order it says Ready to save, and the Save button comes on. If you changed a set of tees that already has rounds, it also tells you your handicap will be worked out again for them. Save puts your changes and new tees into courses.tsv and takes you back Home; when a course already in the program was changed, a copy of the file as it was goes into the backups folder. Cancel goes back Home without saving anything.

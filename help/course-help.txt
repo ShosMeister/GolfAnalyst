@@ -37,6 +37,6 @@ If you change your mind, press Cancel. Once you have typed anything, the program
 
 # Fixing a course
 
-Made a mistake after saving, or found a better scorecard? Press New Course and type the course name and zip just as before. The title changes to Edit Course and the course's tees appear in the frames. Click the cell you want, type over it, and press Save. Only the tees you changed are rewritten, and the file as it was is kept in courses.tsv.bak in your data folder, just in case.
+Made a mistake after saving, or found a better scorecard? Press New Course and type the course name and zip just as before. The title changes to Edit Course and the course's tees appear in the frames. Click the cell you want, type over it, and press Save. Only the tees you changed are rewritten, and a copy of the file as it was goes into the backups folder in your data folder, just in case.
 
 A few things to know: a set of tees that is already in the program must keep its rating (rounds were played on it, so it cannot be left out); if you change a rating, slope, par or handicap number on tees you have played, the bar at the bottom reminds you that your handicap will be worked out again for those rounds, which is exactly what you want when fixing a typo; and the Nine-hole course box cannot be changed for a course you have saved. If you change the course name or zip after you have started fixing things, nothing is thrown away: Save just stays off until you put them back.

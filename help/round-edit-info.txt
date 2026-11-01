@@ -24,7 +24,7 @@ Historical: Ticked for an old round that is kept to look back at. It is never pa
 
 # Save and Cancel, at the right end of the frame under the tables
 
-Save: Puts your changes in rounds.tsv in place of the round as it was. Only that round's line is changed. Before saving, the file as it was is copied to rounds.tsv.bak, so a bad edit can be undone; the Help says how. Save is only on when every hole you played is complete and correct.
+Save: Puts your changes in rounds.tsv in place of the round as it was. Only that round's line is changed. Before saving, the file as it was is copied into the backups folder, so a bad edit can be undone; the Help says how. Save is only on when every hole you played is complete and correct.
 
 Cancel: Goes back to the round as it was, without saving.
 
