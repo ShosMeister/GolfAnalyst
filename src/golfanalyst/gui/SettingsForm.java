@@ -163,6 +163,7 @@ final class SettingsForm extends JPanel
         dataFolderBox.setEditable(false);
         for (JTextField box : new JTextField[] {nameBox, copyFolderBox, dataFolderBox})
         {
+            box.setColumns(0);
             Dimension size = new Dimension(BOX_WIDTH, box.getPreferredSize().height);
             box.setPreferredSize(size);
             box.setMinimumSize(size);

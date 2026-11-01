@@ -3,12 +3,14 @@ package golfanalyst.gui;
 import golfanalyst.DataLoader;
 import golfanalyst.DataStore;
 import golfanalyst.Dataset;
+import golfanalyst.Exporter;
 import golfanalyst.Handicap;
 import golfanalyst.Round;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
@@ -926,6 +928,7 @@ public final class GuiSelfTest
         checkDeleteCourseScreen();
         checkCourseBarFits();
         checkSettingsScreen();
+        checkExportScreen();
         checkDeleteRound();
         checkClearData();
         checkFooterHand();
@@ -2119,6 +2122,7 @@ public final class GuiSelfTest
     private static final class FakeTools implements SettingsForm.Tools
     {
         private Path nextFolder = null;
+        private Path lastStart = null;
         private int answer = ConfirmForm.CANCELLED;
         private boolean canOpen = true;
         private final List<ConfirmForm> asked = new ArrayList<>();
@@ -2127,11 +2131,12 @@ public final class GuiSelfTest
         private int createCalls = 0;
 
         /*
-         * chooseFolder(parent, title, start): the folder the test has set.
+         * chooseFolder(parent, title, start): the folder the test has set (and where the picker would have opened).
          */
         @Override
         public Path chooseFolder(Component parent, String title, Path start)
         {
+            lastStart = start;
             return nextFolder;
         }
 
@@ -2171,6 +2176,206 @@ public final class GuiSelfTest
         public void say(String text)
         {
             said.add(text);
+        }
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | checkExportScreen()                                                      |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | The Export window through the real window logic, with the folder picker  |
+     | and the window's showing given by code: how it starts (Everything        |
+     | ticked, the historical box following Home's, Export off until a folder   |
+     | is chosen); Browse... opening at the Documents folder and then at the    |
+     | last export folder; the summary line for each choice; picking a course   |
+     | or typing a date ticking that choice; dates that cannot be read; Cancel  |
+     | writing nothing; Export writing a new folder, the footer and             |
+     | LastExportFolder; the sample data (exported, settings.txt not written);  |
+     | and the layout with the longest folder path (no overlaps).               |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing (throws IOException if a temporary file fails)       |
+     +--------------------------------------------------------------------------+
+     */
+    private static void checkExportScreen() throws IOException
+    {
+        Path temp = Files.createTempDirectory("golfanalyst-export-screen");
+        Path data = temp.resolve(DataStore.DATA_FOLDER);
+        Path into = temp.resolve("exports");
+        Files.createDirectories(data);
+        Files.createDirectories(into);
+        Files.copy(Path.of("sample-data", DataLoader.COURSES_FILE), data.resolve(DataLoader.COURSES_FILE));
+        Files.copy(Path.of("sample-data", DataLoader.ROUNDS_FILE), data.resolve(DataLoader.ROUNDS_FILE));
+        DataStore store = new DataStore(data);
+        store.setIncludeHistorical(false);
+        String coursesBefore = Files.readString(data.resolve(DataLoader.COURSES_FILE), StandardCharsets.UTF_8);
+        String roundsBefore = Files.readString(data.resolve(DataLoader.ROUNDS_FILE), StandardCharsets.UTF_8);
+        int allTees = store.dataset().tees().size();
+        int allRounds = store.dataset().rounds().size();
+
+        AppPanel panel = new AppPanel(store, Path.of("help"), "");
+        FakeTools tools = new FakeTools();
+        panel.setSettingsTools(tools, form -> ConfirmForm.CANCELLED);
+        List<ExportForm> forms = new ArrayList<>();
+        java.util.concurrent.atomic.AtomicReference<java.util.function.Function<ExportForm, Integer>> script =
+                new java.util.concurrent.atomic.AtomicReference<>();
+        panel.setExportAsker(form ->
+        {
+            forms.add(form);
+            return script.get().apply(form);
+        });
+
+        script.set(form ->
+        {
+            check("export screen: it starts on Everything, the historical box as on Home, Export off until a folder is chosen",
+                    form.everythingChoice.isSelected() && !form.historicalBox.isSelected() && !form.exportButton.isEnabled()
+                            && form.summaryArea().getText().equals("This will write " + allTees + " sets of tees and " + allRounds + " rounds."
+                            + ExportForm.PICK_FOLDER) && form.exportButton.hasDefaultRing());
+            form.folderBox.setText(temp.resolve("nowhere").toString());
+            check("export screen: a folder that does not exist keeps Export off", !form.exportButton.isEnabled()
+                    && form.summaryArea().getText().endsWith(ExportForm.NO_FOLDER));
+            form.folderBox.setText("");
+            tools.nextFolder = into;
+            form.browseButton.doClick();
+            check("export screen: Browse... opens at the Documents folder the first time and fills the box",
+                    tools.lastStart.equals(Path.of(System.getProperty("user.home"), "Documents"))
+                            && form.folderBox.getText().equals(into.toString()) && form.exportButton.isEnabled()
+                            && form.summaryArea().getText().equals("This will write " + allTees + " sets of tees and " + allRounds + " rounds."));
+            form.courseList.setSelectedIndex(0);
+            Exporter.CourseItem course = (Exporter.CourseItem) form.courseList.getSelectedItem();
+            check("export screen: picking a course ticks One course and counts its tees", form.courseChoice.isSelected()
+                    && form.plan().tees().size() == course.tees() && form.summaryArea().getText().startsWith("This will write "
+                    + golfanalyst.Importer.count(course.tees(), "set of tees", "sets of tees")));
+            form.fromBox.setText("13/45/2026");
+            check("export screen: typing a date ticks Rounds from a date; a date that cannot be read says so", form.datesChoice.isSelected()
+                    && form.summaryArea().getText().equals(ExportForm.TYPE_FROM) && !form.exportButton.isEnabled() && form.plan() == null);
+            form.fromBox.setText("10/07/2026");
+            form.toBox.setText("soon");
+            boolean badTo = form.summaryArea().getText().equals(ExportForm.BAD_TO) && !form.exportButton.isEnabled();
+            form.toBox.setText("2026-10-01");
+            boolean after = form.summaryArea().getText().equals(ExportForm.FROM_AFTER_TO) && !form.exportButton.isEnabled();
+            form.toBox.setText("");
+            check("export screen: a To date that cannot be read, or before the From date, says so", badTo && after
+                    && form.exportButton.isEnabled() && form.plan().rounds().stream().allMatch(round -> !round.date().isBefore(LocalDate.of(2026, 10, 7))));
+            form.historicalBox.toggle();
+            form.everythingChoice.doClick();
+            form.cancelButton.doClick();
+            return form.answer();
+        });
+        panel.exportData();
+        check("export screen: Cancel writes nothing", filesIn(into).isEmpty() && !Files.exists(data.resolve(golfanalyst.Settings.FILE + ".new"))
+                && golfanalyst.Settings.load(data).lastExportFolder() == null);
+
+        script.set(form ->
+        {
+            form.folderBox.setText(into.toString());
+            form.exportButton.doClick();
+            return form.answer();
+        });
+        panel.exportData();
+        List<String> made = filesIn(into);
+        Path folder = (made.size() == 1 ? into.resolve(made.get(0)) : into);
+        check("export screen: Export writes one new GolfAnalyst-export_ folder with the three files", made.size() == 1
+                && made.get(0).startsWith(Exporter.FOLDER_PREFIX) && filesIn(folder).equals(List.of(Exporter.README,
+                DataLoader.COURSES_FILE, DataLoader.ROUNDS_FILE)));
+        check("export screen: the footer says what was exported and where", panel.footer().status().equals("Exported " + allTees
+                + " sets of tees and " + allRounds + " rounds to " + folder.toAbsolutePath().normalize() + "."));
+        check("export screen: the folder is remembered as LastExportFolder and the data files are not changed",
+                into.toAbsolutePath().normalize().equals(golfanalyst.Settings.load(data).lastExportFolder())
+                && Files.readString(data.resolve(DataLoader.COURSES_FILE), StandardCharsets.UTF_8).equals(coursesBefore)
+                && Files.readString(data.resolve(DataLoader.ROUNDS_FILE), StandardCharsets.UTF_8).equals(roundsBefore)
+                && !Files.exists(data.resolve(golfanalyst.Backups.FOLDER)));
+        script.set(form ->
+        {
+            tools.nextFolder = null;
+            form.browseButton.doClick();
+            form.cancelButton.doClick();
+            return form.answer();
+        });
+        panel.exportData();
+        check("export screen: Browse... opens at the last export folder next time", into.toAbsolutePath().normalize().equals(tools.lastStart));
+
+        Path sample = temp.resolve(DataStore.SAMPLE_FOLDER);
+        Files.createDirectories(sample);
+        Files.copy(Path.of("sample-data", DataLoader.COURSES_FILE), sample.resolve(DataLoader.COURSES_FILE));
+        Files.copy(Path.of("sample-data", DataLoader.ROUNDS_FILE), sample.resolve(DataLoader.ROUNDS_FILE));
+        AppPanel samplePanel = new AppPanel(new DataStore(sample), Path.of("help"), "");
+        samplePanel.setSettingsTools(tools, form -> ConfirmForm.CANCELLED);
+        Path sampleInto = temp.resolve("sample-exports");
+        Files.createDirectories(sampleInto);
+        samplePanel.setExportAsker(form ->
+        {
+            form.folderBox.setText(sampleInto.toString());
+            form.exportButton.doClick();
+            return form.answer();
+        });
+        samplePanel.exportData();
+        check("export screen: the sample data can be exported, and its settings.txt is not written", filesIn(sampleInto).size() == 1
+                && !Files.exists(sample.resolve(golfanalyst.Settings.FILE)) && samplePanel.footer().status().startsWith("Exported "));
+
+        StringBuilder longPath = new StringBuilder("C:\\Users\\Pat Golfer\\OneDrive - Golf Analyst Club\\Documents");
+        while (longPath.length() < 240)
+        {
+            longPath.append("\\A very long folder name for golf exports");
+        }
+        ExportForm shortForm = new ExportForm(store.dataset(), true, null, tools);
+        int shortWidth = shortForm.getPreferredSize().width;
+        ExportForm layout = new ExportForm(store.dataset(), true, null, tools);
+        layout.folderBox.setText(longPath.toString());
+        layout.fromBox.setText("13/45/2026");
+        layout.toBox.setText("soon");
+        checkPanelLayout("Export, longest folder path", layout, layout.introArea(), layout.buttonRow());
+        check("export screen: the longest folder path does not make the window wider", layout.getPreferredSize().width == shortWidth
+                && shortWidth <= 640);
+        check("export screen: nothing overlaps or runs off the window", fitsInside(layout));
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | fitsInside(root)                                                         |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Whether, in every container under root (laid out already), the visible   |
+     | parts lie inside their container and no two of them overlap.             |
+     |                                                                          |
+     | Passed in:  root - the laid-out panel                                    |
+     | Passed out: true when nothing overlaps or runs off                       |
+     +--------------------------------------------------------------------------+
+     */
+    private static boolean fitsInside(Container root)
+    {
+        boolean fine = true;
+        Component[] parts = root.getComponents();
+        for (int lp1 = 0; lp1 < parts.length; lp1 = lp1 + 1)
+        {
+            java.awt.Rectangle one = parts[lp1].getBounds();
+            if (!parts[lp1].isVisible() || one.isEmpty())
+            {
+                continue;
+            }
+            fine = fine && one.x >= 0 && one.y >= 0 && one.x + one.width <= root.getWidth() && one.y + one.height <= root.getHeight();
+            for (int lp2 = lp1 + 1; lp2 < parts.length; lp2 = lp2 + 1)
+            {
+                fine = fine && (!parts[lp2].isVisible() || !one.intersects(parts[lp2].getBounds()));
+            }
+            if (parts[lp1] instanceof Container inside && !(parts[lp1] instanceof javax.swing.JComboBox)
+                    && !(parts[lp1] instanceof javax.swing.text.JTextComponent) && !(parts[lp1] instanceof javax.swing.AbstractButton))
+            {
+                fine = fine && fitsInside(inside);
+            }
+        }
+        return fine;
+    }
+
+    /*
+     * filesIn(folder): the names of what is in a folder, sorted.
+     */
+    private static List<String> filesIn(Path folder) throws IOException
+    {
+        try (Stream<Path> list = Files.list(folder))
+        {
+            return list.map(path -> path.getFileName().toString()).sorted().toList();
         }
     }
 

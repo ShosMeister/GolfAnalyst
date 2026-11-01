@@ -66,6 +66,7 @@ public final class AppPanel extends JPanel implements Shell
     static final String DISCARD_TITLE = "Discard changes";
     static final String SAMPLE_TITLE = "Sample data";
     static final String PROBLEMS_TITLE = "Data problems";
+    static final String EXPORT_FAILED_TITLE = "Export failed";
     static final String PROBLEMS_MESSAGE = "These problems were found in the data files. Each one names the file and the line to fix.";
 
     /*
@@ -80,7 +81,7 @@ public final class AppPanel extends JPanel implements Shell
     }
 
     /*
-     * ImportAsker: shows the Import window and gives its answer (on screen normally; the self-test answers by code).
+     * SettingsAsker: shows the Settings window and gives its answer (on screen normally; the self-test answers by code).
      */
     interface SettingsAsker
     {
@@ -88,6 +89,17 @@ public final class AppPanel extends JPanel implements Shell
          * ask(form): ConfirmForm.GO once OK is pressed, CANCELLED otherwise.
          */
         int ask(SettingsForm form);
+    }
+
+    /*
+     * ExportAsker: shows the Export window and gives its answer (on screen normally; the self-test answers by code).
+     */
+    interface ExportAsker
+    {
+        /*
+         * ask(form): ConfirmForm.GO once Export is pressed, CANCELLED otherwise.
+         */
+        int ask(ExportForm form);
     }
 
     /*
@@ -118,6 +130,7 @@ public final class AppPanel extends JPanel implements Shell
     private transient ImportAsker importAsker = form -> form.showOn(this);
     private transient SettingsForm.Tools settingsTools = new ScreenTools();
     private transient SettingsAsker settingsAsker = form -> form.showOn(this);
+    private transient ExportAsker exportAsker = form -> form.showOn(this);
     private transient Path programDir = Path.of("");
 
     /*
@@ -721,12 +734,68 @@ public final class AppPanel extends JPanel implements Shell
     }
 
     /*
-     * exportData(): what Home's Export button does (built in the next step).
+     +--------------------------------------------------------------------------+
+     | exportData()                                                             |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | What Home's Export button does: shows the Export window and, if Export   |
+     | is pressed, writes a new GolfAnalyst-export_... folder inside the        |
+     | chosen folder (Exporter.write). Export only reads the data, so no        |
+     | backup is made, nothing in the data folder changes and it works on the   |
+     | sample data too. The chosen folder is remembered as LastExportFolder     |
+     | (except on the sample data, whose files are never written). The footer   |
+     | says "Exported 12 sets of tees and 37 rounds to ...". If the export      |
+     | fails, the half-made folder has already been removed; a message says     |
+     | why and the footer says nothing was exported.                            |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing                                                      |
+     +--------------------------------------------------------------------------+
      */
     @Override
     public void exportData()
     {
-        setStatus("Export is not built yet.");
+        Path last = golfanalyst.Settings.load(store.dir()).lastExportFolder();
+        Path start = (last != null && Files.isDirectory(last) ? last : Path.of(System.getProperty("user.home"), "Documents"));
+        ExportForm form = new ExportForm(store.dataset(), store.includeHistorical(), start, settingsTools);
+        if (exportAsker.ask(form) != ConfirmForm.GO || form.plan() == null || form.folder() == null)
+        {
+            return;
+        }
+        golfanalyst.Exporter.Plan plan = form.plan();
+        Path written;
+        try
+        {
+            written = golfanalyst.Exporter.write(store.dir(), form.folder(), plan, java.time.LocalDateTime.now());
+        }
+        catch (IOException failure)
+        {
+            showNotice(EXPORT_FAILED_TITLE, "Nothing was exported: " + failure.getMessage(), null);
+            setStatus("Nothing was exported: " + failure.getMessage());
+            return;
+        }
+        String message = "Exported " + plan.counts() + " to " + written.toAbsolutePath().normalize() + ".";
+        if (!store.isSampleData())
+        {
+            try
+            {
+                golfanalyst.Settings.load(store.dir()).with(golfanalyst.Settings.LAST_EXPORT_FOLDER,
+                        form.folder().toAbsolutePath().normalize().toString()).save(store.dir());
+            }
+            catch (IOException failure)
+            {
+                message = message + " The folder could not be remembered: " + failure.getMessage();
+            }
+        }
+        setStatus(message);
+    }
+
+    /*
+     * setExportAsker(newAsker): replaces the on-screen Export window with answers given by code (for the self-test).
+     */
+    void setExportAsker(ExportAsker newAsker)
+    {
+        exportAsker = newAsker;
     }
 
     /*

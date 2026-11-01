@@ -6,6 +6,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -576,6 +577,7 @@ public final class SelfTest
             checkZipCodes();
             checkDeleteCourse();
             checkSettings();
+            checkExport();
         }
         catch (IOException failure)
         {
@@ -2000,6 +2002,251 @@ public final class SelfTest
                 && Files.readString(blocked.resolve(DataLoader.COURSES_FILE), StandardCharsets.UTF_8).equals(blockedCourses));
         deleteTree(blocked);
         deleteTree(temp);
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | checkExport()                                                            |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Tests Export on the sample data with Windows line endings, a comment     |
+     | line and two rounds marked historical. It checks that:                   |
+     | - each choice counts the right sets of tees and rounds, with and         |
+     |   without historical rounds;                                             |
+     | - one course gives all its tees and the rounds on them;                  |
+     | - a date range includes both ends, a blank end means today, and the      |
+     |   tees the rounds use come too;                                          |
+     | - the files hold the golfer's own lines (IDs unchanged), header and      |
+     |   line endings, and no comments; the Historical column only when an      |
+     |   exported round is historical; ReadMe.txt says how to Import it;        |
+     | - nothing is written over (a second export gets -2), the data files are  |
+     |   not changed, and a failure leaves no half-made folder;                 |
+     | - ROUND TRIP: everything exported and imported into an empty data        |
+     |   folder gives the same tees and rounds (apart from new IDs), the same   |
+     |   Handicap Index and Low Index and the same statistics.                  |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing (throws IOException if a temporary file fails)       |
+     +--------------------------------------------------------------------------+
+     */
+    private static void checkExport() throws IOException
+    {
+        Path temp = Files.createTempDirectory("golfanalyst-export-test");
+        Path data = temp.resolve("data");
+        Path into = temp.resolve("exports");
+        Files.createDirectories(data);
+        Files.createDirectories(into);
+        String myCourses = Files.readString(Path.of("sample-data", DataLoader.COURSES_FILE), StandardCharsets.UTF_8).replace("\r\n", "\n")
+                .replace("\n", "\r\n");
+        StringBuilder rounds = new StringBuilder();
+        for (String line : LineReplacer.lines(Files.readString(Path.of("sample-data", DataLoader.ROUNDS_FILE), StandardCharsets.UTF_8)))
+        {
+            if (line.isBlank() || line.startsWith("#"))
+            {
+                rounds.append(line).append("\r\n");
+            }
+            else if (line.startsWith("RoundID"))
+            {
+                rounds.append("# my rounds\r\n").append(line).append("\tHistorical\r\n");
+            }
+            else
+            {
+                rounds.append(line).append((line.startsWith("3\t") || line.startsWith("4\t") ? "\tY" : "\t")).append("\r\n");
+            }
+        }
+        String myRounds = rounds.toString();
+        Files.writeString(data.resolve(DataLoader.COURSES_FILE), myCourses, StandardCharsets.UTF_8);
+        Files.writeString(data.resolve(DataLoader.ROUNDS_FILE), myRounds, StandardCharsets.UTF_8);
+        Dataset mine = DataLoader.load(data);
+        int allTees = mine.tees().size();
+        int allRounds = mine.rounds().size();
+        long historicalCount = mine.rounds().stream().filter(Round::historical).count();
+        check("export: the test data has two historical rounds", historicalCount == 2 && mine.problems().isEmpty());
+
+        Exporter.Plan everything = Exporter.plan(mine, new Exporter.Choice(Exporter.Kind.EVERYTHING, null, null, null, null, true));
+        Exporter.Plan current = Exporter.plan(mine, new Exporter.Choice(Exporter.Kind.EVERYTHING, null, null, null, null, false));
+        check("export: Everything counts every set of tees and round", everything.tees().size() == allTees
+                && everything.rounds().size() == allRounds && everything.historical() == 2
+                && everything.words().equals("This will write " + allTees + " sets of tees and " + allRounds + " rounds (2 of them historical)."));
+        check("export: without historical rounds they are left out but every set of tees stays", current.tees().size() == allTees
+                && current.rounds().size() == allRounds - 2 && current.historical() == 0
+                && current.words().equals("This will write " + allTees + " sets of tees and " + (allRounds - 2) + " rounds."));
+
+        List<Exporter.CourseItem> courses = Exporter.courses(mine);
+        Exporter.CourseItem edgewater = courses.stream().filter(course -> course.name().equals("Edgewater")).findFirst().orElse(null);
+        check("export: the course list names each course once with its zip and tees", edgewater != null && edgewater.tees() == 4
+                && courses.size() == mine.tees().stream().map(tee -> tee.courseName().toLowerCase() + "|" + tee.zip()).distinct().count()
+                && edgewater.toString().equals("Edgewater (" + edgewater.zip() + "), 4 sets of tees"));
+        Exporter.Plan oneCourse = Exporter.plan(mine, new Exporter.Choice(Exporter.Kind.COURSE, "  EDGEWATER ", edgewater.zip(), null, null, true));
+        long onEdgewater = mine.rounds().stream().filter(round -> round.teeId() >= 5 && round.teeId() <= 8).count();
+        check("export: One course gives all its tees and the rounds on them", oneCourse.tees().size() == 4
+                && oneCourse.tees().stream().allMatch(tee -> tee.id() >= 5 && tee.id() <= 8) && oneCourse.rounds().size() == onEdgewater
+                && onEdgewater > 0);
+
+        List<Round> byDate = new ArrayList<>(mine.rounds());
+        byDate.sort((first, second) -> first.date().compareTo(second.date()));
+        LocalDate from = byDate.get(3).date();
+        LocalDate to = byDate.get(10).date();
+        List<Round> between = mine.rounds().stream().filter(round -> !round.date().isBefore(from) && !round.date().isAfter(to)).toList();
+        Exporter.Plan dates = Exporter.plan(mine, new Exporter.Choice(Exporter.Kind.DATES, null, null, from, to, true));
+        Set<Integer> needed = new java.util.HashSet<>();
+        between.forEach(round -> needed.add(round.teeId()));
+        check("export: a date range includes both ends", dates.rounds().size() == between.size()
+                && dates.rounds().stream().anyMatch(round -> round.date().equals(from))
+                && dates.rounds().stream().anyMatch(round -> round.date().equals(to)));
+        check("export: a date range brings the tees its rounds use and no others", dates.tees().size() == needed.size()
+                && dates.tees().stream().allMatch(tee -> needed.contains(tee.id())));
+        Exporter.Plan sinceFirst = Exporter.plan(mine, new Exporter.Choice(Exporter.Kind.DATES, null, null, byDate.get(0).date(), null, false));
+        Exporter.Plan future = Exporter.plan(mine, new Exporter.Choice(Exporter.Kind.DATES, null, null, LocalDate.now().plusDays(1), null, true));
+        check("export: a blank To date means today", sinceFirst.rounds().size() == allRounds - 2 && !future.hasWork()
+                && future.words().equals("There is nothing to write for this choice."));
+
+        LocalDateTime when = LocalDateTime.of(2026, 11, 1, 9, 30, 5);
+        Path first = Exporter.write(data, into, everything, when);
+        String outCourses = Files.readString(first.resolve(DataLoader.COURSES_FILE), StandardCharsets.UTF_8);
+        String outRounds = Files.readString(first.resolve(DataLoader.ROUNDS_FILE), StandardCharsets.UTF_8);
+        String readMe = Files.readString(first.resolve(Exporter.README), StandardCharsets.UTF_8);
+        String myCourseLines = myCourses.replaceAll("(?m)^#.*\r\n", "").replaceAll("(?m)^\r\n", "");
+        String myRoundLines = myRounds.replaceAll("(?m)^#.*\r\n", "").replaceAll("(?m)^\r\n", "");
+        check("export: the folder is named GolfAnalyst-export_ with the date and time", first.getFileName().toString()
+                .equals("GolfAnalyst-export_2026-11-01_093005") && first.getParent().equals(into));
+        check("export: everything gives the golfer's own lines, header and line endings (IDs unchanged), without comments",
+                outCourses.equals(myCourseLines) && outRounds.equals(myRoundLines) && !outRounds.contains("#"));
+        long filesThere;
+        try (Stream<Path> list = Files.list(first))
+        {
+            filesThere = list.count();
+        }
+        check("export: ReadMe.txt says what is there and how to Import it", readMe.contains("2026-11-01")
+                && readMe.contains(allTees + " sets of tees and " + allRounds + " rounds (2 of them historical)")
+                && readMe.contains("To bring this into another copy: press Import, then Choose a whole data folder, and pick this folder.")
+                && filesThere == 3);
+        check("export: the data files are not changed",
+                Files.readString(data.resolve(DataLoader.COURSES_FILE), StandardCharsets.UTF_8).equals(myCourses)
+                && Files.readString(data.resolve(DataLoader.ROUNDS_FILE), StandardCharsets.UTF_8).equals(myRounds)
+                && !Files.exists(data.resolve(Backups.FOLDER)));
+
+        Path second = Exporter.write(data, into, current, when);
+        String noHistorical = Files.readString(second.resolve(DataLoader.ROUNDS_FILE), StandardCharsets.UTF_8);
+        String[] lines = noHistorical.split("\r\n");
+        boolean nineCells = true;
+        for (String line : lines)
+        {
+            nineCells = nineCells && line.split("\t", -1).length == 9;
+        }
+        check("export: nothing is written over: a second export the same second gets -2", second.getFileName().toString()
+                .equals("GolfAnalyst-export_2026-11-01_093005-2") && Files.readString(first.resolve(DataLoader.ROUNDS_FILE),
+                StandardCharsets.UTF_8).equals(outRounds));
+        check("export: no historical round exported means no Historical column", !lines[0].contains("Historical") && nineCells
+                && lines.length == allRounds - 2 + 1 && !noHistorical.contains("\n3\t") && !noHistorical.contains("\n4\t"));
+        Path oneCourseFolder = Exporter.write(data, into, oneCourse, when);
+        String oneCourseRounds = Files.readString(oneCourseFolder.resolve(DataLoader.ROUNDS_FILE), StandardCharsets.UTF_8);
+        check("export: One course writes its 4 tees and its rounds", LineReplacer.lines(Files.readString(oneCourseFolder
+                .resolve(DataLoader.COURSES_FILE), StandardCharsets.UTF_8)).stream().filter(line -> !line.isEmpty()).count() == 5
+                && LineReplacer.lines(oneCourseRounds).stream().filter(line -> !line.isEmpty()).count() == onEdgewater + 1);
+
+        Path failing = temp.resolve("failing");
+        Files.createDirectories(failing);
+        int[] moves = {0};
+        boolean threw = false;
+        try
+        {
+            Exporter.write(data, failing, everything, when, (fromFile, toFile) ->
+            {
+                moves[0] = moves[0] + 1;
+                if (moves[0] == 2)
+                {
+                    throw new IOException("the disk is full");
+                }
+                Files.move(fromFile, toFile);
+            });
+        }
+        catch (IOException expectedFailure)
+        {
+            threw = expectedFailure.getMessage().equals("the disk is full");
+        }
+        check("export: a failure is passed on and leaves no half-made folder", threw && filesIn(failing).isEmpty());
+        boolean nothing = false;
+        try
+        {
+            Exporter.write(data, failing, future, when);
+        }
+        catch (IOException expectedFailure)
+        {
+            nothing = true;
+        }
+        check("export: nothing to write makes no folder", nothing && filesIn(failing).isEmpty());
+
+        Path empty = temp.resolve("empty");
+        Files.createDirectories(empty);
+        Files.writeString(empty.resolve(DataLoader.COURSES_FILE), CourseWriter.STANDARD_HEADER + "\r\n", StandardCharsets.UTF_8);
+        Files.writeString(empty.resolve(DataLoader.ROUNDS_FILE), RoundWriter.STANDARD_HEADER + "\r\n", StandardCharsets.UTF_8);
+        Importer.Plan imported = Importer.check(first.resolve(DataLoader.COURSES_FILE), first.resolve(DataLoader.ROUNDS_FILE),
+                DataLoader.load(empty), false);
+        Importer.apply(empty, imported);
+        Dataset back = DataLoader.load(empty);
+        check("export: round trip: the import takes every tee and round", imported.newTees().size() == allTees
+                && imported.newRounds().size() == allRounds && imported.teesRejected() + imported.roundsRejected() == 0
+                && back.problems().isEmpty());
+        check("export: round trip: every tee matches apart from its ID", describeTees(back).equals(describeTees(mine)));
+        check("export: round trip: every round matches apart from its IDs", describeRounds(back).equals(describeRounds(mine)));
+        Map<Integer, Tee> mineTees = new java.util.HashMap<>();
+        mine.tees().forEach(tee -> mineTees.put(tee.id(), tee));
+        Map<Integer, Tee> backTees = new java.util.HashMap<>();
+        back.tees().forEach(tee -> backTees.put(tee.id(), tee));
+        Handicap.Result mineIndex = Handicap.compute(mine.rounds(), mineTees);
+        Handicap.Result backIndex = Handicap.compute(back.rounds(), backTees);
+        check("export: round trip: the Handicap Index and Low Index are equal", mineIndex.currentIndex() != null
+                && Objects.equals(mineIndex.currentIndex(), backIndex.currentIndex()) && Objects.equals(mineIndex.lowIndex(), backIndex.lowIndex())
+                && mineIndex.currentDifferentials().equals(backIndex.currentDifferentials()));
+        check("export: round trip: the statistics are equal", describe(Stats.summarize(Stats.counted(mine.rounds(), true), mineTees))
+                .equals(describe(Stats.summarize(Stats.counted(back.rounds(), true), backTees)))
+                && describe(Stats.summarize(Stats.counted(mine.rounds(), false), mineTees))
+                .equals(describe(Stats.summarize(Stats.counted(back.rounds(), false), backTees))));
+        deleteTree(temp);
+    }
+
+    /*
+     * describeTees(data): every set of tees as its line without the TeeID, sorted (to compare data with different IDs).
+     */
+    private static List<String> describeTees(Dataset data)
+    {
+        String[] header = CourseWriter.STANDARD_HEADER.split("\t");
+        List<String> lines = new ArrayList<>();
+        for (Tee tee : data.tees())
+        {
+            lines.add(CourseWriter.formatLine(tee, header).replaceFirst("^[^\t]*\t", ""));
+        }
+        lines.sort(null);
+        return lines;
+    }
+
+    /*
+     * describeRounds(data): every round as its course and tees, its line without the IDs and its historical flag, sorted.
+     */
+    private static List<String> describeRounds(Dataset data)
+    {
+        String[] header = RoundWriter.STANDARD_HEADER.split("\t");
+        Map<Integer, Tee> tees = new java.util.HashMap<>();
+        data.tees().forEach(tee -> tees.put(tee.id(), tee));
+        List<String> lines = new ArrayList<>();
+        for (Round round : data.rounds())
+        {
+            Tee tee = tees.get(round.teeId());
+            lines.add(tee.courseName() + "|" + tee.teeName() + "|" + RoundWriter.formatLine(round, tee, header).replaceFirst("^[^\t]*\t[^\t]*\t", "")
+                    + "|" + round.historical());
+        }
+        lines.sort(null);
+        return lines;
+    }
+
+    /*
+     * describe(summary): every figure of a statistics summary as text (its arrays too), to compare two summaries.
+     */
+    private static String describe(Stats.Summary summary)
+    {
+        return summary.toString().replaceAll("parAverage=.*", "") + Arrays.toString(summary.parAverage())
+                + Arrays.toString(summary.distribution());
     }
 
     /*
