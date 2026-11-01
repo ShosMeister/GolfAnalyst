@@ -57,7 +57,6 @@ import java.util.Set;
 public final class Importer
 {
 
-    static final String IMPORT_PREFIX = "import-";
 
     /*
      * Note: one row that was skipped or rejected: the file's name, its line number (0 for the whole file) and why.
@@ -506,7 +505,7 @@ public final class Importer
         Path roundsFile = dataDir.resolve(DataLoader.ROUNDS_FILE);
         String courses = (Files.exists(coursesFile) ? Files.readString(coursesFile, StandardCharsets.UTF_8) : "");
         String rounds = (Files.exists(roundsFile) ? Files.readString(roundsFile, StandardCharsets.UTF_8) : "");
-        Path folder = Backups.copyIntoFolder(dataDir, IMPORT_PREFIX, List.of(DataLoader.COURSES_FILE, DataLoader.ROUNDS_FILE),
+        Path folder = Backups.backupFolder(dataDir, Backups.IMPORT, List.of(DataLoader.COURSES_FILE, DataLoader.ROUNDS_FILE),
                 LocalDateTime.now());
 
         String newCourses = courses + CourseWriter.additionFor(courses, plan.newTees());

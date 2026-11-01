@@ -1128,7 +1128,7 @@ public final class SelfTest
         check("the edited line keeps its RoundID and the column of your own", after.contains("\r\n" + newLine + "\r\n"));
         check("comments, the other rounds and the Windows line endings are untouched", after.startsWith("# my rounds\r\n")
                 && after.contains("\r\n" + first + "\r\n# a comment between\r\n\r\n") && after.endsWith("\r\n" + third + "\r\n"));
-        List<Path> copies = Backups.copiesOf(rounds);
+        List<Path> copies = backupCopies(rounds);
         check("the file as it was is copied to the backups folder", copies.size() == 1
                 && Files.readString(copies.get(0), StandardCharsets.UTF_8).equals(original));
         List<Problem> problems = new ArrayList<>();
@@ -1177,9 +1177,11 @@ public final class SelfTest
      | - adding a round makes no copy;                                          |
      | - editing a round makes one dated copy of rounds.tsv as it was, and no   |
      |   rounds.tsv.bak, and leaves an old .bak file alone;                     |
-     | - fixing a course makes one dated copy of courses.tsv as it was;         |
-     | - only the 20 newest copies of each file are kept, two in the same       |
-     |   second both kept, and Clear's folders are never pruned;                |
+     | - fixing a course makes one edit-course folder with courses.tsv;         |
+     | - only the newest BackupsToKeep folders of each everyday kind are kept   |
+     |   (10, 20, 50, 100, All), two in the same second both kept; import,      |
+     |   clear and delete-course folders and old-style backups are never        |
+     |   touched; the extra copy folder, and a missing one only warning;        |
      | - if the copy cannot be made, the edit stops and the file is unchanged.  |
      |                                                                          |
      | Passed in:  nothing                                                      |
@@ -1200,24 +1202,25 @@ public final class SelfTest
         Round latest = store.roundsByDate().get(store.roundsByDate().size() - 1);
         store.addRound(new Round(store.nextRoundId(), latest.teeId(), latest.date(), 0, latest.startHole(), latest.holes(),
                 latest.scores(), latest.putts(), latest.fairway(), latest.sand()));
-        check("backups: adding a round makes no copy", Backups.copiesOf(roundsFile).isEmpty());
+        check("backups: adding a round makes no backup", !Files.exists(temp.resolve(Backups.FOLDER)));
         Tee firstTee = store.teeMap().get(latest.teeId());
         Tee newTee = new Tee(store.nextTeeId(), firstTee.courseName(), firstTee.city(), firstTee.state(), firstTee.zip(), "Practice",
                 firstTee.holes(), firstTee.rating(), firstTee.slope(), firstTee.yardage(), firstTee.pars(), firstTee.strokeIndex(),
                 firstTee.frontRating(), firstTee.frontSlope(), firstTee.backRating(), firstTee.backSlope());
         store.addTees(List.of(newTee));
-        check("backups: adding new tees makes no copy", Backups.copiesOf(coursesFile).isEmpty() && store.teeMap().get(newTee.id()) != null);
+        check("backups: adding new tees makes no backup", !Files.exists(temp.resolve(Backups.FOLDER)) && store.teeMap().get(newTee.id()) != null);
 
         String roundsBefore = Files.readString(roundsFile, StandardCharsets.UTF_8);
         int[] scores = latest.scores().clone();
         scores[0] = scores[0] + 1;
         store.replaceRound(new Round(latest.id(), latest.teeId(), latest.date(), latest.pcc(), latest.startHole(), latest.holes(),
                 scores, latest.putts(), latest.fairway(), latest.sand()));
-        List<Path> roundCopies = Backups.copiesOf(roundsFile);
-        check("backups: editing a round makes one copy of rounds.tsv as it was", roundCopies.size() == 1
-                && Files.readString(roundCopies.get(0), StandardCharsets.UTF_8).equals(roundsBefore)
-                && roundCopies.get(0).getParent().getFileName().toString().equals(Backups.FOLDER)
-                && roundCopies.get(0).getFileName().toString().matches("rounds-\\d{4}-\\d{2}-\\d{2}-\\d{6}\\.tsv"));
+        List<Path> edits = Backups.backupsOf(temp, Backups.EDIT_ROUND);
+        check("backups: editing a round makes one folder backups\\date_time_edit-round holding rounds.tsv as it was", edits.size() == 1
+                && edits.get(0).getParent().getFileName().toString().equals(Backups.FOLDER)
+                && edits.get(0).getFileName().toString().matches("\\d{4}-\\d{2}-\\d{2}_\\d{6}_edit-round")
+                && Files.readString(edits.get(0).resolve(DataLoader.ROUNDS_FILE), StandardCharsets.UTF_8).equals(roundsBefore)
+                && filesIn(edits.get(0)).equals(List.of(DataLoader.ROUNDS_FILE)));
         check("backups: no .bak is made and an old one is left alone", Files.readString(oldBak, StandardCharsets.UTF_8).equals("an old backup")
                 && !Files.exists(temp.resolve(DataLoader.COURSES_FILE + ".bak")));
 
@@ -1227,29 +1230,79 @@ public final class SelfTest
                 tee.rating(), tee.slope(), tee.yardage() + 10, tee.pars(), tee.strokeIndex(),
                 tee.frontRating(), tee.frontSlope(), tee.backRating(), tee.backSlope());
         store.updateTees(List.of(fixed), List.of());
-        List<Path> courseCopies = Backups.copiesOf(coursesFile);
-        check("backups: fixing a course makes one copy of courses.tsv as it was", courseCopies.size() == 1
-                && Files.readString(courseCopies.get(0), StandardCharsets.UTF_8).equals(coursesBefore)
-                && courseCopies.get(0).getFileName().toString().startsWith("courses-"));
+        List<Path> courseEdits = Backups.backupsOf(temp, Backups.EDIT_COURSE);
+        check("backups: fixing a course makes one edit-course folder holding courses.tsv as it was", courseEdits.size() == 1
+                && Files.readString(courseEdits.get(0).resolve(DataLoader.COURSES_FILE), StandardCharsets.UTF_8).equals(coursesBefore)
+                && filesIn(courseEdits.get(0)).equals(List.of(DataLoader.COURSES_FILE)));
 
-        Path clearFolder = Backups.folderFor(roundsFile).resolve("clear-2020-01-01-000000");
-        Files.createDirectories(clearFolder);
-        Files.writeString(clearFolder.resolve(DataLoader.ROUNDS_FILE), "cleared", StandardCharsets.UTF_8);
+        Path backups = temp.resolve(Backups.FOLDER);
+        Path oldFile = backups.resolve("rounds-2020-01-01-000000.tsv");
+        Path oldClear = backups.resolve("clear-2020-01-01-000000");
+        Path oldImport = backups.resolve("import-2020-01-01-000000");
+        Files.createDirectories(oldClear);
+        Files.createDirectories(oldImport);
+        Files.writeString(oldFile, "an old-style copy", StandardCharsets.UTF_8);
+        Files.writeString(oldClear.resolve(DataLoader.ROUNDS_FILE), "cleared", StandardCharsets.UTF_8);
         java.time.LocalDateTime start = java.time.LocalDateTime.of(2030, 1, 1, 9, 0, 0);
-        for (int lp = 0; lp < 25; lp = lp + 1)
+        for (String reason : List.of(Backups.EDIT_ROUND, Backups.DELETE_ROUND, Backups.EDIT_COURSE, Backups.IMPORT, Backups.CLEAR,
+                Backups.DELETE_COURSE))
         {
-            Backups.copyBeforeChange(roundsFile, start.plusSeconds(lp));
+            for (int lp = 0; lp < 25; lp = lp + 1)
+            {
+                Backups.backupFolder(temp, reason, List.of(DataLoader.ROUNDS_FILE), start.plusSeconds(lp));
+            }
         }
-        Path sameSecond = Backups.copyBeforeChange(roundsFile, start.plusSeconds(24));
-        roundCopies = Backups.copiesOf(roundsFile);
-        check("backups: only the 20 newest copies of rounds.tsv are kept", roundCopies.size() == Backups.KEEP
-                && roundCopies.get(0).getFileName().toString().equals("rounds-2030-01-01-090006.tsv"));
-        check("backups: two copies in the same second are both kept, the later one newest",
-                sameSecond.getFileName().toString().equals("rounds-2030-01-01-090024-2.tsv")
-                        && roundCopies.get(roundCopies.size() - 1).equals(sameSecond));
-        check("backups: the courses copy is not pruned with the rounds copies", Backups.copiesOf(coursesFile).size() == 1);
-        check("backups: Clear's folders are never pruned", Files.readString(clearFolder.resolve(DataLoader.ROUNDS_FILE),
-                StandardCharsets.UTF_8).equals("cleared"));
+        Path sameSecond = Backups.backupFolder(temp, Backups.EDIT_ROUND, List.of(DataLoader.ROUNDS_FILE), start.plusSeconds(24));
+        edits = Backups.backupsOf(temp, Backups.EDIT_ROUND);
+        check("backups: only the 20 newest edit-round folders are kept", edits.size() == Settings.DEFAULT_KEEP
+                && edits.get(0).getFileName().toString().equals("2030-01-01_090006_edit-round"));
+        check("backups: two in the same second are both kept, the later one newest",
+                sameSecond.getFileName().toString().equals("2030-01-01_090024-2_edit-round") && edits.get(edits.size() - 1).equals(sameSecond));
+        check("backups: each everyday kind is counted on its own", Backups.backupsOf(temp, Backups.DELETE_ROUND).size() == 20
+                && Backups.backupsOf(temp, Backups.DELETE_ROUND).get(0).getFileName().toString().equals("2030-01-01_090005_delete-round")
+                && Backups.backupsOf(temp, Backups.EDIT_COURSE).size() == 20);
+        check("backups: import, clear and delete-course folders are never pruned", Backups.backupsOf(temp, Backups.IMPORT).size() == 25
+                && Backups.backupsOf(temp, Backups.CLEAR).size() == 25 && Backups.backupsOf(temp, Backups.DELETE_COURSE).size() == 25);
+        check("backups: old-style backups are left alone", Files.readString(oldFile, StandardCharsets.UTF_8).equals("an old-style copy")
+                && Files.readString(oldClear.resolve(DataLoader.ROUNDS_FILE), StandardCharsets.UTF_8).equals("cleared")
+                && Files.isDirectory(oldImport));
+
+        int[] choices = {10, Settings.KEEP_ALL, 50, 100, 20};
+        int[] expectedKept = {10, 25, 26, 27, 20};
+        boolean everyChoice = true;
+        for (int lp = 0; lp < choices.length; lp = lp + 1)
+        {
+            Settings.load(temp).with(Settings.BACKUPS_TO_KEEP, Settings.keepText(choices[lp])).save(temp);
+            int extra = (choices[lp] == Settings.KEEP_ALL ? 15 : 1);
+            for (int lp2 = 0; lp2 < extra; lp2 = lp2 + 1)
+            {
+                Backups.backupFolder(temp, Backups.EDIT_ROUND, List.of(DataLoader.ROUNDS_FILE), start.plusMinutes(10 * lp + 1).plusSeconds(lp2));
+            }
+            int kept = Backups.backupsOf(temp, Backups.EDIT_ROUND).size();
+            everyChoice = everyChoice && kept == expectedKept[lp];
+            System.out.println("  backups to keep " + Settings.keepText(choices[lp]) + ": " + kept + " edit-round folders kept");
+        }
+        check("backups: Backups to keep 10, All, 50, 100 and 20 each prune as they should", everyChoice
+                && Settings.load(temp).get("backupstokeep").equals("20"));
+
+        Path extraFolder = Files.createTempDirectory("golfanalyst-backups-extra");
+        Settings.load(temp).with(Settings.BACKUP_COPY_FOLDER, extraFolder.toString()).save(temp);
+        Path withCopy = Backups.backupFolder(temp, Backups.EDIT_ROUND, List.of(DataLoader.ROUNDS_FILE));
+        String extraWarning = Backups.takeWarning();
+        check("backups: the extra copy folder gets the same folder with the same files", extraWarning == null
+                && Files.readString(extraFolder.resolve(withCopy.getFileName().toString()).resolve(DataLoader.ROUNDS_FILE),
+                        StandardCharsets.UTF_8).equals(Files.readString(withCopy.resolve(DataLoader.ROUNDS_FILE), StandardCharsets.UTF_8)));
+        Settings.load(temp).with(Settings.BACKUP_COPY_FOLDER, extraFolder.resolve("unplugged-usb-stick").toString()).save(temp);
+        Round again = store.roundsByDate().get(store.roundsByDate().size() - 1);
+        int[] againScores = again.scores().clone();
+        againScores[0] = againScores[0] + 1;
+        store.replaceRound(new Round(again.id(), again.teeId(), again.date(), again.pcc(), again.startHole(), again.holes(),
+                againScores, again.putts(), again.fairway(), again.sand()));
+        String note = store.backupWarningNote();
+        check("backups: a missing extra folder only warns; the save still happens", note.startsWith("  " + Backups.WARNING_START)
+                && store.roundsByDate().stream().anyMatch(round -> round.id() == again.id() && round.scores()[0] == againScores[0])
+                && store.backupWarningNote().isEmpty());
+        deleteTree(extraFolder);
 
         Path blocked = Files.createTempDirectory("golfanalyst-backups-blocked");
         Files.copy(Path.of("sample-data", DataLoader.COURSES_FILE), blocked.resolve(DataLoader.COURSES_FILE));
@@ -1332,7 +1385,7 @@ public final class SelfTest
                         && afterDelete.endsWith(lines.get(1) + "\r\n" + lines.get(3) + "\r\n"));
         check("delete: no RoundID is renumbered", store.roundsByDate().stream().map(Round::id).toList().equals(List.of(10, 20, 40)));
         check("delete: the backup was made first and holds the file as it was", copy != null
-                && Files.readString(copy, StandardCharsets.UTF_8).equals(original) && Backups.copiesOf(roundsFile).size() == 1);
+                && Files.readString(copy.resolve(DataLoader.ROUNDS_FILE), StandardCharsets.UTF_8).equals(original) && backupCopies(roundsFile).size() == 1);
         check("delete: the handicap and statistics are worked out again", store.overall().rounds() == 3
                 && store.handicap().entries().size() == entriesBefore - 1);
 
@@ -1346,7 +1399,7 @@ public final class SelfTest
             refused = expected.getMessage().contains("not in");
         }
         check("delete: a round that is not there is refused, with no change and no copy", refused
-                && Files.readString(roundsFile, StandardCharsets.UTF_8).equals(afterDelete) && Backups.copiesOf(roundsFile).size() == 1);
+                && Files.readString(roundsFile, StandardCharsets.UTF_8).equals(afterDelete) && backupCopies(roundsFile).size() == 1);
 
         Path blocked = Files.createTempDirectory("golfanalyst-delete-blocked");
         Files.copy(temp.resolve(DataLoader.COURSES_FILE), blocked.resolve(DataLoader.COURSES_FILE));
@@ -1395,9 +1448,9 @@ public final class SelfTest
         check("clear rounds only: the courses, the name and the settings are kept",
                 Files.readString(coursesFile, StandardCharsets.UTF_8).equals(coursesText) && store.dataset().tees().size() == teeCount
                         && store.golferName().equals("Pat Golfer") && !store.includeHistorical());
-        check("clear: the backup folder is backups\\clear-date-time and holds all three files as they were",
+        check("clear: the backup folder is backups\\date_time_clear and holds all three files as they were",
                 roundsOnly.getParent().getFileName().toString().equals(Backups.FOLDER)
-                        && roundsOnly.getFileName().toString().matches("clear-\\d{4}-\\d{2}-\\d{2}-\\d{6}(-\\d+)?")
+                        && roundsOnly.getFileName().toString().matches("\\d{4}-\\d{2}-\\d{2}_\\d{6}(-\\d+)?_clear")
                         && Files.readString(roundsOnly.resolve(DataLoader.ROUNDS_FILE), StandardCharsets.UTF_8).equals(afterDelete)
                         && Files.readString(roundsOnly.resolve(DataLoader.COURSES_FILE), StandardCharsets.UTF_8).equals(coursesText)
                         && Files.readString(roundsOnly.resolve("settings.txt"), StandardCharsets.UTF_8).equals(settingsText));
@@ -1414,12 +1467,12 @@ public final class SelfTest
                 && Files.isDirectory(roundsOnly) && Files.readString(everything.resolve(DataLoader.ROUNDS_FILE),
                         StandardCharsets.UTF_8).equals(roundsHeaderOnly)
                 && Files.readString(everything.resolve(DataLoader.COURSES_FILE), StandardCharsets.UTF_8).equals(coursesText));
-        for (int lp = 0; lp < Backups.KEEP + 3; lp = lp + 1)
+        for (int lp = 0; lp < Settings.DEFAULT_KEEP + 3; lp = lp + 1)
         {
-            Backups.copyBeforeChange(roundsFile, java.time.LocalDateTime.of(2031, 1, 1, 9, 0, lp));
+            Backups.backupFolder(temp, Backups.EDIT_ROUND, List.of(DataLoader.ROUNDS_FILE), java.time.LocalDateTime.of(2031, 1, 1, 9, 0, lp));
         }
-        check("clear: Clear's folders are never pruned with the other copies", Files.isDirectory(roundsOnly)
-                && Files.isDirectory(everything) && Backups.copiesOf(roundsFile).size() == Backups.KEEP);
+        check("clear: Clear's folders are never pruned with the everyday ones", Files.isDirectory(roundsOnly)
+                && Files.isDirectory(everything) && Backups.backupsOf(temp, Backups.EDIT_ROUND).size() == Settings.DEFAULT_KEEP);
         deleteTree(temp);
 
         Path parent = Files.createTempDirectory("golfanalyst-sample-test");
@@ -1595,7 +1648,7 @@ public final class SelfTest
                         && coursesAfter.endsWith("\r\n") && !coursesAfter.substring(myCourses.length()).replace("\r\n", "").contains("\n"));
         check("import: rounds.tsv keeps every old line and gains two lines at the end",
                 roundsAfter.startsWith(myRounds) && LineReplacer.lines(roundsAfter).size() == LineReplacer.lines(myRounds).size() + 2);
-        check("import: the backup folder holds both files as they were", folder.getFileName().toString().startsWith("import-")
+        check("import: the backup folder holds both files as they were", folder.getFileName().toString().endsWith("_import")
                 && Files.readString(folder.resolve(DataLoader.COURSES_FILE), StandardCharsets.UTF_8).equals(myCourses)
                 && Files.readString(folder.resolve(DataLoader.ROUNDS_FILE), StandardCharsets.UTF_8).equals(myRounds));
         check("import: everything is reloaded with the new tees and rounds", store.dataset().tees().size() == teeCount + 2
@@ -1690,7 +1743,7 @@ public final class SelfTest
             check("correct course, " + what[lp] + ": every round stays linked", store.roundsByDate().size() == rounds
                     && store.dataset().errorCount() == 0);
             check("correct course, " + what[lp] + ": a backup copy holds the file as it was",
-                    Files.readString(copy, StandardCharsets.UTF_8).equals(beforeText));
+                    Files.readString(copy.resolve(DataLoader.COURSES_FILE), StandardCharsets.UTF_8).equals(beforeText));
             courseName = fix[0];
             zip = fix[1];
         }
@@ -1911,7 +1964,7 @@ public final class SelfTest
                         && store.teesForCourse("Edgewater", "29720").isEmpty() && store.dataset().errorCount() == 0);
         check("delete course: the handicap and statistics are worked out again", store.handicap().entries().size() < entriesBefore
                 && store.roundsByDate().stream().noneMatch(round -> ids.contains(round.teeId())));
-        check("delete course: the backup folder holds both files as they were", folder.getFileName().toString().startsWith("delete-course-")
+        check("delete course: the backup folder holds both files as they were", folder.getFileName().toString().endsWith("_delete-course")
                 && folder.getParent().getFileName().toString().equals(Backups.FOLDER)
                 && Files.readString(folder.resolve(DataLoader.COURSES_FILE), StandardCharsets.UTF_8).equals(coursesBefore)
                 && Files.readString(folder.resolve(DataLoader.ROUNDS_FILE), StandardCharsets.UTF_8).equals(roundsBefore)
@@ -1946,6 +1999,44 @@ public final class SelfTest
                 && Files.readString(blocked.resolve(DataLoader.COURSES_FILE), StandardCharsets.UTF_8).equals(blockedCourses));
         deleteTree(blocked);
         deleteTree(temp);
+    }
+
+    /*
+     * filesIn(folder): the names of the files in a folder, sorted (for the self-test).
+     */
+    static List<String> filesIn(Path folder) throws IOException
+    {
+        try (Stream<Path> list = Files.list(folder))
+        {
+            return list.map(path -> path.getFileName().toString()).sorted().toList();
+        }
+    }
+
+    /*
+     * backupCopies(file): every backed-up copy of a data file in the new backup folders (any reason), oldest first (for the self-tests).
+     * Passed in:  file - the data file, e.g. the data folder's rounds.tsv
+     * Passed out: the copies, e.g. backups\2026-11-01_143012_edit-round\rounds.tsv
+     */
+    public static List<Path> backupCopies(Path file) throws IOException
+    {
+        Path dataDir = file.toAbsolutePath().getParent();
+        List<Path> folders = new ArrayList<>();
+        for (String reason : List.of(Backups.EDIT_ROUND, Backups.DELETE_ROUND, Backups.EDIT_COURSE, Backups.DELETE_COURSE,
+                Backups.IMPORT, Backups.CLEAR))
+        {
+            folders.addAll(Backups.backupsOf(dataDir, reason));
+        }
+        folders.sort(java.util.Comparator.comparing(path -> path.getFileName().toString()));
+        List<Path> copies = new ArrayList<>();
+        for (Path folder : folders)
+        {
+            Path copy = folder.resolve(file.getFileName().toString());
+            if (Files.exists(copy))
+            {
+                copies.add(copy);
+            }
+        }
+        return copies;
     }
 
     /*
@@ -2061,7 +2152,7 @@ public final class SelfTest
                 && updatedLines[updatedLines.length - 2].startsWith("Old Links\t4\tGreen\t"));
         check("the edited line has the new numbers and keeps the column of your own",
                 updated.contains("Old Links\t1\tWhite\tkeep me\t70.2\t114\t"));
-        List<Path> courseCopies = Backups.copiesOf(temp.resolve(DataLoader.COURSES_FILE));
+        List<Path> courseCopies = backupCopies(temp.resolve(DataLoader.COURSES_FILE));
         check("the file as it was is copied to the backups folder", !courseCopies.isEmpty()
                 && Files.readString(courseCopies.get(courseCopies.size() - 1), StandardCharsets.UTF_8).equals(after));
         check("the store reloads with the edited and the new tee", store.teeMap().get(1).rating() == 70.2

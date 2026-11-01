@@ -63,9 +63,7 @@ public final class DataStore
 
     public static final String DATA_FOLDER = "data";
     public static final String SAMPLE_FOLDER = "sample-data";
-    private static final String SETTINGS_FILE = "settings.txt";
-    private static final String GOLFER_KEY = "golfer";
-    static final String INCLUDE_HISTORICAL_KEY = "IncludeHistorical";
+    private static final String SETTINGS_FILE = Settings.FILE;
     private final Path dir;
     private Dataset dataset;
     private Handicap.Result handicap;
@@ -102,7 +100,7 @@ public final class DataStore
         dataset = DataLoader.load(dir);
         Map<Integer, Tee> tees = dataset.teeMap();
         handicap = Handicap.compute(dataset.rounds(), tees);
-        includeHistorical = !readSettings().getProperty(INCLUDE_HISTORICAL_KEY, "true").trim().equalsIgnoreCase("false");
+        includeHistorical = Settings.load(dir).includeHistorical();
         overall = Stats.summarize(Stats.counted(dataset.rounds(), includeHistorical), tees);
         List<Round> sorted = new ArrayList<>(dataset.rounds());
         sorted.sort(Comparator.comparing(Round::date).thenComparingInt(Round::id));
@@ -269,7 +267,7 @@ public final class DataStore
         {
             throw new IOException("This is the sample data, so it is never cleared.");
         }
-        Path folder = Backups.copyForClear(dir, List.of(DataLoader.COURSES_FILE, DataLoader.ROUNDS_FILE, SETTINGS_FILE),
+        Path folder = Backups.backupFolder(dir, Backups.CLEAR, List.of(DataLoader.COURSES_FILE, DataLoader.ROUNDS_FILE, SETTINGS_FILE),
                 java.time.LocalDateTime.now());
         Path rounds = dir.resolve(DataLoader.ROUNDS_FILE);
         LineReplacer.writeSafely(rounds, headerOnly(rounds, RoundWriter.STANDARD_HEADER));
@@ -512,42 +510,12 @@ public final class DataStore
     }
 
     /*
-     * readSettings(): everything in settings.txt, or nothing if the file is missing or cannot be read.
-     * Passed in:  nothing
-     * Passed out: the settings
+     * backupWarningNote(): after a save that made a backup, "  The extra backup copy could not be made: ..." when the copy to the BackupCopyFolder failed, otherwise "" (it is given only once).
      */
-    private Properties readSettings()
+    public String backupWarningNote()
     {
-        Properties settings = new Properties();
-        Path file = dir.resolve(SETTINGS_FILE);
-        if (Files.exists(file))
-        {
-            try (Reader reader = Files.newBufferedReader(file, StandardCharsets.UTF_8))
-            {
-                settings.load(reader);
-            }
-            catch (IOException unreadable)
-            {
-                settings.clear();
-            }
-        }
-        return settings;
-    }
-
-    /*
-     * writeSetting(key, value): changes one line of settings.txt and keeps the others (so saving the name does not lose the historical choice).
-     * Passed in:  key - the setting's name, value - its new value
-     * Passed out: nothing (throws IOException if the file cannot be written)
-     */
-    private void writeSetting(String key, String value) throws IOException
-    {
-        Properties settings = readSettings();
-        settings.setProperty(key, value);
-        Files.createDirectories(dir);
-        try (Writer writer = Files.newBufferedWriter(dir.resolve(SETTINGS_FILE), StandardCharsets.UTF_8))
-        {
-            settings.store(writer, "Golf Analyst settings");
-        }
+        String warning = Backups.takeWarning();
+        return (warning == null ? "" : "  " + warning);
     }
 
     /*
@@ -557,7 +525,7 @@ public final class DataStore
      */
     public String golferName()
     {
-        return readSettings().getProperty(GOLFER_KEY, "");
+        return Settings.load(dir).golfer();
     }
 
     /*
@@ -567,7 +535,7 @@ public final class DataStore
      */
     public void setGolferName(String name) throws IOException
     {
-        writeSetting(GOLFER_KEY, name);
+        Settings.load(dir).with(Settings.GOLFER, name).save(dir);
     }
 
     /*
@@ -594,7 +562,7 @@ public final class DataStore
      */
     public void setIncludeHistorical(boolean flag) throws IOException
     {
-        writeSetting(INCLUDE_HISTORICAL_KEY, Boolean.toString(flag));
+        Settings.load(dir).with(Settings.INCLUDE_HISTORICAL, Boolean.toString(flag)).save(dir);
         includeHistorical = flag;
         overall = Stats.summarize(Stats.counted(dataset.rounds(), includeHistorical), dataset.teeMap());
     }

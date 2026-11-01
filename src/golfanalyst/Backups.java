@@ -8,6 +8,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -17,53 +18,71 @@ import java.util.stream.Stream;
  | Backups                                                                  |
  +--------------------------------------------------------------------------+
  | Purpose:                                                                 |
- | The one backup routine. Before any save that changes or removes an       |
- | existing line of a data file (an edited round, edited tees), a dated     |
- | copy of the whole file is put in the backups folder inside the data      |
- | folder, for example backups\rounds-2026-10-31-142530.tsv. Adding a new   |
- | round or new tees only adds lines, so it makes no copy.                  |
+ | The one backup routine. Before any save that changes or removes          |
+ | existing lines, the files about to change are copied into a folder of    |
+ | their own in the data folder's backups folder, named with the date, the  |
+ | time and the reason, for example backups\2026-11-01_143012_edit-round.   |
+ | The copies keep their REAL names (rounds.tsv, courses.tsv, settings.txt) |
+ | so putting one back is just copying it over the file in the data folder. |
+ | Two backups in the same second get -2, -3 ... after the time. Adding a   |
+ | round or new tees only adds lines, so it makes no backup.                |
  |                                                                          |
- | Only the 20 newest copies of each file are kept; older ones are deleted. |
- | Anything else in the backups folder (such as Clear's own                 |
- | clear-YYYY-MM-DD-HHMMSS folders) is never touched. If the copy cannot    |
- | be made, Failed is thrown before anything is written, so nothing         |
- | changes.                                                                 |
+ | Reasons: edit-round, delete-round and edit-course are the "everyday"     |
+ | kinds: only the newest BackupsToKeep folders of EACH kind are kept (a    |
+ | setting; All keeps everything). import, clear and delete-course folders  |
+ | are never deleted by the program. Backups made before this layout (the   |
+ | dated rounds-... and courses-... files, the clear-..., import-... and    |
+ | delete-course-... folders) do not match the new names, so they are       |
+ | never counted and never touched.                                         |
+ |                                                                          |
+ | If the BackupCopyFolder setting holds a folder, each new backup folder   |
+ | is also copied there under the same name. That is an extra: if it fails  |
+ | (a USB stick not plugged in, say) the save still goes ahead and          |
+ | takeWarning() gives a one-line warning for the footer. If the normal     |
+ | backup cannot be made, Failed is thrown before anything is written, so   |
+ | nothing changes.                                                         |
  |                                                                          |
  | Constants:                                                               |
  | FOLDER - the backups folder's name ("backups")                           |
- | KEEP   - how many copies of each file are kept (20)                      |
+ | EDIT_ROUND ... CLEAR - the reasons                                       |
  |                                                                          |
  | Public Methods:                                                          |
- | copyBeforeChange(file)       - makes the dated copy, now                 |
- | copyBeforeChange(file, when) - the same at a given time (for the tests)  |
- | folderFor(file)              - the backups folder beside a data file     |
- | copiesOf(file)               - the copies kept of a file, oldest first   |
- | copyForClear(dataDir, fileNames, when) - Clear's own dated folder        |
- | copyIntoFolder(dataDir, prefix, fileNames, when) - the same for Import   |
+ | backupFolder(dataDir, reason, fileNames) - makes a backup now            |
+ | backupFolder(dataDir, reason, fileNames, when) - the same at a time      |
+ | backupsOf(dataDir, reason) - the backups of one kind, oldest first       |
+ | takeWarning()              - the extra copy's warning, or null           |
  +--------------------------------------------------------------------------+
  */
 public final class Backups
 {
 
     public static final String FOLDER = "backups";
-    public static final int KEEP = 20;
-    static final String CLEAR_PREFIX = "clear-";
-    private static final DateTimeFormatter STAMP = DateTimeFormatter.ofPattern("yyyy-MM-dd-HHmmss");
+    public static final String EDIT_ROUND = "edit-round";
+    public static final String DELETE_ROUND = "delete-round";
+    public static final String EDIT_COURSE = "edit-course";
+    public static final String DELETE_COURSE = "delete-course";
+    public static final String IMPORT = "import";
+    public static final String CLEAR = "clear";
+    static final Set<String> EVERYDAY = Set.of(EDIT_ROUND, DELETE_ROUND, EDIT_COURSE);
+    static final String WARNING_START = "The extra backup copy could not be made: ";
+    private static final DateTimeFormatter STAMP = DateTimeFormatter.ofPattern("yyyy-MM-dd_HHmmss");
+    private static final Pattern NAME = Pattern.compile("(\\d{4}-\\d{2}-\\d{2}_\\d{6})(?:-(\\d+))?_([a-z-]+)");
+    private static String warning = null;
 
     /*
      +--------------------------------------------------------------------------+
      | Failed                                                                   |
      +--------------------------------------------------------------------------+
      | Purpose:                                                                 |
-     | Thrown when the backup copy cannot be made. Its message says so in       |
-     | words for the footer, and that nothing was changed.                      |
+     | Thrown when the backup cannot be made. Its message says so in words for  |
+     | the footer, and that nothing was changed.                                |
      +--------------------------------------------------------------------------+
      */
     @SuppressWarnings("serial")
     public static final class Failed extends IOException
     {
         /*
-         * Failed(fileName, cause): the message for a copy of fileName that could not be made.
+         * Failed(fileName, cause): the message for a backup of fileName that could not be made.
          */
         Failed(String fileName, IOException cause)
         {
@@ -77,199 +96,49 @@ public final class Backups
     }
 
     /*
-     * folderFor(file): the backups folder in the data folder that holds a data file.
-     * Passed in:  file - rounds.tsv or courses.tsv
-     * Passed out: the folder (it may not exist yet)
+     * backupFolder(dataDir, reason, fileNames): makes a backup now (see the next one).
      */
-    public static Path folderFor(Path file)
+    public static Path backupFolder(Path dataDir, String reason, List<String> fileNames) throws IOException
     {
-        return file.toAbsolutePath().resolveSibling(FOLDER);
-    }
-
-    /*
-     * copyBeforeChange(file): makes the dated backup copy of a data file now (see the next one).
-     * Passed in:  file - the data file about to be changed
-     * Passed out: the copy made; throws Failed if it cannot be made
-     */
-    public static Path copyBeforeChange(Path file) throws IOException
-    {
-        return copyBeforeChange(file, LocalDateTime.now());
+        return backupFolder(dataDir, reason, fileNames, LocalDateTime.now());
     }
 
     /*
      +--------------------------------------------------------------------------+
-     | copyBeforeChange(file, when)                                             |
+     | backupFolder(dataDir, reason, fileNames, when)                           |
      +--------------------------------------------------------------------------+
      | Purpose:                                                                 |
-     | Copies the whole data file into the backups folder (made if needed) as   |
-     | <name>-YYYY-MM-DD-HHMMSS.tsv, for example rounds-2026-10-31-142530.tsv.  |
-     | Two copies in the same second get -2, -3 ... after the time. Then the    |
-     | copies of that file beyond the newest 20 are deleted (a copy that will   |
-     | not delete is left; the save still goes ahead).                          |
+     | Makes backups\YYYY-MM-DD_HHMMSS_reason (with -2, -3 ... after the time   |
+     | if that name is taken) and copies into it, under their real names, the   |
+     | named files of the data folder that exist. Then the everyday kinds are   |
+     | pruned to the BackupsToKeep setting and, if BackupCopyFolder is set,     |
+     | the new folder is copied there too (a failure there only leaves a        |
+     | warning, see takeWarning). The new folder itself is never pruned.        |
      |                                                                          |
-     | Passed in:  file - the data file about to be changed                     |
-     |             when - the time to put in the name                           |
-     | Passed out: the copy made; throws Failed if it cannot be made, so the    |
+     | Passed in:  dataDir   - the data folder                                  |
+     |             reason    - EDIT_ROUND, DELETE_ROUND, EDIT_COURSE,           |
+     |                         DELETE_COURSE, IMPORT or CLEAR                   |
+     |             fileNames - the files to copy, e.g. rounds.tsv               |
+     |             when      - the date and time for the name                   |
+     | Passed out: the folder made; throws Failed if it cannot be made, so the  |
      |             caller changes nothing                                       |
      +--------------------------------------------------------------------------+
      */
-    public static Path copyBeforeChange(Path file, LocalDateTime when) throws IOException
+    public static Path backupFolder(Path dataDir, String reason, List<String> fileNames, LocalDateTime when) throws IOException
     {
-        String fileName = file.getFileName().toString();
+        warning = null;
+        Path parent = dataDir.toAbsolutePath().resolve(FOLDER);
+        Path folder;
         try
         {
-            Path folder = folderFor(file);
-            Files.createDirectories(folder);
-            String base = stemOf(fileName) + "-" + STAMP.format(when);
-            Path copy = folder.resolve(base + extensionOf(fileName));
-            int count = 1;
-            while (Files.exists(copy))
-            {
-                count = count + 1;
-                copy = folder.resolve(base + "-" + count + extensionOf(fileName));
-            }
-            Files.copy(file, copy);
-            prune(file);
-            return copy;
-        }
-        catch (IOException failure)
-        {
-            throw new Failed(fileName, failure);
-        }
-    }
-
-    /*
-     * copiesOf(file): the backup copies kept of a data file, oldest first (by the time in their names).
-     * Passed in:  file - the data file
-     * Passed out: the copies; empty if there are none
-     */
-    public static List<Path> copiesOf(Path file) throws IOException
-    {
-        Path folder = folderFor(file);
-        List<Path> copies = new ArrayList<>();
-        if (!Files.isDirectory(folder))
-        {
-            return copies;
-        }
-        Pattern name = copyName(file.getFileName().toString());
-        try (Stream<Path> files = Files.list(folder))
-        {
-            files.filter(Files::isRegularFile).filter(path -> name.matcher(path.getFileName().toString()).matches())
-                    .forEach(copies::add);
-        }
-        copies.sort(Comparator.comparing((Path path) -> sortKey(name, path)));
-        return copies;
-    }
-
-    /*
-     * prune(file): deletes the copies of a data file beyond the newest KEEP; one that will not delete is left alone.
-     * Passed in:  file - the data file
-     * Passed out: nothing
-     */
-    private static void prune(Path file) throws IOException
-    {
-        List<Path> copies = copiesOf(file);
-        for (int lp = 0; lp < copies.size() - KEEP; lp = lp + 1)
-        {
-            try
-            {
-                Files.deleteIfExists(copies.get(lp));
-            }
-            catch (IOException stuck)
-            {
-                // left for next time; the new copy is already made
-            }
-        }
-    }
-
-    /*
-     * copyName(fileName): the pattern a backup copy's name follows, e.g. rounds-2026-10-31-142530.tsv or ...-142530-2.tsv.
-     */
-    private static Pattern copyName(String fileName)
-    {
-        return Pattern.compile(Pattern.quote(stemOf(fileName)) + "-(\\d{4}-\\d{2}-\\d{2}-\\d{6})(?:-(\\d+))?"
-                + Pattern.quote(extensionOf(fileName)));
-    }
-
-    /*
-     * sortKey(name, path): the time in a copy's name with its -2, -3 count padded, so the names sort oldest first.
-     */
-    private static String sortKey(Pattern name, Path path)
-    {
-        Matcher parts = name.matcher(path.getFileName().toString());
-        parts.matches();
-        String count = (parts.group(2) == null ? "1" : parts.group(2));
-        return parts.group(1) + "-" + String.format("%06d", Integer.parseInt(count));
-    }
-
-    /*
-     * stemOf(fileName): the name without its extension ("rounds" for rounds.tsv).
-     */
-    private static String stemOf(String fileName)
-    {
-        int dot = fileName.lastIndexOf('.');
-        return (dot > 0 ? fileName.substring(0, dot) : fileName);
-    }
-
-    /*
-     * extensionOf(fileName): the extension with its dot (".tsv"), or "" if there is none.
-     */
-    private static String extensionOf(String fileName)
-    {
-        int dot = fileName.lastIndexOf('.');
-        return (dot > 0 ? fileName.substring(dot) : "");
-    }
-    /*
-     +--------------------------------------------------------------------------+
-     | copyForClear(dataDir, fileNames, when)                                   |
-     +--------------------------------------------------------------------------+
-     | Purpose:                                                                 |
-     | Clear's backup: copies the named files of the data folder (those that    |
-     | exist) into a folder of their own, backups\clear-YYYY-MM-DD-HHMMSS (-2,  |
-     | -3 ... in the same second). These folders are never pruned.              |
-     |                                                                          |
-     | Passed in:  dataDir   - the data folder                                  |
-     |             fileNames - the files to copy, e.g. rounds.tsv               |
-     |             when      - the time to put in the folder's name             |
-     | Passed out: the folder made; throws Failed if a copy cannot be made, so  |
-     |             the caller clears nothing                                    |
-     +--------------------------------------------------------------------------+
-     */
-    public static Path copyForClear(Path dataDir, List<String> fileNames, LocalDateTime when) throws IOException
-    {
-        return copyIntoFolder(dataDir, CLEAR_PREFIX, fileNames, when);
-    }
-
-    /*
-     +--------------------------------------------------------------------------+
-     | copyIntoFolder(dataDir, prefix, fileNames, when)                         |
-     +--------------------------------------------------------------------------+
-     | Purpose:                                                                 |
-     | Copies the named files of the data folder (those that exist) into a      |
-     | dated folder of their own in the backups folder, e.g.                    |
-     | backups\clear-2026-10-31-142530 or backups\import-... (-2, -3 ... in the |
-     | same second). Used by Clear and Import; these folders are never pruned.  |
-     |                                                                          |
-     | Passed in:  dataDir   - the data folder                                  |
-     |             prefix    - the start of the folder's name, e.g. "clear-"    |
-     |             fileNames - the files to copy                                |
-     |             when      - the time to put in the folder's name             |
-     | Passed out: the folder made; throws Failed if a copy cannot be made      |
-     +--------------------------------------------------------------------------+
-     */
-    public static Path copyIntoFolder(Path dataDir, String prefix, List<String> fileNames, LocalDateTime when) throws IOException
-    {
-        try
-        {
-            Path parent = dataDir.toAbsolutePath().resolve(FOLDER);
             Files.createDirectories(parent);
-            String base = prefix + STAMP.format(when);
-            Path folder = parent.resolve(base);
+            String stamp = STAMP.format(when);
+            folder = parent.resolve(stamp + "_" + reason);
             int count = 1;
             while (Files.exists(folder))
             {
                 count = count + 1;
-                folder = parent.resolve(base + "-" + count);
+                folder = parent.resolve(stamp + "-" + count + "_" + reason);
             }
             Files.createDirectories(folder);
             for (String fileName : fileNames)
@@ -280,11 +149,142 @@ public final class Backups
                     Files.copy(file, folder.resolve(fileName));
                 }
             }
-            return folder;
         }
         catch (IOException failure)
         {
-            throw new Failed("your data files", failure);
+            throw new Failed((fileNames.size() == 1 ? fileNames.get(0) : "your data files"), failure);
+        }
+        Settings settings = Settings.load(dataDir);
+        extraCopy(folder, settings.backupCopyFolder());
+        prune(dataDir, settings.backupsToKeep(), folder);
+        return folder;
+    }
+
+    /*
+     * backupsOf(dataDir, reason): the backup folders of one kind in the new layout, oldest first (old-style backups are never listed).
+     * Passed in:  dataDir - the data folder, reason - the kind
+     * Passed out: the folders; empty if there are none
+     */
+    public static List<Path> backupsOf(Path dataDir, String reason) throws IOException
+    {
+        Path parent = dataDir.toAbsolutePath().resolve(FOLDER);
+        List<Path> found = new ArrayList<>();
+        if (!Files.isDirectory(parent))
+        {
+            return found;
+        }
+        try (Stream<Path> list = Files.list(parent))
+        {
+            list.filter(Files::isDirectory).forEach(path ->
+            {
+                Matcher parts = NAME.matcher(path.getFileName().toString());
+                if (parts.matches() && parts.group(3).equals(reason))
+                {
+                    found.add(path);
+                }
+            });
+        }
+        found.sort(Comparator.comparing(Backups::sortKey));
+        return found;
+    }
+
+    /*
+     * sortKey(folder): the date and time in a backup folder's name with its -2, -3 count padded, so the names sort oldest first.
+     */
+    private static String sortKey(Path folder)
+    {
+        Matcher parts = NAME.matcher(folder.getFileName().toString());
+        parts.matches();
+        String count = (parts.group(2) == null ? "1" : parts.group(2));
+        return parts.group(1) + "-" + String.format("%06d", Integer.parseInt(count));
+    }
+
+    /*
+     * prune(dataDir, keep, justMade): deletes the oldest everyday backups beyond the newest keep of each kind (KEEP_ALL keeps all); the backup just made always counts as one of those kept and is never deleted (even if the clock says it is older); a folder that will not delete is left for next time.
+     * Passed in:  dataDir - the data folder, keep - how many of each kind to keep, justMade - the new backup folder
+     * Passed out: nothing
+     */
+    static void prune(Path dataDir, int keep, Path justMade) throws IOException
+    {
+        if (keep == Settings.KEEP_ALL)
+        {
+            return;
+        }
+        for (String reason : EVERYDAY)
+        {
+            List<Path> folders = backupsOf(dataDir, reason);
+            folders.remove(justMade);
+            int room = (justMade.getFileName().toString().endsWith("_" + reason) ? keep - 1 : keep);
+            for (int lp = 0; lp < folders.size() - room; lp = lp + 1)
+            {
+                try
+                {
+                    deleteTree(folders.get(lp));
+                }
+                catch (IOException stuck)
+                {
+                    // left for next time; the new backup is already made
+                }
+            }
+        }
+    }
+
+    /*
+     * extraCopy(folder, target): copies a new backup folder into the BackupCopyFolder under the same name; a failure only leaves a warning for takeWarning.
+     * Passed in:  folder - the new backup folder, target - the extra folder, or null when it is not set
+     * Passed out: nothing
+     */
+    private static void extraCopy(Path folder, Path target)
+    {
+        if (target == null)
+        {
+            return;
+        }
+        try
+        {
+            if (!Files.isDirectory(target))
+            {
+                throw new IOException(target + " is not there");
+            }
+            Path copy = target.resolve(folder.getFileName().toString());
+            Files.createDirectories(copy);
+            try (Stream<Path> files = Files.list(folder))
+            {
+                for (Path file : files.toList())
+                {
+                    Files.copy(file, copy.resolve(file.getFileName().toString()));
+                }
+            }
+        }
+        catch (IOException | RuntimeException failure)
+        {
+            warning = WARNING_START + failure.getMessage();
+        }
+    }
+
+    /*
+     * takeWarning(): the warning from the last backup's extra copy, or null if there was none; it is given only once.
+     */
+    public static String takeWarning()
+    {
+        String given = warning;
+        warning = null;
+        return given;
+    }
+
+    /*
+     * deleteTree(folder): deletes a folder and everything in it.
+     */
+    private static void deleteTree(Path folder) throws IOException
+    {
+        List<Path> paths;
+        try (Stream<Path> walk = Files.walk(folder))
+        {
+            paths = new ArrayList<>(walk.toList());
+        }
+        for (int lp = paths.size() - 1; lp >= 0; lp = lp - 1)
+        {
+            Files.deleteIfExists(paths.get(lp));
         }
     }
 }

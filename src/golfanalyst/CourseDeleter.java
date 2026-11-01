@@ -48,7 +48,6 @@ import java.util.Set;
 public final class CourseDeleter
 {
 
-    static final String PREFIX = "delete-course-";
     public static final String UNSAVED_IGNORED = " Your unsaved changes on the screen will be ignored.";
 
     /*
@@ -243,7 +242,7 @@ public final class CourseDeleter
         String newRounds = (roundMakers.isEmpty() ? roundsText
                 : LineReplacer.splice(roundsText, "roundid", roundMakers, DataLoader.ROUNDS_FILE).text());
 
-        Path folder = Backups.copyIntoFolder(dataDir, PREFIX, List.of(DataLoader.COURSES_FILE, DataLoader.ROUNDS_FILE),
+        Path folder = Backups.backupFolder(dataDir, Backups.DELETE_COURSE, List.of(DataLoader.COURSES_FILE, DataLoader.ROUNDS_FILE),
                 LocalDateTime.now());
         Path coursesTemp = coursesFile.resolveSibling(DataLoader.COURSES_FILE + ".new");
         Path roundsTemp = roundsFile.resolveSibling(DataLoader.ROUNDS_FILE + ".new");

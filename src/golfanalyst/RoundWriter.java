@@ -249,7 +249,7 @@ public final class RoundWriter
         if (round.historical() && findHeader(existing) != null && !hasHistoricalColumn(findHeader(existing)))
         {
             existing = withHistoricalColumn(existing);
-            LineReplacer.write(file, existing);
+            LineReplacer.write(file, existing, Backups.EDIT_ROUND);
         }
         String[] headerCells = findHeader(existing);
         String newline = existing.contains("\r\n") ? "\r\n" : "\n";
@@ -315,7 +315,7 @@ public final class RoundWriter
             return line.toString();
         };
         LineReplacer.Spliced spliced = LineReplacer.splice(text, "roundid", Map.of(round.id(), maker), file.getFileName().toString());
-        LineReplacer.write(file, spliced.text());
+        LineReplacer.write(file, spliced.text(), Backups.EDIT_ROUND);
     }
     /*
      +--------------------------------------------------------------------------+
@@ -340,7 +340,7 @@ public final class RoundWriter
         String text = Files.readString(file, StandardCharsets.UTF_8);
         LineReplacer.LineMaker remove = (headerCells, oldCells) -> null;
         LineReplacer.Spliced spliced = LineReplacer.splice(text, "roundid", Map.of(roundId, remove), file.getFileName().toString());
-        return LineReplacer.write(file, spliced.text());
+        return LineReplacer.write(file, spliced.text(), Backups.DELETE_ROUND);
     }
     /*
      +--------------------------------------------------------------------------+

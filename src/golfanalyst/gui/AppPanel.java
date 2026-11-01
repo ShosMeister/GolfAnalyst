@@ -583,7 +583,7 @@ public final class AppPanel extends JPanel implements Shell
         }
         navigate(HOME);
         setStatus("Cleared. A copy of everything as it was is in " + golfanalyst.Backups.FOLDER + java.io.File.separator
-                + folder.getFileName() + ".");
+                + folder.getFileName() + "." + store.backupWarningNote());
     }
 
     /*
@@ -632,7 +632,7 @@ public final class AppPanel extends JPanel implements Shell
         setStatus("Imported " + golfanalyst.Importer.count(plan.newTees().size(), "tee", "tees") + " and "
                 + golfanalyst.Importer.count(plan.newRounds().size(), "round", "rounds") + ". " + skipped + " skipped, " + rejected
                 + " rejected. A copy of your files as they were is in " + golfanalyst.Backups.FOLDER + java.io.File.separator
-                + folder.getFileName() + ".");
+                + folder.getFileName() + "." + store.backupWarningNote());
     }
 
     /*

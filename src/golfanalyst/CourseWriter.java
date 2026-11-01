@@ -286,7 +286,7 @@ public final class CourseWriter
                 : LineReplacer.splice(text, "teeid", makers, file.getFileName().toString());
         String result = spliced.text() + additionFor(spliced.text(), added);
         checkLoads(text, result, spliced.lineNumbers());
-        LineReplacer.write(file, result);
+        LineReplacer.write(file, result, Backups.EDIT_COURSE);
     }
     /*
      +--------------------------------------------------------------------------+
@@ -330,6 +330,6 @@ public final class CourseWriter
         }
         LineReplacer.Spliced spliced = LineReplacer.splice(text, "teeid", makers, file.getFileName().toString());
         checkLoads(text, spliced.text(), spliced.lineNumbers());
-        return LineReplacer.write(file, spliced.text());
+        return LineReplacer.write(file, spliced.text(), Backups.EDIT_COURSE);
     }
 }

@@ -209,13 +209,14 @@ public final class LineReplacer
      |                                                                          |
      | Passed in:  file    - the data file                                      |
      |             newText - its whole new text                                 |
-     | Passed out: the backup copy made; throws Backups.Failed if the copy      |
-     |             cannot be made, or IOException if the file cannot be written |
+     |             reason  - why, for the backup folder's name (Backups)        |
+     | Passed out: the backup folder made; throws Backups.Failed if it cannot   |
+     |             be made, or IOException if the file cannot be written        |
      +--------------------------------------------------------------------------+
      */
-    public static Path write(Path file, String newText) throws IOException
+    public static Path write(Path file, String newText, String reason) throws IOException
     {
-        Path copy = Backups.copyBeforeChange(file);
+        Path copy = Backups.backupFolder(file.toAbsolutePath().getParent(), reason, List.of(file.getFileName().toString()));
         writeSafely(file, newText);
         return copy;
     }

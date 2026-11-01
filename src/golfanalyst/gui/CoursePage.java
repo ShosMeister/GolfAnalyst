@@ -2044,7 +2044,7 @@ public final class CoursePage extends Page
                     + " no rating.";
         }
         shell.goHome();
-        shell.setStatus(message);
+        shell.setStatus(message + shell.store().backupWarningNote());
     }
 
     /*
@@ -2061,7 +2061,7 @@ public final class CoursePage extends Page
                     + (addedCount > 0 ? "added " + addedCount + (addedCount == 1 ? " tee" : " tees") : "") + ".";
         }
         shell.goHome();
-        shell.setStatus(message + " A copy of the file as it was is in the backups folder.");
+        shell.setStatus(message + " A copy of the file as it was is in the backups folder." + shell.store().backupWarningNote());
     }
 
     /*
@@ -2219,7 +2219,7 @@ public final class CoursePage extends Page
         }
         prepareNew();
         shell.goHome();
-        shell.setStatus(summary.done(folder.getFileName().toString()));
+        shell.setStatus(summary.done(folder.getFileName().toString()) + store.backupWarningNote());
     }
 
     // ------------------------------------------------------------ small helpers

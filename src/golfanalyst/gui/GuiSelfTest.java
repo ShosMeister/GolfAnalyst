@@ -897,6 +897,7 @@ public final class GuiSelfTest
         checkRoundLook(page);
         checkPeek();
         checkBackupFailure();
+        checkExtraCopyWarning();
         checkConfirmForms();
         checkDialogLayouts();
         checkImportScreen();
@@ -1137,7 +1138,7 @@ public final class GuiSelfTest
         }
         check("saving changes only that round's line, with the same RoundID", othersUntouched && changedLines == 1);
         check("the comments in rounds.tsv are untouched", after.get(0).equals(before.get(0)) && after.get(0).startsWith("#"));
-        List<Path> copies = golfanalyst.Backups.copiesOf(roundsFile);
+        List<Path> copies = golfanalyst.SelfTest.backupCopies(roundsFile);
         check("the backup copy holds rounds.tsv as it was, and an old .bak is left as it was", !copies.isEmpty()
                 && Files.readString(copies.get(copies.size() - 1), StandardCharsets.UTF_8).equals(beforeText)
                 && java.util.Objects.equals(oldBakText, (Files.exists(oldBak) ? Files.readString(oldBak, StandardCharsets.UTF_8) : null)));
@@ -1986,7 +1987,7 @@ public final class GuiSelfTest
                 && store.dataset().errorCount() == 0);
         check("correct: the footer says so, and a backup copy was made", shell.status.equals("Corrected the course. Its " + ids.size()
                 + " sets of tees and all their rounds are unchanged. A copy of the file as it was is in the backups folder.")
-                && shell.lastPage.equals("home") && !golfanalyst.Backups.copiesOf(temp.resolve(DataLoader.COURSES_FILE)).isEmpty());
+                && shell.lastPage.equals("home") && !golfanalyst.SelfTest.backupCopies(temp.resolve(DataLoader.COURSES_FILE)).isEmpty());
         page.showNew();
         check("correct: a new course is not in correcting mode", !page.isCorrecting() && !page.correctButton.isVisible());
         deleteFolder(temp);
@@ -2357,10 +2358,10 @@ public final class GuiSelfTest
         check("delete: only that round's line is removed", afterLines.equals(expected) && expected.size() == beforeLines.size() - 1);
         check("delete: the round before it is shown read-only", page.title().startsWith(String.format("%05d:", before.id()))
                 && page.editButton.isVisible() && !page.deleteButton.isVisible() && store.roundsByDate().size() == count - 1);
-        List<Path> copies = golfanalyst.Backups.copiesOf(roundsFile);
+        List<Path> copies = golfanalyst.SelfTest.backupCopies(roundsFile);
         check("delete: the footer says it was deleted and where the copy is", shell.status.equals(String.format(
                 "Round %05d deleted. A copy of your rounds file as it was is in backups%s%s.", last.id(), java.io.File.separator,
-                copies.get(copies.size() - 1).getFileName())));
+                copies.get(copies.size() - 1).getParent().getFileName())));
         check("delete: the copy holds the file as it was", Files.readString(copies.get(copies.size() - 1), StandardCharsets.UTF_8).equals(before0));
 
         Round first = store.roundsByDate().get(0);
@@ -2551,6 +2552,32 @@ public final class GuiSelfTest
                 && Files.readString(sample.resolve(DataLoader.ROUNDS_FILE), StandardCharsets.UTF_8).equals(sampleRounds)
                 && !sampleAsked.contains("confirmer"));
         deleteFolder(parent);
+        deleteFolder(temp);
+    }
+
+    /*
+     * checkExtraCopyWarning(): with the extra backup folder missing (a USB stick not plugged in), saving an edited round still saves, makes the normal backup and says in the footer that the extra copy could not be made.
+     * Passed in:  nothing
+     * Passed out: nothing (throws IOException if a temporary file fails)
+     */
+    private static void checkExtraCopyWarning() throws IOException
+    {
+        Path temp = Files.createTempDirectory("golfanalyst-extra-copy");
+        Files.copy(Path.of("sample-data", DataLoader.COURSES_FILE), temp.resolve(DataLoader.COURSES_FILE));
+        Files.copy(Path.of("sample-data", DataLoader.ROUNDS_FILE), temp.resolve(DataLoader.ROUNDS_FILE));
+        golfanalyst.Settings.load(temp).with(golfanalyst.Settings.BACKUP_COPY_FOLDER, temp.resolve("no-usb-stick").toString()).save(temp);
+        DataStore store = new DataStore(temp);
+        TestShell shell = new TestShell(store);
+        RoundPage page = new RoundPage(shell);
+        page.showLatest();
+        page.editButton.doClick();
+        String newScore = Integer.toString(Integer.parseInt(page.scoreFields[0].getText()) + 1);
+        type(page.scoreFields[0], newScore);
+        page.saveButton.doClick();
+        check("extra copy: a missing extra folder only adds a warning to the footer, and the edit is saved",
+                shell.status.startsWith("Changes saved") && shell.status.contains("  The extra backup copy could not be made: ")
+                        && golfanalyst.Backups.backupsOf(temp, golfanalyst.Backups.EDIT_ROUND).size() == 1
+                        && page.scoreFields[0].getText().equals(newScore) && !page.title().startsWith("Edit"));
         deleteFolder(temp);
     }
 
@@ -2753,7 +2780,7 @@ public final class GuiSelfTest
         page.saveButton.doClick();
         List<String> lines = Files.readAllLines(roundsFile, StandardCharsets.UTF_8);
         check("historical box: saving adds a Historical column to the header", lines.get(0).equals(golfanalyst.RoundWriter.STANDARD_HEADER + "\tHistorical")
-                && golfanalyst.Backups.copiesOf(roundsFile).size() == 1);
+                && golfanalyst.SelfTest.backupCopies(roundsFile).size() == 1);
         check("historical box: the other rows are left as they were", lines.get(1).equals(rows.toString().split("\n")[1]));
         check("historical box: saving it ticked writes Y", lines.size() == 5 && lines.get(4).startsWith("4\t1\t2026-04-01\t")
                 && lines.get(4).endsWith("\tY"));
@@ -3421,7 +3448,7 @@ public final class GuiSelfTest
         check("only the edited tee's line changes; comments and other tees are untouched", othersUntouched && changedLines == 1
                 && after.get(0).equals(before.get(0)) && after.get(0).startsWith("#"));
         check("the new tee is added at the end", after.get(after.size() - 1).startsWith(nextId + "\t"));
-        List<Path> courseCopies = golfanalyst.Backups.copiesOf(coursesFile);
+        List<Path> courseCopies = golfanalyst.SelfTest.backupCopies(coursesFile);
         check("the file as it was is copied to the backups folder", !courseCopies.isEmpty()
                 && Files.readString(courseCopies.get(courseCopies.size() - 1), StandardCharsets.UTF_8).equals(beforeText));
         Dataset reread = DataLoader.load(temp);

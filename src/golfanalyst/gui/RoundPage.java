@@ -2238,7 +2238,7 @@ public final class RoundPage extends Page
             {
                 showRoundAt(lp);
                 shell.setStatus((editing ? "Changes saved; a copy of the file as it was is in the backups folder." : "Round saved.")
-                        + "  Round " + (positionShown() + 1) + " of " + shown.size() + ".");
+                        + "  Round " + (positionShown() + 1) + " of " + shown.size() + "." + shell.store().backupWarningNote());
             }
         }
     }
@@ -2376,7 +2376,7 @@ public final class RoundPage extends Page
             rebuildFilter();
             showRoundAt((index > 0 ? index - 1 : 0));
         }
-        shell.setStatus(message);
+        shell.setStatus(message + store.backupWarningNote());
     }
 
     /*
