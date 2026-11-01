@@ -37,3 +37,5 @@ that nothing about how it was built is lost. The wording is the help text's own,
 - v4.00 (before release): Added Delete course on the New Course screen. It removes a course, all its sets of tees and every round played on them after two confirmations, keeping copies of both files in a backups folder first.
 
 - v4.00 (before release): Fixed the New Course bar cutting off the Nine-hole course box in Edit Course: Delete course moved to the bottom, beside Save, and the Course and City boxes made a little narrower.
+
+- v4.00 (before release): On the New Course screen the hole handicap column is headed Hdcp, in the same size as Par, and Delete course is a full-size button like Save and Cancel, set well apart from them.

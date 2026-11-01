@@ -2092,9 +2092,11 @@ public final class GuiSelfTest
      | Lays the New Course screen out at the window's real width (916 px) in    |
      | Edit Course, where the course bar is fullest (Correct... is showing),    |
      | and checks that every part of the bar sits on its one row and inside     |
-     | it, so nothing is cut off; that Delete course is in the bottom bar left  |
-     | of Save, 112 x 24 and centred on Save's row; and that it stays clear of  |
-     | the yellow version text (the peek) and its 6 px margin.                  |
+     | it, so nothing is cut off; that Delete course is in the bottom bar,      |
+     | wide enough for its words, as tall as Save and Cancel with the same      |
+     | font, on the same line, at least 40 px left of Save; and that it         |
+     | overlaps neither Save, Cancel nor the yellow version text (the peek)     |
+     | with its 6 px margin.                                                    |
      |                                                                          |
      | Passed in:  nothing                                                      |
      | Passed out: nothing (throws IOException if a temporary file fails)       |
@@ -2131,10 +2133,18 @@ public final class GuiSelfTest
         java.awt.Rectangle save = javax.swing.SwingUtilities.convertRectangle(page.saveButton.getParent(), page.saveButton.getBounds(), page);
         java.awt.Rectangle peek = page.versionLabelBounds();
         peek.grow(6, 6);
-        check("course bar: Delete course is in the bottom bar, left of Save, centred on its row", page.deleteCourseButton.isVisible()
-                && delete.width == 112 && delete.height == 24 && delete.x + delete.width < save.x
-                && Math.abs((delete.y + delete.height / 2) - (save.y + save.height / 2)) <= 1);
-        check("course bar: Delete course stays clear of the yellow version text", !delete.intersects(peek));
+        java.awt.Rectangle cancel = javax.swing.SwingUtilities.convertRectangle(page.cancelButton.getParent(), page.cancelButton.getBounds(),
+                page);
+        int wordsWidth = page.deleteCourseButton.getFontMetrics(page.deleteCourseButton.getFont()).stringWidth("Delete course");
+        check("course bar: Delete course is 130 x 32 with Save's font, wide enough for its words (" + wordsWidth + " px)",
+                page.deleteCourseButton.isVisible() && delete.width == 130 && delete.height == save.height && save.height == 32
+                        && page.deleteCourseButton.getFont().equals(page.saveButton.getFont()) && wordsWidth <= delete.width - 16);
+        check("course bar: Delete course is on Save's line, at least 40 px to its left (" + (save.x - delete.x - delete.width) + " px)",
+                delete.y == save.y && save.x - (delete.x + delete.width) >= 40);
+        check("course bar: Delete course overlaps neither Save, Cancel nor the yellow version text", !delete.intersects(save)
+                && !delete.intersects(cancel) && !delete.intersects(peek));
+        System.out.println("  layout  bottom bar: Delete course " + delete + ", Save " + save + ", Cancel " + cancel + ", version label "
+                + page.versionLabelBounds());
         deleteFolder(temp);
     }
 
@@ -2170,8 +2180,8 @@ public final class GuiSelfTest
         check("delete course: no Delete course button on a new course", !page.deleteCourseButton.isVisible());
         page.courseField.setText("Edgewater");
         page.zipField.setText("29720");
-        check("delete course: the button shows in Edit Course, 112 x 24", page.deleteCourseButton.isVisible()
-                && page.deleteCourseButton.getPreferredSize().width == 112 && page.deleteCourseButton.getPreferredSize().height == 24);
+        check("delete course: the button shows in Edit Course, 130 x 32", page.deleteCourseButton.isVisible()
+                && page.deleteCourseButton.getPreferredSize().width == 130 && page.deleteCourseButton.getPreferredSize().height == 32);
         String coursesBefore = Files.readString(temp.resolve(DataLoader.COURSES_FILE), StandardCharsets.UTF_8);
         int rounds = (int) store.roundsByDate().stream().filter(round -> round.teeId() >= 5 && round.teeId() <= 8).count();
         shell.confirmAnswer = false;
@@ -3294,12 +3304,15 @@ public final class GuiSelfTest
         check("a cell is 56 x 21", page.parFields[0][0].getPreferredSize().equals(new java.awt.Dimension(56, 21)));
         check("a cell is bold 15 pt", page.parFields[0][0].getFont().isBold() && page.parFields[0][0].getFont().getSize2D() == 15f);
         JLabel indexHeader = page.indexHeaders[0];
-        check("the handicap column is headed Hdcp/SI in bold 11 pt", indexHeader.getText().equals("Hdcp/SI")
-                && indexHeader.getFont().isBold() && indexHeader.getFont().getSize2D() == 11f);
-        check("the Hdcp/SI header explains itself in a tool tip",
+        JLabel parHeader = page.parHeaders[0];
+        check("the handicap column is headed Hdcp", indexHeader.getText().equals("Hdcp") && parHeader.getText().equals("Par"));
+        check("Par and Hdcp use the same bold 15 pt font as the cells", indexHeader.getFont().equals(parHeader.getFont())
+                && indexHeader.getFont().isBold() && indexHeader.getFont().getSize2D() == 15f
+                && indexHeader.getFont().equals(page.parFields[0][0].getFont()));
+        check("the Hdcp header explains itself in a tool tip",
                 "Hole handicap number (stroke index): 1 is the hardest hole.".equals(indexHeader.getToolTipText()));
         int headerWidth = indexHeader.getFontMetrics(indexHeader.getFont()).stringWidth(indexHeader.getText());
-        check("the Hdcp/SI header fits its 56 px cell (" + headerWidth + " px)", headerWidth <= 56 - 4);
+        check("the Hdcp header fits its 56 px cell (" + headerWidth + " px)", headerWidth <= 56 - 4);
 
         page.showNew();
         check("New Course names the tees Ladies, Beginner, Intermediate and Expert",
@@ -3500,7 +3513,7 @@ public final class GuiSelfTest
         check("the rating and slope are never copied", page.ratingFields[1].getText().isEmpty() && page.slopeFields[3].getText().isEmpty());
         check("copying does not move the cursor or need a click on each cell", page.parTotalBoxes[1].getText().equals("72"));
         page.copyButton.doClick();
-        check("copying again with every cell filled copies nothing", shell.status.startsWith("The Par and Hdcp/SI cells of the other tees are already filled"));
+        check("copying again with every cell filled copies nothing", shell.status.startsWith("The Par and Hdcp cells of the other tees are already filled"));
         page.saveButton.doClick();
         check("tees holding only copied pars and stroke index are skipped quietly", shell.status.equals("Added 1 tee for Copy Hills."));
 

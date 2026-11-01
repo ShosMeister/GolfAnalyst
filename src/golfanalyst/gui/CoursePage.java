@@ -107,8 +107,7 @@ public final class CoursePage extends Page
     private static final int BAR_BOX_HEIGHT = 24;
     private static final float CELL_FONT = 15f;
     private static final float NAME_FONT = 14f;
-    private static final float INDEX_HEADER_FONT = 11f;
-    private static final String INDEX_HEADER = "Hdcp/SI";
+    private static final String INDEX_HEADER = "Hdcp";
     private static final String INDEX_TIP = "Hole handicap number (stroke index): 1 is the hardest hole.";
     private static final float SMALLEST_NAME_FONT = 10f;
     private static final int MIN_SLOPE = 55;
@@ -132,6 +131,7 @@ public final class CoursePage extends Page
     final JLabel[] parTotalBoxes = new JLabel[TEES];
     final JTextField[][] parFields = new JTextField[TEES][HOLES];
     final JTextField[][] indexFields = new JTextField[TEES][HOLES];
+    final JLabel[] parHeaders = new JLabel[TEES];
     final JLabel[] indexHeaders = new JLabel[TEES];
     final WoodButton copyButton = new WoodButton("►");
     final WoodButton saveButton = new WoodButton("Save");
@@ -139,8 +139,10 @@ public final class CoursePage extends Page
     final WoodButton correctButton = new WoodButton("Correct...");
     final WoodButton deleteCourseButton = new WoodButton("Delete course");
     static final String DELETE_COURSE_TITLE = "Delete course";
-    private static final int DELETE_WIDTH = 112;
+    private static final int DELETE_WIDTH = 130;
     private static final int DELETE_GAP = 30;
+    private static final int BUTTON_WIDTH = 110;
+    private static final int BUTTON_HEIGHT = 32;
     private static final int COURSE_BOX_WIDTH = 210;
     private static final int CITY_BOX_WIDTH = 130;
     static final String CORRECT_NOTE = "Changing the name or zip corrects this course for all its tees. To add a different course, "
@@ -284,8 +286,9 @@ public final class CoursePage extends Page
      +--------------------------------------------------------------------------+
      | Purpose:                                                                 |
      | The buttons under the scroll pane, on the right: Delete course (Edit     |
-     | Course only, 112 x 24, centred on the row and set apart from Save by a   |
-     | wider gap so it is not pressed by mistake), then Save and Cancel. It     |
+     | Course only; 130 x 32 with the same bold 16 pt white text as Save and    |
+     | Cancel, wide enough that its words never shrink, and 50 px left of Save  |
+     | so it is not taken for part of that pair), then Save and Cancel. It      |
      | sits at the left end of that group, not at the left edge of the page,    |
      | because the yellow version text (the peek) is down there and no button   |
      | may cover it. (The course bar at the top has no room for it in Edit      |
@@ -299,20 +302,15 @@ public final class CoursePage extends Page
     {
         JPanel bar = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         bar.setOpaque(false);
-        saveButton.setPreferredSize(new Dimension(110, 32));
-        cancelButton.setPreferredSize(new Dimension(110, 32));
-        Dimension deleteSize = new Dimension(DELETE_WIDTH, CORRECT_HEIGHT);
+        saveButton.setPreferredSize(new Dimension(BUTTON_WIDTH, BUTTON_HEIGHT));
+        cancelButton.setPreferredSize(new Dimension(BUTTON_WIDTH, BUTTON_HEIGHT));
+        Dimension deleteSize = new Dimension(DELETE_WIDTH, BUTTON_HEIGHT);
         deleteCourseButton.setPreferredSize(deleteSize);
         deleteCourseButton.setMinimumSize(deleteSize);
-        deleteCourseButton.setFont(Theme.font(Font.BOLD, 12f));
         deleteCourseButton.setFocusable(false);
         deleteCourseButton.setToolTipText("Delete this course, all its tees and every round played on them (you are asked twice first)");
         deleteCourseButton.addActionListener(event -> deleteCourse());
-        JPanel deleteHolder = new JPanel(new GridBagLayout());
-        deleteHolder.setOpaque(false);
-        deleteHolder.setPreferredSize(new Dimension(DELETE_WIDTH, 32));
-        deleteHolder.add(deleteCourseButton);
-        bar.add(deleteHolder);
+        bar.add(deleteCourseButton);
         bar.add(Box.createHorizontalStrut(DELETE_GAP));
         bar.add(saveButton);
         bar.add(cancelButton);
@@ -497,7 +495,7 @@ public final class CoursePage extends Page
             fixSize(teeNameFields[tee], 2 * CELL_WIDTH - COPY_WIDTH);
             fixSize(copyButton, COPY_WIDTH);
             copyButton.setFocusable(false);
-            copyButton.setToolTipText("Copy these pars and handicap numbers into the empty Par and Hdcp/SI cells of the other tees");
+            copyButton.setToolTipText("Copy these pars and handicap numbers into the empty Par and Hdcp cells of the other tees");
             nameRow.add(teeNameFields[tee], BorderLayout.CENTER);
             nameRow.add(copyButton, BorderLayout.EAST);
             put(sheet, nameRow, 0, 0, 2);
@@ -535,9 +533,9 @@ public final class CoursePage extends Page
         put(sheet, yardageFields[tee], 0, 4, 1);
         put(sheet, parTotalBoxes[tee], 1, 4, 1);
 
-        put(sheet, greyCell("Par", true), 0, 5, 1);
+        parHeaders[tee] = greyCell("Par", true);
+        put(sheet, parHeaders[tee], 0, 5, 1);
         indexHeaders[tee] = greyCell(INDEX_HEADER, false);
-        indexHeaders[tee].setFont(Theme.font(Font.BOLD, INDEX_HEADER_FONT));
         indexHeaders[tee].setToolTipText(INDEX_TIP);
         put(sheet, indexHeaders[tee], 1, 5, 1);
         for (int hole = 0; hole < HOLES; hole = hole + 1)
@@ -1185,7 +1183,7 @@ public final class CoursePage extends Page
         refresh();
         if (filled.isEmpty())
         {
-            shell.setStatus("The Par and Hdcp/SI cells of the other tees are already filled, so nothing was copied.");
+            shell.setStatus("The Par and Hdcp cells of the other tees are already filled, so nothing was copied.");
         }
         else
         {

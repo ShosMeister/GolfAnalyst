@@ -116,8 +116,8 @@ Courses and rounds live in two plain tab-separated text files. Written for one u
   did; invented ratings spoil the handicap). The only copy allowed is the user pressing the arrow on the FIRST tee,
   which fills its pars and stroke index into EMPTY par/SI cells of the other three tees (never overwrites). A tee
   with a blank rating is skipped; the "skipped" warning counts only slope, front/back and yardage typed by hand,
-  not pars/SI (the arrow may have filled them). The hole handicap column is shown as Hdcp/SI (header 11 pt bold,
-  tool tip "Hole handicap number (stroke index): 1 is the hardest hole.") and screen and help text call it the
+  not pars/SI (the arrow may have filled them). The hole handicap column is shown as Hdcp (its official name is the stroke
+  index; the header is bold 15 pt, the same font as the Par header and the cells, and has the tool tip "Hole handicap number (stroke index): 1 is the hardest hole.") and screen and help text call it the
   "handicap number": users know it as Handicap (US cards) or Stroke Index (UK and European cards). The file column
   and the code names (`StrokeIndex`, `strokeIndex`, `indexFields`) stay as they are. Tee names are unique within a course,
   ignoring capitals. Names are trimmed; capitals change only when the whole name was typed all lower or all upper
@@ -263,8 +263,9 @@ Not built either: deleting a tee, merging two courses.
   Pages reach dialogs through `Shell` (confirmTwice with title/list/prompt, confirmOnce, showNotice, askText, askYesNo).
   `GuiSelfTest.checkDialogLayouts` lays each out with its longest text and checks the band, border, WoodButtons,
   overlaps and the 12 px gap.
-- **Delete course** (built, v4.00 before release): `CoursePage.deleteCourseButton` (112 x 24, 12 pt) in the bottom
-  button bar, left of Save with a 30 px gap (not at the page's left edge: the peek label is there), Edit Course only.
+- **Delete course** (built, v4.00 before release): `CoursePage.deleteCourseButton` (130 x 32, the same bold 16 pt as
+  Save and Cancel, on their line) in the bottom button bar, 50 px left of Save (not at the page's left edge: the peek
+  label is there), Edit Course only.
   The course bar has no room for it: in Edit Course it is fullest (Correct... showing); Course box 210 px and City
   130 px leave about 45 px to spare (`GuiSelfTest.checkCourseBarFits` lays it out at 916 px). `readyToSave()` first, then `Shell.confirmTwice("Delete course", ...)` with
   `CourseDeleter.Summary.question` (tees, rounds, historical counted; `UNSAVED_IGNORED` when the screen has changes;
