@@ -565,6 +565,8 @@ public final class SelfTest
             check("include historical: temporary files could be written (" + failure.getMessage() + ")", false);
         }
 
+        checkCourseAnalysis();
+
         try
         {
             checkCourseFiles();
@@ -586,6 +588,153 @@ public final class SelfTest
 
         System.out.println(passedCount + " passed, " + failedCount + " failed");
         return failedCount == 0;
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | checkCourseAnalysis()                                                    |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Tests the Analyzer's figures (CourseAnalysis) on rounds worked out by    |
+     | hand. Tee 1 has 18 holes, pars 4 5 4 3 4 5 4 3 4 / 4 4 3 5 4 3 4 5 4.    |
+     | Round 1: hole 1 in one (Dbl Eagle on a par 4), birdie on 2, double       |
+     | bogey on 3, hole 4 in one (Eagle on a par 3), 8 on 5 (Other), par on     |
+     | the rest, 2 putts (0 on the aces), every fairway, a sand save on 6:      |
+     | 72. Round 2: bogey everywhere, 2 putts, no fairways, in the sand on 6:   |
+     | 90. Round 3: all pars, historical. Round 4: a back nine of all pars,     |
+     | the latest round. Tee 2 is a nine-hole course with no rounds.            |
+     |                                                                          |
+     | It checks the seven results, percentages, averages, best and worst,      |
+     | putts, fairways (par 3s left out), greens, sand saves with and without   |
+     | sand, Out, In and All, the summary, the rankings and their ties, the     |
+     | rows and the default row, a back nine numbered 10-18 with one round, a   |
+     | row with no rounds, and the historical box on and off.                   |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing                                                      |
+     +--------------------------------------------------------------------------+
+     */
+    private static void checkCourseAnalysis()
+    {
+        int[] pars = {4, 5, 4, 3, 4, 5, 4, 3, 4, 4, 4, 3, 5, 4, 3, 4, 5, 4};
+        int[] ranks = new int[Tee.HOLES];
+        for (int lp = 0; lp < Tee.HOLES; lp = lp + 1)
+        {
+            ranks[lp] = lp + 1;
+        }
+        Tee eighteen = new Tee(1, "Analysis Links", "Fort Mill", "SC", "29708", "White", Tee.HOLES, 70.0, 120, 0, pars, ranks,
+                0, 0, 0, 0);
+        Tee nineCourse = new Tee(2, "Short Nine", "Fort Mill", "SC", "29708", "Red", Tee.NINE, 33.0, 110, 0,
+                Arrays.copyOf(pars, Tee.NINE), Arrays.copyOf(ranks, Tee.NINE), 0, 0, 0, 0);
+        Map<Integer, Tee> tees = Map.of(1, eighteen, 2, nineCourse);
+
+        int[] firstScores = pars.clone();
+        firstScores[0] = 1;
+        firstScores[1] = 4;
+        firstScores[2] = 6;
+        firstScores[3] = 1;
+        firstScores[4] = 8;
+        int[] firstPutts = new int[Tee.HOLES];
+        Arrays.fill(firstPutts, 2);
+        firstPutts[0] = 0;
+        firstPutts[3] = 0;
+        boolean[] allFairways = new boolean[Tee.HOLES];
+        Arrays.fill(allFairways, true);
+        boolean[] sandOnSix = new boolean[Tee.HOLES];
+        sandOnSix[5] = true;
+        Round first = new Round(1, 1, LocalDate.parse("2026-05-01"), 0, 0, Tee.HOLES, firstScores, firstPutts, allFairways, sandOnSix);
+        int[] bogeys = new int[Tee.HOLES];
+        for (int lp = 0; lp < Tee.HOLES; lp = lp + 1)
+        {
+            bogeys[lp] = pars[lp] + 1;
+        }
+        int[] twos = new int[Tee.HOLES];
+        Arrays.fill(twos, 2);
+        Round second = new Round(2, 1, LocalDate.parse("2026-05-02"), 0, 0, Tee.HOLES, bogeys, twos, new boolean[Tee.HOLES],
+                sandOnSix.clone());
+        Round old = new Round(3, 1, LocalDate.parse("2026-05-03"), 0, 0, Tee.HOLES, pars.clone(), twos.clone(), new boolean[Tee.HOLES],
+                new boolean[Tee.HOLES], true);
+        Round back = new Round(4, 1, LocalDate.parse("2026-05-10"), 0, Tee.NINE, Tee.NINE, Arrays.copyOfRange(pars, Tee.NINE, Tee.HOLES),
+                Arrays.copyOf(twos, Tee.NINE), new boolean[Tee.NINE], new boolean[Tee.NINE]);
+        List<Round> rounds = List.of(first, second, old, back);
+
+        check("analysis: the seven results by strokes over par", CourseAnalysis.category(-4) == CourseAnalysis.DBL_EAGLE
+                && CourseAnalysis.category(-3) == CourseAnalysis.DBL_EAGLE && CourseAnalysis.category(-2) == CourseAnalysis.EAGLE
+                && CourseAnalysis.category(-1) == CourseAnalysis.BIRDIE && CourseAnalysis.category(0) == CourseAnalysis.PAR
+                && CourseAnalysis.category(1) == CourseAnalysis.BOGEY && CourseAnalysis.category(2) == CourseAnalysis.DBL_BOGEY
+                && CourseAnalysis.category(3) == CourseAnalysis.OTHER && CourseAnalysis.category(7) == CourseAnalysis.OTHER
+                && CourseAnalysis.CATEGORIES.equals(List.of("Dbl Eagle", "Eagle", "Birdie", "Par", "Bogey", "Dbl Bogey", "Other")));
+
+        List<BestRound.Choice> rows = CourseAnalysis.rows(rounds, tees, false);
+        BestRound.Choice latest = CourseAnalysis.latestRow(rounds, tees, false);
+        check("analysis: the rows are the tees and kinds with a round, in Best Round's order; the default is the latest round's",
+                rows.size() == 2 && rows.get(0).part() == StatsBoard.Part.EIGHTEEN && rows.get(1).part() == StatsBoard.Part.BACK
+                && latest.part() == StatsBoard.Part.BACK && rows.equals(BestRound.choices(rounds, tees, false)));
+
+        CourseAnalysis.Analysis full = CourseAnalysis.analyse(rows.get(0), rounds, tees, false);
+        CourseAnalysis.HoleStats one = full.holes().get(0);
+        check("analysis: 18 holes numbered 1-18 with their pars", full.holes().size() == Tee.HOLES && full.holes().get(17).hole() == 18
+                && full.holes().get(12).par() == 5 && full.rounds().size() == 2);
+        check("analysis: a hole in one on a par 4 is a Dbl Eagle", one.counts()[CourseAnalysis.DBL_EAGLE] == 1
+                && one.counts()[CourseAnalysis.BOGEY] == 1 && one.rounds() == 2 && one.percents()[CourseAnalysis.DBL_EAGLE] == 50.0
+                && one.percents()[CourseAnalysis.BOGEY] == 50.0 && one.percents()[CourseAnalysis.PAR] == 0.0);
+        CourseAnalysis.HoleStats four = full.holes().get(3);
+        check("analysis: a hole in one on a par 3 is an Eagle", four.counts()[CourseAnalysis.EAGLE] == 1
+                && four.counts()[CourseAnalysis.DBL_EAGLE] == 0 && four.counts()[CourseAnalysis.BOGEY] == 1);
+        check("analysis: birdie, double bogey and Other", full.holes().get(1).counts()[CourseAnalysis.BIRDIE] == 1
+                && full.holes().get(2).counts()[CourseAnalysis.DBL_BOGEY] == 1 && full.holes().get(4).counts()[CourseAnalysis.OTHER] == 1);
+        check("analysis: average, over par, best and worst", one.avgScore() == 3.0 && one.avgOverPar() == -1.0 && one.best() == 1
+                && one.worst() == 5 && full.holes().get(4).worst() == 8 && full.holes().get(4).avgOverPar() == 2.5);
+        check("analysis: average putts (holed from the tee is 0 putts)", one.avgPutts() == 1.0 && full.holes().get(6).avgPutts() == 2.0);
+        check("analysis: fairway % on par 4 and 5, none on a par 3", one.fairwayPct() == 50.0 && full.holes().get(1).fairwayPct() == 50.0
+                && Double.isNaN(four.fairwayPct()) && Double.isNaN(full.holes().get(7).fairwayPct()));
+        check("analysis: greens in regulation (score minus putts no more than par minus 2)", one.girPct() == 50.0 && four.girPct() == 50.0
+                && full.holes().get(2).girPct() == 0.0 && full.holes().get(6).girPct() == 50.0);
+        check("analysis: sand saves on a hole with sand, none on a hole without", full.holes().get(5).sandPct() == 50.0
+                && Double.isNaN(full.holes().get(6).sandPct()));
+
+        CourseAnalysis.Totals out = full.out();
+        CourseAnalysis.Totals in = full.in();
+        CourseAnalysis.Totals all = full.all();
+        check("analysis: Out adds holes 1-9", out != null && out.label().equals("Out") && out.par() == 36
+                && Arrays.equals(out.counts(), new int[] {1, 1, 1, 4, 9, 1, 1}) && out.avgScore() == 40.5 && out.best() == 36
+                && out.worst() == 45 && out.rounds() == 2);
+        check("analysis: In adds holes 10-18", in != null && in.par() == 36 && Arrays.equals(in.counts(), new int[] {0, 0, 0, 9, 9, 0, 0})
+                && in.avgScore() == 40.5 && in.percents()[CourseAnalysis.PAR] == 50.0);
+        check("analysis: All adds every hole", all.par() == 72 && Arrays.equals(all.counts(), new int[] {1, 1, 1, 13, 18, 1, 1})
+                && all.avgScore() == 81.0 && all.avgOverPar() == 9.0 && all.best() == 72 && all.worst() == 90 && all.avgPutts() == 34.0
+                && all.fairwayPct() == 50.0 && Math.abs(all.girPct() - 100.0 * 16 / 36) < 1e-9 && all.sandPct() == 50.0);
+        CourseAnalysis.Summary summary = full.summary();
+        check("analysis: the course summary", summary.rounds() == 2 && summary.puttsPerRound() == 34.0 && summary.fairwayPct() == 50.0
+                && Math.abs(summary.girPct() - 100.0 * 16 / 36) < 1e-9 && summary.sandPct() == 50.0 && summary.avgScore() == 81.0
+                && summary.bestScore() == 72);
+        check("analysis: hardest and best holes by strokes over par, ties by hole number",
+                full.hardestHoles(3).equals(List.of(5, 3, 6)) && full.hardestHoles(5).equals(List.of(5, 3, 6, 7, 8))
+                && full.bestHoles(3).equals(List.of(1, 4, 2)) && full.bestHoles(40).size() == Tee.HOLES);
+
+        CourseAnalysis.Analysis withOld = CourseAnalysis.analyse(rows.get(0), rounds, tees, true);
+        check("analysis: historical rounds count only when the box is ticked", withOld.rounds().size() == 3
+                && withOld.holes().get(0).rounds() == 3 && withOld.holes().get(0).counts()[CourseAnalysis.PAR] == 1
+                && withOld.summary().avgScore() == 78.0 && full.holes().get(0).counts()[CourseAnalysis.PAR] == 0);
+
+        CourseAnalysis.Analysis backNine = CourseAnalysis.analyse(latest, rounds, tees, false);
+        check("analysis: a back nine is holes 10-18 with no Out or In", backNine.holes().size() == Tee.NINE
+                && backNine.holes().get(0).hole() == 10 && backNine.holes().get(8).hole() == 18 && backNine.holes().get(3).par() == 5
+                && backNine.out() == null && backNine.in() == null && backNine.all().firstHole() == 10 && backNine.all().lastHole() == 18
+                && backNine.all().par() == 36);
+        check("analysis: a row with a single round", backNine.rounds().size() == 1 && backNine.summary().bestScore() == 36
+                && backNine.all().worst() == 36 && backNine.summary().avgScore() == 36.0 && backNine.holes().get(0).percents()[CourseAnalysis.PAR] == 100.0
+                && backNine.all().counts()[CourseAnalysis.PAR] == 9 && Double.isNaN(backNine.summary().sandPct()));
+
+        CourseAnalysis.Analysis empty = CourseAnalysis.analyse(new BestRound.Choice(2, StatsBoard.Part.NINE_COURSE, "Short Nine:Red"),
+                rounds, tees, true);
+        check("analysis: no rounds: zero counts, no averages and nothing ranked", empty.rounds().isEmpty() && empty.holes().size() == Tee.NINE
+                && empty.holes().get(8).hole() == 9 && empty.holes().get(0).rounds() == 0 && Double.isNaN(empty.holes().get(0).avgScore())
+                && Double.isNaN(empty.holes().get(0).percents()[CourseAnalysis.PAR]) && empty.summary().rounds() == 0
+                && empty.summary().bestScore() == 0 && Double.isNaN(empty.summary().avgScore()) && empty.hardestHoles(3).isEmpty()
+                && empty.out() == null && Arrays.equals(empty.all().counts(), new int[7]) && empty.all().par() == 36);
+        check("analysis: no rounds at all means no rows", CourseAnalysis.rows(List.of(), tees, true).isEmpty()
+                && CourseAnalysis.latestRow(List.of(), tees, true) == null);
     }
 
     /*
