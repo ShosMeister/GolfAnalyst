@@ -553,6 +553,14 @@ final class ConfirmForm extends JPanel
     }
 
     /*
+     * choices(message, useLabel, copyLabel): a question with up to three answers, as Settings asks about a folder: useLabel (GO), copyLabel (NO; left out when null) and Cancel, the default.
+     */
+    static ConfirmForm choices(String message, String useLabel, String copyLabel)
+    {
+        return new ConfirmForm(message, "Cancel", copyLabel, useLabel, true, null, null, null, null, null, false);
+    }
+
+    /*
      * withTitle(title): sets the words in the band (the window itself is always titled "Golf Analyst").
      * Passed in:  title - e.g. "Delete round"
      * Passed out: this form

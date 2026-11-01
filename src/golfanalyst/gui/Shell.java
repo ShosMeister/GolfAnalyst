@@ -27,6 +27,7 @@ import golfanalyst.DataStore;
  | showNotice(title, message, list), askText(title, question, initial)      |
  | clearData()      - Clear: asks what to clear, twice, then clears it      |
  | importData()     - Import: checks the files, then adds what is new       |
+ | openSettings(), exportData() - the Settings and Export windows           |
  +--------------------------------------------------------------------------+
  */
 public interface Shell
@@ -163,4 +164,14 @@ public interface Shell
      * importData(): what Home's Import button does: the Import window, a check of the files, then (after a backup) the new rounds and courses added.
      */
     void importData();
+
+    /*
+     * openSettings(): what Home's Settings button does: the Settings window, saved on OK.
+     */
+    void openSettings();
+
+    /*
+     * exportData(): what Home's Export button does: the Export window, then a copy of the chosen courses and rounds in a new folder.
+     */
+    void exportData();
 }

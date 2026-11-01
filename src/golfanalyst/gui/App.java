@@ -17,11 +17,13 @@ import javax.swing.UIManager;
  |                                                                          |
  | Which data folder it opens:                                              |
  |   1. the folder given as the first argument, if there is one;            |
- |   2. otherwise the folder named "data" next to the program;              |
- |   3. otherwise, if there is no "data" folder, the "sample-data" folder   |
+ |   2. otherwise the folder named in golfanalyst.location next to the      |
+ |      program (set by Settings, Change...), if it is there;               |
+ |   3. otherwise the folder named "data" next to the program;              |
+ |   4. otherwise, if there is no "data" folder, the "sample-data" folder   |
  |      (the title and footer say so), so the first run has something to    |
  |      show;                                                               |
- |   4. otherwise a new empty "data" folder with just the file headers.     |
+ |   5. otherwise a new empty "data" folder with just the file headers.     |
  |                                                                          |
  | Other folders it looks for (next to the program, or set with             |
  | -Dgolfanalyst.images=... and -Dgolfanalyst.help=...):                    |
@@ -91,9 +93,14 @@ public final class App
         Path helpDir = Path.of(System.getProperty("golfanalyst.help", "help"));
         String note = "";
         Path dataDir;
+        Path chosen = golfanalyst.DataLocation.read(Path.of(""));
         if (args.length > 0)
         {
             dataDir = Path.of(args[0]);
+        }
+        else if (chosen != null)
+        {
+            dataDir = chosen;
         }
         else if (Files.isDirectory(Path.of(DATA_FOLDER)))
         {

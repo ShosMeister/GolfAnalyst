@@ -575,6 +575,7 @@ public final class SelfTest
             checkCorrectCourse();
             checkZipCodes();
             checkDeleteCourse();
+            checkSettings();
         }
         catch (IOException failure)
         {
@@ -1998,6 +1999,97 @@ public final class SelfTest
         check("delete course: if the backup cannot be made nothing is deleted", noCopy
                 && Files.readString(blocked.resolve(DataLoader.COURSES_FILE), StandardCharsets.UTF_8).equals(blockedCourses));
         deleteTree(blocked);
+        deleteTree(temp);
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | checkSettings()                                                          |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Tests settings.txt and the data folder's location: keys read ignoring    |
+     | capitals and written in PascalCase, unknown keys kept, Windows paths     |
+     | kept, defaults; the golfer's name through the data store; the location   |
+     | file; what a folder holds; and copying the data to a new folder, never   |
+     | writing over a file.                                                     |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing (throws IOException if a temporary file fails)       |
+     +--------------------------------------------------------------------------+
+     */
+    private static void checkSettings() throws IOException
+    {
+        Path temp = Files.createTempDirectory("golfanalyst-settings-test");
+        Files.writeString(temp.resolve(Settings.FILE), "#old\ngolfer=Pat Golfer\nincludehistorical=false\nbackupstokeep=50\nmyNote=keep me\n",
+                StandardCharsets.UTF_8);
+        Settings read = Settings.load(temp);
+        check("settings: keys are read ignoring capitals", read.golfer().equals("Pat Golfer") && !read.includeHistorical()
+                && read.backupsToKeep() == 50 && read.get("GOLFER").equals("Pat Golfer") && read.get("myNote").equals("keep me"));
+        String usb = "E:\\Golf backups\\USB stick";
+        read.with(Settings.BACKUP_COPY_FOLDER, usb).with(Settings.LAST_EXPORT_FOLDER, "C:\\Users\\Pat\\Documents").save(temp);
+        String written = Files.readString(temp.resolve(Settings.FILE), StandardCharsets.UTF_8);
+        check("settings: every key is written back in PascalCase and unknown keys are kept", written.contains("\nGolfer=Pat Golfer\n")
+                && written.contains("\nIncludeHistorical=false\n") && written.contains("\nBackupsToKeep=50\n") && written.contains("\nmyNote=keep me\n")
+                && !written.contains("golfer=") && !written.contains("backupstokeep="));
+        Settings again = Settings.load(temp);
+        check("settings: Windows paths come back exactly", usb.equals(again.backupCopyFolder().toString())
+                && again.lastExportFolder().toString().equals("C:\\Users\\Pat\\Documents"));
+        Settings empty = Settings.load(temp.resolve("nowhere"));
+        check("settings: a missing file or key means the default", empty.golfer().isEmpty() && empty.includeHistorical()
+                && empty.backupsToKeep() == Settings.DEFAULT_KEEP && empty.backupCopyFolder() == null && empty.lastExportFolder() == null);
+        check("settings: All keeps everything; anything else not understood is the default",
+                empty.with(Settings.BACKUPS_TO_KEEP, "all").backupsToKeep() == Settings.KEEP_ALL
+                        && empty.with(Settings.BACKUPS_TO_KEEP, "lots").backupsToKeep() == Settings.DEFAULT_KEEP
+                        && Settings.keepText(Settings.KEEP_ALL).equals("All") && Settings.keepText(10).equals("10"));
+        Files.copy(Path.of("sample-data", DataLoader.COURSES_FILE), temp.resolve(DataLoader.COURSES_FILE));
+        Files.copy(Path.of("sample-data", DataLoader.ROUNDS_FILE), temp.resolve(DataLoader.ROUNDS_FILE));
+        Files.writeString(temp.resolve(Settings.FILE), "golfer=Old Style\n", StandardCharsets.UTF_8);
+        DataStore store = new DataStore(temp);
+        check("settings: an old lowercase golfer line still gives the name", store.golferName().equals("Old Style"));
+        store.setIncludeHistorical(false);
+        store.setGolferName("New Name");
+        String rewritten = Files.readString(temp.resolve(Settings.FILE), StandardCharsets.UTF_8);
+        check("settings: saving the name and the box writes PascalCase and keeps both", rewritten.contains("\nGolfer=New Name\n")
+                && rewritten.contains("\nIncludeHistorical=false\n") && !rewritten.contains("golfer=") && new DataStore(temp).golferName().equals("New Name"));
+
+        Path program = Files.createTempDirectory("golfanalyst-location-test");
+        check("location: no file means the usual folder", DataLocation.read(program) == null);
+        DataLocation.write(program, temp);
+        check("location: the folder written is read back", temp.toAbsolutePath().normalize().equals(DataLocation.read(program))
+                && Files.readString(program.resolve(DataLocation.FILE), StandardCharsets.UTF_8).trim().equals(temp.toAbsolutePath().normalize().toString()));
+        DataLocation.write(program, program.resolve("gone"));
+        Files.writeString(program.resolve("empty.location"), "", StandardCharsets.UTF_8);
+        check("location: a folder that is not there means the usual folder", DataLocation.read(program) == null);
+        Files.writeString(program.resolve(DataLocation.FILE), "   \n", StandardCharsets.UTF_8);
+        check("location: an empty file means the usual folder", DataLocation.read(program) == null);
+
+        Path emptyFolder = Files.createTempDirectory("golfanalyst-empty-folder");
+        check("location: an empty folder is described as empty", DataLocation.describe(emptyFolder).words().equals("This folder is empty.")
+                && !DataLocation.describe(emptyFolder).hasFiles());
+        DataLocation.Contents full = DataLocation.describe(temp);
+        check("location: a data folder's rounds and courses are counted", full.words().equals("This folder has "
+                + store.roundsByDate().size() + " rounds and 4 courses.") && full.filesThere().size() == 3);
+        DataLocation.copyData(temp, emptyFolder);
+        check("location: the data is copied into an empty folder", DataLocation.describe(emptyFolder).filesThere().size() == 3
+                && Files.readString(emptyFolder.resolve(DataLoader.ROUNDS_FILE), StandardCharsets.UTF_8)
+                        .equals(Files.readString(temp.resolve(DataLoader.ROUNDS_FILE), StandardCharsets.UTF_8)));
+        Path oneFile = Files.createTempDirectory("golfanalyst-one-file");
+        Files.writeString(oneFile.resolve(DataLoader.ROUNDS_FILE), "mine", StandardCharsets.UTF_8);
+        boolean refused = false;
+        try
+        {
+            DataLocation.copyData(temp, oneFile);
+        }
+        catch (IOException expected)
+        {
+            refused = expected.getMessage().contains("already in");
+        }
+        check("location: nothing is copied into a folder that already has a data file", refused
+                && Files.readString(oneFile.resolve(DataLoader.ROUNDS_FILE), StandardCharsets.UTF_8).equals("mine")
+                && !Files.exists(oneFile.resolve(DataLoader.COURSES_FILE)) && DataLocation.describe(oneFile).hasFiles());
+        deleteTree(oneFile);
+        deleteTree(emptyFolder);
+        deleteTree(program);
         deleteTree(temp);
     }
 

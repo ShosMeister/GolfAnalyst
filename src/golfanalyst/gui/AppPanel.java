@@ -44,7 +44,8 @@ import javax.swing.SwingUtilities;
  | windowTitle()       - the text for the window's title bar                |
  | the Shell methods   - store, setStatus, refreshTitle, goHome, newRound,  |
  |                       browseRounds, editRound, newCourse, readyToSave,   |
- |                       askYesNo, confirmTwice, clearData, importData      |
+ |                       askYesNo, confirmTwice, clearData, importData,     |
+ |                       openSettings, exportData                           |
  +--------------------------------------------------------------------------+
  */
 @SuppressWarnings({"serial", "this-escape"})
@@ -81,6 +82,17 @@ public final class AppPanel extends JPanel implements Shell
     /*
      * ImportAsker: shows the Import window and gives its answer (on screen normally; the self-test answers by code).
      */
+    interface SettingsAsker
+    {
+        /*
+         * ask(form): ConfirmForm.GO once OK is pressed, CANCELLED otherwise.
+         */
+        int ask(SettingsForm form);
+    }
+
+    /*
+     * ImportAsker: shows the Import window and gives its answer (on screen normally; the self-test answers by code).
+     */
     interface ImportAsker
     {
         /*
@@ -104,6 +116,9 @@ public final class AppPanel extends JPanel implements Shell
     private transient ToIntFunction<String> asker = question -> askOnScreen(question);
     private transient Confirmer confirmer = (form, title) -> form.showOn(this);
     private transient ImportAsker importAsker = form -> form.showOn(this);
+    private transient SettingsForm.Tools settingsTools = new ScreenTools();
+    private transient SettingsAsker settingsAsker = form -> form.showOn(this);
+    private transient Path programDir = Path.of("");
 
     /*
      +--------------------------------------------------------------------------+
@@ -633,6 +648,178 @@ public final class AppPanel extends JPanel implements Shell
                 + golfanalyst.Importer.count(plan.newRounds().size(), "round", "rounds") + ". " + skipped + " skipped, " + rejected
                 + " rejected. A copy of your files as they were is in " + golfanalyst.Backups.FOLDER + java.io.File.separator
                 + folder.getFileName() + "." + store.backupWarningNote());
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | openSettings()                                                           |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | What Home's Settings button does: shows the Settings window and, if OK   |
+     | is pressed, saves what was chosen (Cancel changes nothing). The name is  |
+     | saved everywhere; on the sample data nothing else is. Backups to keep    |
+     | and the extra backup folder go into settings.txt. A new data folder      |
+     | (Change...) has the data copied into it first if that was chosen (never  |
+     | writing over a file), then is written to golfanalyst.location next to    |
+     | the program; it is used from the next time the program is opened, and    |
+     | the footer says so.                                                      |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing                                                      |
+     +--------------------------------------------------------------------------+
+     */
+    @Override
+    public void openSettings()
+    {
+        SettingsForm form = new SettingsForm(store, settingsTools);
+        if (settingsAsker.ask(form) != ConfirmForm.GO)
+        {
+            return;
+        }
+        try
+        {
+            if (!form.name().equals(store.golferName()))
+            {
+                store.setGolferName(form.name());
+            }
+            if (!form.isSample())
+            {
+                golfanalyst.Settings.load(store.dir()).with(golfanalyst.Settings.BACKUPS_TO_KEEP, form.backupsToKeep())
+                        .with(golfanalyst.Settings.BACKUP_COPY_FOLDER, (form.copyFolder() == null ? "" : form.copyFolder().toString()))
+                        .save(store.dir());
+            }
+        }
+        catch (IOException failure)
+        {
+            setStatus("The settings could not be saved: " + failure.getMessage());
+            return;
+        }
+        String message = "Settings saved.";
+        Path newFolder = form.newDataFolder();
+        if (newFolder != null)
+        {
+            try
+            {
+                if (form.copyData())
+                {
+                    golfanalyst.DataLocation.copyData(store.dir(), newFolder);
+                }
+                golfanalyst.DataLocation.write(programDir, newFolder);
+                message = message + " Golf Analyst will use " + newFolder.toAbsolutePath().normalize()
+                        + " the next time it is opened.";
+            }
+            catch (IOException failure)
+            {
+                message = message + " The data folder was not changed: " + failure.getMessage();
+            }
+        }
+        if (current.equals(HOME))
+        {
+            pages.get(HOME).onShow();
+        }
+        setStatus(message);
+    }
+
+    /*
+     * exportData(): what Home's Export button does (built in the next step).
+     */
+    @Override
+    public void exportData()
+    {
+        setStatus("Export is not built yet.");
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | ScreenTools                                                              |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | What the Settings window gets from the real program window: the folder   |
+     | picker, the system's file manager (Desktop.open), the shared question    |
+     | dialog, the sample-data safeguard and the footer.                        |
+     +--------------------------------------------------------------------------+
+     */
+    private final class ScreenTools implements SettingsForm.Tools
+    {
+        /*
+         * chooseFolder(parent, title, start): the system's folder picker, opening at start.
+         */
+        @Override
+        public Path chooseFolder(java.awt.Component parent, String title, Path start)
+        {
+            javax.swing.JFileChooser chooser = new javax.swing.JFileChooser((start != null && Files.isDirectory(start) ? start.toFile() : null));
+            chooser.setDialogTitle(title);
+            chooser.setFileSelectionMode(javax.swing.JFileChooser.DIRECTORIES_ONLY);
+            return (chooser.showOpenDialog(parent) == javax.swing.JFileChooser.APPROVE_OPTION ? chooser.getSelectedFile().toPath() : null);
+        }
+
+        /*
+         * open(folder): opens the folder in the system's file manager; false if this computer cannot.
+         */
+        @Override
+        public boolean open(Path folder)
+        {
+            try
+            {
+                if (!java.awt.Desktop.isDesktopSupported() || !java.awt.Desktop.getDesktop().isSupported(java.awt.Desktop.Action.OPEN))
+                {
+                    return false;
+                }
+                java.awt.Desktop.getDesktop().open(folder.toFile());
+                return true;
+            }
+            catch (IOException | RuntimeException cannot)
+            {
+                return false;
+            }
+        }
+
+        /*
+         * ask(form): shows a question through the confirmer.
+         */
+        @Override
+        public int ask(ConfirmForm form)
+        {
+            return AppPanel.this.ask(form);
+        }
+
+        /*
+         * createOwnDataFolder(): the sample-data safeguard: on Yes the golfer's own data folder is made.
+         */
+        @Override
+        public void createOwnDataFolder()
+        {
+            if (asker.applyAsInt(SAMPLE_QUESTION) == JOptionPane.YES_OPTION)
+            {
+                makeOwnDataFolder();
+            }
+        }
+
+        /*
+         * say(text): a footer message.
+         */
+        @Override
+        public void say(String text)
+        {
+            setStatus(text);
+        }
+    }
+
+    /*
+     * setSettingsTools(tools, newAsker): replaces the Settings window's tools and its on-screen showing with code (for the self-test).
+     */
+    void setSettingsTools(SettingsForm.Tools tools, SettingsAsker newAsker)
+    {
+        settingsTools = tools;
+        settingsAsker = newAsker;
+    }
+
+    /*
+     * setProgramDir(folder): where golfanalyst.location is kept (the program's folder; another one for the self-test).
+     */
+    void setProgramDir(Path folder)
+    {
+        programDir = folder;
     }
 
     /*

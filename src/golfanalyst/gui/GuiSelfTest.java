@@ -239,6 +239,26 @@ public final class GuiSelfTest
         }
 
         /*
+         * openSettings(): remembers that Settings was asked for (Settings itself is tested on the real AppPanel).
+         */
+        @Override
+        public void openSettings()
+        {
+            windowCalls = windowCalls + 1;
+            lastPage = "settings";
+        }
+
+        /*
+         * exportData(): remembers that Export was asked for (Export itself is tested on the real AppPanel).
+         */
+        @Override
+        public void exportData()
+        {
+            windowCalls = windowCalls + 1;
+            lastPage = "export";
+        }
+
+        /*
          * importData(): remembers that Import was asked for (Import itself is tested on the real AppPanel).
          */
         @Override
@@ -905,6 +925,7 @@ public final class GuiSelfTest
         checkZipScreen();
         checkDeleteCourseScreen();
         checkCourseBarFits();
+        checkSettingsScreen();
         checkDeleteRound();
         checkClearData();
         checkFooterHand();
@@ -2083,6 +2104,272 @@ public final class GuiSelfTest
         checkDialogLayout("Save anyway?, long names", ConfirmForm.twoChoice(zips.saveQuestion("99950",
                 "Lake Wobegon Heights on the Northern Shore of Lake Superior", "MN"), "Go back", "Save anyway"));
         deleteFolder(temp);
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | FakeTools                                                                |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | The Settings window's tools for the self-test: the folder "picked", the  |
+     | answer to the folder question, whether folders can be opened, and a      |
+     | record of what was asked, opened and said.                               |
+     +--------------------------------------------------------------------------+
+     */
+    private static final class FakeTools implements SettingsForm.Tools
+    {
+        private Path nextFolder = null;
+        private int answer = ConfirmForm.CANCELLED;
+        private boolean canOpen = true;
+        private final List<ConfirmForm> asked = new ArrayList<>();
+        private final List<Path> opened = new ArrayList<>();
+        private final List<String> said = new ArrayList<>();
+        private int createCalls = 0;
+
+        /*
+         * chooseFolder(parent, title, start): the folder the test has set.
+         */
+        @Override
+        public Path chooseFolder(Component parent, String title, Path start)
+        {
+            return nextFolder;
+        }
+
+        /*
+         * open(folder): remembers it; false when the test says folders cannot be opened.
+         */
+        @Override
+        public boolean open(Path folder)
+        {
+            opened.add(folder);
+            return canOpen;
+        }
+
+        /*
+         * ask(form): remembers the question and gives the answer the test has set.
+         */
+        @Override
+        public int ask(ConfirmForm form)
+        {
+            asked.add(form);
+            return answer;
+        }
+
+        /*
+         * createOwnDataFolder(): counts the presses.
+         */
+        @Override
+        public void createOwnDataFolder()
+        {
+            createCalls = createCalls + 1;
+        }
+
+        /*
+         * say(text): remembers the footer message.
+         */
+        @Override
+        public void say(String text)
+        {
+            said.add(text);
+        }
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | checkSettingsScreen()                                                    |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Home's new buttons and the Settings window, through the real window      |
+     | logic with the window's tools given by code: Home's twelve buttons in    |
+     | place and the page built without calling the window; the window's        |
+     | layout; Cancel saves nothing; OK saves the name, Backups to keep and the |
+     | extra folder; Change... with an empty folder (copy), a folder with data  |
+     | (use as it is) and a folder with a data file (only "use as it is"        |
+     | offered); the open buttons; and the sample data.                         |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing (throws IOException if a temporary file fails)       |
+     +--------------------------------------------------------------------------+
+     */
+    private static void checkSettingsScreen() throws IOException
+    {
+        Path temp = Files.createTempDirectory("golfanalyst-settings-screen");
+        Path data = temp.resolve(DataStore.DATA_FOLDER);
+        Path program = temp.resolve("program");
+        Files.createDirectories(data);
+        Files.createDirectories(program);
+        Files.copy(Path.of("sample-data", DataLoader.COURSES_FILE), data.resolve(DataLoader.COURSES_FILE));
+        Files.copy(Path.of("sample-data", DataLoader.ROUNDS_FILE), data.resolve(DataLoader.ROUNDS_FILE));
+        DataStore store = new DataStore(data);
+
+        TestShell homeShell = new TestShell(store);
+        HomePage home = new HomePage(homeShell);
+        check("settings: Home is built without calling the window", homeShell.windowCalls == 0);
+        List<String> labels = new ArrayList<>();
+        for (Component part : ((Container) findByText(home, "New Course").getParent()).getComponents())
+        {
+            labels.add(((WoodButton) part).getText());
+        }
+        check("settings: Home has six buttons in each column, Export between Import and Clear, Settings after Print", labels.equals(
+                List.of("New Course", "Rounds", "New Round", "Stats Board", "Edit Round", "Analyzer", "Import", "Best Round", "Export", "Print",
+                        "Clear", "Settings")));
+        ((WoodButton) findByText(home, "Settings")).doClick();
+        String settingsAsked = homeShell.lastPage;
+        ((WoodButton) findByText(home, "Export")).doClick();
+        check("settings: the Settings and Export buttons ask the window", settingsAsked.equals("settings") && homeShell.lastPage.equals("export"));
+
+        AppPanel panel = new AppPanel(store, Path.of("help"), "");
+        panel.setProgramDir(program);
+        FakeTools tools = new FakeTools();
+        List<SettingsForm> forms = new ArrayList<>();
+        java.util.concurrent.atomic.AtomicReference<java.util.function.Function<SettingsForm, Integer>> script =
+                new java.util.concurrent.atomic.AtomicReference<>();
+        panel.setSettingsTools(tools, form ->
+        {
+            forms.add(form);
+            return script.get().apply(form);
+        });
+
+        script.set(form ->
+        {
+            form.nameBox.setText("Cancelled Name");
+            form.keepChoice.setSelectedItem("50");
+            form.cancelButton.doClick();
+            return form.answer();
+        });
+        panel.openSettings();
+        check("settings: Cancel saves nothing", !Files.exists(data.resolve(golfanalyst.Settings.FILE)) && store.golferName().isEmpty());
+        SettingsForm first = forms.get(0);
+        checkPanelLayout("Settings", first, first.introArea(), first.buttonRow());
+        check("settings: the window starts with the settings as they are", first.backupsToKeep().equals("50")
+                && SettingsForm.NOT_SET.equals(first.copyFolderBox.getText()) && first.okButton.hasDefaultRing()
+                && first.dataFolderBox.getText().equals(data.toAbsolutePath().normalize().toString()) && !first.isSample());
+
+        Path usb = Files.createTempDirectory("golfanalyst-settings-usb");
+        script.set(form ->
+        {
+            form.nameBox.setText("  Pat Golfer ");
+            form.keepChoice.setSelectedItem("All");
+            tools.nextFolder = usb;
+            form.browseCopy.doClick();
+            form.okButton.doClick();
+            return form.answer();
+        });
+        panel.openSettings();
+        golfanalyst.Settings saved = golfanalyst.Settings.load(data);
+        check("settings: OK saves the name, Backups to keep and the extra folder", store.golferName().equals("Pat Golfer")
+                && saved.backupsToKeep() == golfanalyst.Settings.KEEP_ALL && usb.equals(saved.backupCopyFolder())
+                && panel.footer().status().equals("Settings saved.") && panel.homePage().golferName.getText().equals("Pat Golfer"));
+        script.set(form ->
+        {
+            form.clearCopy.doClick();
+            form.okButton.doClick();
+            return form.answer();
+        });
+        panel.openSettings();
+        check("settings: Clear empties the extra folder", golfanalyst.Settings.load(data).backupCopyFolder() == null
+                && forms.get(forms.size() - 1).copyFolderBox.getText().equals(SettingsForm.NOT_SET));
+
+        Path emptyFolder = Files.createTempDirectory("golfanalyst-settings-empty");
+        tools.nextFolder = emptyFolder;
+        tools.answer = SettingsForm.CHOICE_COPY;
+        script.set(form ->
+        {
+            form.changeData.doClick();
+            form.cancelButton.doClick();
+            return form.answer();
+        });
+        panel.openSettings();
+        ConfirmForm question = tools.asked.get(tools.asked.size() - 1);
+        check("settings: Change... says the folder is empty and offers both ways", question.message().contains("This folder is empty.")
+                && question.goButton.getText().equals(SettingsForm.USE_AS_IT_IS) && question.noButton.getText().equals(SettingsForm.COPY_DATA)
+                && question.defaultButton() == question.cancelButton && question.title().equals("Data folder"));
+        checkDialogLayout("Data folder question", question);
+        check("settings: Change... then Cancel changes nothing", !Files.exists(program.resolve(golfanalyst.DataLocation.FILE))
+                && !Files.exists(emptyFolder.resolve(DataLoader.ROUNDS_FILE)));
+        script.set(form ->
+        {
+            form.changeData.doClick();
+            form.okButton.doClick();
+            return form.answer();
+        });
+        String roundsBefore = Files.readString(data.resolve(DataLoader.ROUNDS_FILE), StandardCharsets.UTF_8);
+        panel.openSettings();
+        check("settings: copy and use: the data is copied, the location file names the folder, the old folder is kept",
+                emptyFolder.toAbsolutePath().normalize().equals(golfanalyst.DataLocation.read(program))
+                        && Files.readString(emptyFolder.resolve(DataLoader.ROUNDS_FILE), StandardCharsets.UTF_8).equals(roundsBefore)
+                        && Files.readString(data.resolve(DataLoader.ROUNDS_FILE), StandardCharsets.UTF_8).equals(roundsBefore)
+                        && panel.footer().status().contains("the next time it is opened")
+                        && forms.get(forms.size() - 1).noteArea.getText().contains("the next time it is opened"));
+
+        Path withData = Files.createTempDirectory("golfanalyst-settings-data");
+        Files.copy(Path.of("sample-data", DataLoader.COURSES_FILE), withData.resolve(DataLoader.COURSES_FILE));
+        Files.copy(Path.of("sample-data", DataLoader.ROUNDS_FILE), withData.resolve(DataLoader.ROUNDS_FILE));
+        String theirs = Files.readString(withData.resolve(DataLoader.ROUNDS_FILE), StandardCharsets.UTF_8);
+        tools.nextFolder = withData;
+        tools.answer = SettingsForm.CHOICE_USE;
+        panel.openSettings();
+        question = tools.asked.get(tools.asked.size() - 1);
+        check("settings: a folder with data is counted and only 'use as it is' is offered", question.message().contains("This folder has ")
+                && question.message().contains(" rounds and 4 courses.") && question.noButton == null
+                && withData.toAbsolutePath().normalize().equals(golfanalyst.DataLocation.read(program))
+                && Files.readString(withData.resolve(DataLoader.ROUNDS_FILE), StandardCharsets.UTF_8).equals(theirs));
+        Path oneFile = Files.createTempDirectory("golfanalyst-settings-one");
+        Files.writeString(oneFile.resolve(golfanalyst.Settings.FILE), "Golfer=Someone\n", StandardCharsets.UTF_8);
+        tools.nextFolder = oneFile;
+        panel.openSettings();
+        question = tools.asked.get(tools.asked.size() - 1);
+        check("settings: a folder with only a settings file offers only 'use as it is' and nothing is written there",
+                question.noButton == null && question.message().contains("already there")
+                        && Files.readString(oneFile.resolve(golfanalyst.Settings.FILE), StandardCharsets.UTF_8).equals("Golfer=Someone\n")
+                        && !Files.exists(oneFile.resolve(DataLoader.ROUNDS_FILE)));
+
+        tools.canOpen = false;
+        script.set(form ->
+        {
+            form.openData.doClick();
+            form.openBackups.doClick();
+            form.cancelButton.doClick();
+            return form.answer();
+        });
+        panel.openSettings();
+        check("settings: the open buttons say so when this computer cannot open folders", tools.said.size() >= 1
+                && tools.said.get(tools.said.size() - 2).startsWith("This computer cannot open folders from Golf Analyst. The data folder is ")
+                && (tools.said.get(tools.said.size() - 1).equals("There are no backups yet.")
+                        || tools.said.get(tools.said.size() - 1).contains("The backups folder is ")));
+
+        Path parent = Files.createTempDirectory("golfanalyst-settings-sample");
+        Path sample = parent.resolve(DataStore.SAMPLE_FOLDER);
+        Files.createDirectories(sample);
+        Files.copy(Path.of("sample-data", DataLoader.COURSES_FILE), sample.resolve(DataLoader.COURSES_FILE));
+        Files.copy(Path.of("sample-data", DataLoader.ROUNDS_FILE), sample.resolve(DataLoader.ROUNDS_FILE));
+        AppPanel samplePanel = new AppPanel(new DataStore(sample), Path.of("help"), "");
+        samplePanel.setProgramDir(program);
+        List<SettingsForm> sampleForms = new ArrayList<>();
+        samplePanel.setSettingsTools(tools, form ->
+        {
+            sampleForms.add(form);
+            form.nameBox.setText("Sample Golfer");
+            form.createOwn.doClick();
+            form.okButton.doClick();
+            return form.answer();
+        });
+        int createBefore = tools.createCalls;
+        samplePanel.openSettings();
+        SettingsForm sampleForm = sampleForms.get(0);
+        golfanalyst.Settings sampleSaved = golfanalyst.Settings.load(sample);
+        check("settings: on the sample data only the name is saved, and the folder row says it is the sample data",
+                sampleForm.isSample() && !sampleForm.keepChoice.isEnabled() && !sampleForm.browseCopy.isEnabled()
+                        && sampleForm.dataFolderBox.getText().equals(SettingsForm.SHOWING_SAMPLE)
+                        && sampleSaved.golfer().equals("Sample Golfer") && sampleSaved.get(golfanalyst.Settings.BACKUPS_TO_KEEP).isEmpty());
+        check("settings: Create my own data folder uses the sample-data safeguard", tools.createCalls == createBefore + 1
+                && sampleForm.noteArea.getText().startsWith(SettingsForm.SAMPLE_NOTE));
+        checkPanelLayout("Settings, sample data", sampleForm, sampleForm.introArea(), sampleForm.buttonRow());
+        deleteFolder(parent);
+        for (Path folder : List.of(usb, emptyFolder, withData, oneFile, temp))
+        {
+            deleteFolder(folder);
+        }
     }
 
     /*
