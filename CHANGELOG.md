@@ -39,3 +39,11 @@ that nothing about how it was built is lost. The wording is the help text's own,
 - v4.00 (before release): Fixed the New Course bar cutting off the Nine-hole course box in Edit Course: Delete course moved to the bottom, beside Save, and the Course and City boxes made a little narrower.
 
 - v4.00 (before release): On the New Course screen the hole handicap column is headed Hdcp, in the same size as Par, and Delete course is a full-size button like Save and Cancel, set well apart from them.
+
+- v4.00 (before release): Backups are now kept as dated folders named for what was done (for example 2026-11-01_143012_edit-round), with the files under their usual names, so putting one back is just copying them over yours.
+
+- v4.00 (before release): Added Settings on the Home screen: your name, how many backups to keep, a second folder (a USB stick or cloud folder) that gets a copy of every backup, and which data folder to use.
+
+- v4.00 (before release): Added Export: a copy of everything, one course, or your rounds from a date, in a new folder that another copy of the program can Import.
+
+- v4.00 (before release): The Analyzer's figures are now worked out hole by hole, ready for its screen, which is still to come.

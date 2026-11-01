@@ -22,16 +22,17 @@ Courses and rounds live in two plain tab-separated text files. Written for one u
   `Handicap` (the rules), `Stats`, `RoundWriter` (appends or replaces a round, keeps the file's column order),
   `CourseWriter` (appends or updates tees the same way, and refuses a line DataLoader would reject), `LineReplacer`
   (swaps lines in place and writes safely after a `Backups` copy; used by both writers), `Backups` (the one backup
-  routine: dated copies in the data folder's `backups` folder), `DataStore` (the one place screens
-  get data; also knows if it is the sample data), `StatsBoard` (the Stats Board's rows, totals, sorting and gold;
-  no Swing), `BestRound` (Best Round's choices, best single round and composite; no Swing), `Main` (text reports,
-  `--selftest`), `SelfTest`.
+  routine: a dated folder per backup in the data folder's `backups` folder), `DataStore` (the one place screens
+  get data; also knows if it is the sample data), `Settings` (settings.txt), `DataLocation` (golfanalyst.location:
+  which data folder to use), `Importer`, `Exporter`, `CourseDeleter`, `ZipCodes`, `StatsBoard` (the Stats Board's
+  rows, totals, sorting and gold; no Swing), `BestRound` (Best Round's choices, best single round and composite; no
+  Swing), `CourseAnalysis` (the Analyzer's figures; no Swing), `Main` (text reports, `--selftest`), `SelfTest`.
 - `src/golfanalyst/gui/`: `App` (entry), `AppFrame` (thin JFrame), `AppPanel` (ALL the window logic: pages, header,
   footer, navigation, Help/Info, the sample-data question), `Shell` (what a page may ask of the window), `Page`,
   `HomePage`, `RoundPage`, `CoursePage`, `StatsPage`, `HeaderBar`, `FooterBar`, `HelpWindow` + `HelpFormatter` (styles the help
   text), `Theme` (colours, fonts, images, drawing helpers), custom controls
   (`WoodButton`, `IconButton`, `ValueBox`, `WoodPanel`, `WoodFrame`, `WoodTag`, `ImageCheckBox`, `BackdropPanel`,
-  `WoodScrollBarUI`),
+  `WoodScrollBarUI`), dialogs (`ConfirmForm`, `ImportForm`, `ExportForm`, `SettingsForm`),
   `GuiSelfTest`.
 - `images/` (wood buttons, textures, `backgrounds/<page>.jpg|gif`), `help/` (plain text Info and Help files),
   `sample-data/` (made up, plus the Edgewater course the user added, TeeIDs 5-8; its round 37 is the latest round, so
@@ -53,12 +54,24 @@ Courses and rounds live in two plain tab-separated text files. Written for one u
   and `CourseWriter.update`): it splices in only those lines (same ID; columns the program does not know keep their
   value), leaves every other character of the file as it was, makes a backup copy first, and writes via a
   temporary file. Courses are checked with the loader before writing. Then the store reloads.
-- Backups: one routine, `Backups.copyBeforeChange(file)`, called by `LineReplacer.write`, so every save
-  that changes or removes an existing line (edit round, fix course, and Delete Round / Clear when built) first copies
-  the whole file to `<data>/backups/rounds-YYYY-MM-DD-HHMMSS.tsv` (or `courses-...`; `-2`, `-3` in the same second).
-  Adding a round or tees makes no copy. The 20 newest of each kind are kept (`KEEP`); Clear's `clear-*` folders are
-  never pruned. If the copy fails it throws `Backups.Failed` (an IOException) before anything is written; RoundPage
-  shows its message in the footer. No `.bak` is made any more; old `.bak` files are left alone.
+- Backups: one routine, `Backups.backupFolder(dataDir, reason, fileNames)`, called by `LineReplacer.write(file,
+  text, reason)` and by Import, Clear and Delete course, so every save that changes or removes an existing line first
+  copies the files into a folder of their own: `<data>/backups/YYYY-MM-DD_HHMMSS_reason` (`-2`, `-3` after the time
+  in the same second), the copies keeping their REAL names (rounds.tsv, courses.tsv, settings.txt), so restoring is
+  copying them back over the data folder's files. Reasons: `edit-round`, `delete-round`, `edit-course` (the everyday
+  kinds, pruned to `BackupsToKeep` per kind, default 20, All keeps everything; the folder just made is never pruned)
+  and `import`, `clear`, `delete-course` (never pruned). Older backups (dated `rounds-...`/`courses-...` files,
+  `clear-...`, `import-...`, `delete-course-...` folders, `.bak` files) do not match the pattern and are never
+  touched. Adding a round or tees makes no copy. If the copy fails it throws `Backups.Failed` (an IOException) before
+  anything is written; the screen shows its message in the footer. If `BackupCopyFolder` is set, each new backup
+  folder is also copied there; if that fails the save still happens and `DataStore.backupWarningNote()` adds a
+  warning to the footer.
+- Settings: `settings.txt` in the data folder, read by `Settings` (keys ignoring capitals) and always written back
+  with PascalCase keys; unknown keys are kept. Keys: `Golfer`, `IncludeHistorical`, `BackupsToKeep` (10, 20, 50, 100
+  or All), `BackupCopyFolder`, `LastExportFolder`. On the sample data only the name is saved (Export does not save
+  `LastExportFolder` there). Which data folder to use is in `golfanalyst.location` next to the program
+  (`DataLocation`), read by `App` after the command-line argument and before `data`/`sample-data`; Settings' Change...
+  writes it (copying the data first if asked, never over a file) and it takes effect at the next start.
 - Never write the byte-order mark as an invisible character in source: use `LineReplacer.BYTE_ORDER_MARK`.
 - A page with unsaved changes overrides `Page.canLeave()` to ask "Discard your changes?" (`Shell.askYesNo`); the
   Home button, the arrows, Cancel and the window's close box all go through it. Round entry (anything typed since
@@ -198,7 +211,8 @@ Courses and rounds live in two plain tab-separated text files. Written for one u
   at once (tee name already used, rating 0, stroke index out of range or repeated); cells not filled yet stay
   white. Save goes Home with "Added 3 tees for Sample Links."
 - Home buttons: data entry on the left, viewing on the right:
-  left New Course, New Round, Edit Round, Import, Clear; right Rounds, Stats Board, Analyzer, Best Round, Print.
+  left New Course, New Round, Edit Round, Import, Export, Clear; right Rounds, Stats Board, Analyzer, Best Round,
+  Print, Settings (six a column; the grid fills row by row).
 - Help: the i button says WHAT is on the screen; the ? button says HOW to use it. Files in `help/`
   (`home-*`, `round-new-*`, `round-view-*`, `round-edit-*`, `course-*`, `stats-*`, `best-*`). Update them with every feature. Keep the user's friendly
   voice. The files stay plain text: the first line is the window title; a line starting with "# " is a section
@@ -223,8 +237,10 @@ and the press-and-hold peek on the version text (v4.21), modal Help/Info windows
 Stats Board (v4.40), Close back to the Stats Board and the close-box question (v4.41), Best Round (v4.50), the
 Historical box on the round screens and Include historical rounds on Home (v4.60), the backups folder, Delete Round
 and Clear (v4.70), dialogs sized to their text (v4.71), Import, Correct... and the ZIP code check (v4.80); since
-then, still v4.00: every dialog in the wooden look and Delete course.
-Not built (buttons are in place and say "not built yet"): Analyzer, Print.
+then, still v4.00: every dialog in the wooden look, Delete course, backups as dated folders, Settings, Export, and the
+Analyzer's figures (`CourseAnalysis`).
+Not built (buttons are in place and say "not built yet"): the Analyzer's SCREEN (its data class `CourseAnalysis` is
+built and tested), Print.
 Not built either: deleting a tee, merging two courses.
 - **Edit Course** (built, v4.20): no separate button. On New Course, typing a saved course's name and zip loads its
   tees (first four) into the frames; title "Edit Course"; empty frames take new tees. City/state editable (a change
@@ -238,13 +254,13 @@ Not built either: deleting a tee, merging two courses.
   `RoundPage.UNSAVED_IGNORED` when boxes were changed; then "To confirm, type DELETE."). `DataStore.deleteRound` ->
   `RoundWriter.delete` (a `LineMaker` returning null removes the line and its own line break) -> `LineReplacer.write`
   (backup first). Then the previous round (else the next) read-only, or Home if none; footer "Round 00037 deleted. A
-  copy of your rounds file as it was is in backups\rounds-....tsv."
+  copy of your rounds file as it was is in backups\2026-11-01_143012_delete-round."
 - **Clear** (built, v4.70): Home's Clear -> `Shell.clearData()` -> `AppPanel.clearData`: `ConfirmForm.clearChoice`
   (two radio buttons, neither ticked, Continue off until one is), summary ("Keep my data" default / "Clear..."),
-  type CLEAR. `DataStore.clear(everything)`: `Backups.copyForClear` into `backups/clear-YYYY-MM-DD-HHMMSS/` (never
-  pruned; failure clears nothing), then each file keeps only its own header row via `LineReplacer.writeSafely`;
+  type CLEAR. `DataStore.clear(everything)`: `Backups.backupFolder(..., CLEAR, ...)` into `backups/YYYY-MM-DD_HHMMSS_clear/`
+  (never pruned; failure clears nothing), then each file keeps only its own header row via `LineReplacer.writeSafely`;
   everything also resets settings.txt. Goes Home; footer "Cleared. A copy of everything as it was is in
-  backups\clear-....". Sample data: `CLEAR_SAMPLE_QUESTION` (Yes only makes the data folder) and `DataStore.clear`
+  backups\..._clear". Sample data: `CLEAR_SAMPLE_QUESTION` (Yes only makes the data folder) and `DataStore.clear`
   refuses it too. Dialogs are `ConfirmForm` panels shown by `AppPanel`'s `Confirmer`, which the tests replace.
 - `ConfirmForm` is the ONE dialog helper; no page or window code uses JOptionPane or its own JDialog (only the system
   file picker behind Browse). Kinds: twoChoice, twoChoiceWithList, typed, clearChoice, yesNoCancel, yesNo (No default),
@@ -271,22 +287,45 @@ Not built either: deleting a tee, merging two courses.
   `CourseDeleter.Summary.question` (tees, rounds, historical counted; `UNSAVED_IGNORED` when the screen has changes;
   "No rounds have been played on it." with no list when there are none) and the rounds list, then "To confirm, type
   the name of the course exactly: X" (`ConfirmForm.sameWords`: capitals and extra spaces ignored).
-  `DataStore.deleteCourse` -> `CourseDeleter.delete`: `Backups.copyIntoFolder(..., "delete-course-", ...)` (never
+  `DataStore.deleteCourse` -> `CourseDeleter.delete`: `Backups.backupFolder(..., DELETE_COURSE, ...)` (never
   pruned; failure deletes nothing), splice out only the course's TeeIDs and the rounds on them (LineMaker null), write
   both to `.new` files, move courses then rounds; if the rounds move fails courses.tsv is copied back from the backup.
   Then Home with "Deleted X: 3 sets of tees and 12 rounds. A copy of your files as they were is in
-  backups\delete-course-....". Getting it back: Import the backup folder (only the missing course and rounds are
+  backups\..._delete-course". Getting it back: Import the backup folder (only the missing course and rounds are
   added). The Stats Board drops a highlight whose row is gone; Best Round and the viewer rebuild from the store.
 - **Import** (built, v4.80): `Importer` (engine) `check` reads each data row alone with the loader (`onlyLine` blanks
   the others so line numbers stay true) and returns a `Plan`; nothing is written. Tees match by `sameName` course + tee
   (zips agree when both set): matched = skipped, mine never changed; new = next TeeIDs, course spelling of mine or of
   an earlier new tee. Rounds: TeeID refers to the imported courses file when one is given, else must be mine ("no tee
   with that number"); duplicate = same tee, date, holes, scores, putts (vs mine or earlier in file); new RoundIDs;
-  "Mark as historical" sets Y. `apply`: `Backups.copyIntoFolder(..., "import-", ...)` first, check both results with
+  "Mark as historical" sets Y. `apply`: `Backups.backupFolder(..., IMPORT, ...)` first, check both results with
   the loader, append via `LineReplacer.writeSafely` (a Historical header column may be added). `ImportForm` (gui) is
   the window, built with `ConfirmForm`'s pieces and shown by `ConfirmForm.showPanel`; `AppPanel.importData` (sample
   safeguard via `readyToSave`, `ImportAsker` hook for tests). Footer "Imported 3 tees and 35 rounds. 4 skipped, 2
-  rejected. A copy of your files as they were is in backups\import-...."
+  rejected. A copy of your files as they were is in backups\..._import."
+- **Settings** (built, v4.00 before release): Home's Settings -> `Shell.openSettings()` -> `AppPanel.openSettings`:
+  `SettingsForm` (shared dialog look; captions 190 px, boxes 300 px): Your name, Backups to keep, Also copy every
+  backup to (Browse..., Clear; "not set"), Data folder (Change..., Open data folder; on the sample data "Create my own
+  data folder" instead), Open backups folder. Nothing is saved until OK. Change... asks `SettingsForm.folderQuestion`
+  (Use this folder as it is / Copy my data there and use it / Cancel; only the first when a data file is there).
+  The folder picker, opening folders and questions go through `SettingsForm.Tools` (`setSettingsTools` in tests).
+  A JTextField with a column count ignores a set preferred width: `setColumns(0)` first (Settings and Export do).
+- **Export** (built, v4.00 before release): Home's Export -> `AppPanel.exportData`: `ExportForm` (Everything /
+  One course and its rounds + course list / Rounds from a date + From and To (blank = today, both inclusive);
+  Include historical rounds following Home; Save into + Browse... starting at `LastExportFolder`, else Documents; a
+  line saying what will be written; Export off until a folder is chosen and something would be written).
+  `Exporter.plan` then `Exporter.write`: a NEW folder `GolfAnalyst-export_YYYY-MM-DD_HHMMSS` (`-2`... if taken) with
+  courses.tsv and rounds.tsv made of the golfer's OWN lines (same header, order, line endings, IDs; comments left
+  out; Historical column dropped when no exported round is historical) and ReadMe.txt; temporary files then a move;
+  any failure deletes the half-made folder. Only reads: no backup, works on the sample data (LastExportFolder is not
+  saved there). Footer "Exported 12 sets of tees and 37 rounds to ...." Tests include a round trip through Import.
+- **Analyzer data** (built, v4.00 before release; NO screen yet): `CourseAnalysis` (engine). `rows`/`latestRow` are
+  Best Round's choices; `analyse(row, rounds, tees, includeHistorical)` gives per hole par, rounds, counts and exact
+  percentages in `CATEGORIES` (Dbl Eagle <= -3, Eagle, Birdie, Par, Bogey, Dbl Bogey, Other >= +3), average score and
+  over par, best, worst, average putts, fairway % (par 4/5; NaN on par 3), GIR %, sand saves % (NaN without sand);
+  Out/In (18-hole rows only) and All totals (the same figures per round over those holes); a Summary;
+  `hardestHoles(n)`/`bestHoles(n)` by average over par, ties by hole number. The user's screen mock-ups (Counts /
+  Percent / Averages views) are in `Incoming/`.
 - **Correct...** (built, v4.80): in Edit Course `courseField`/`zipField` are locked; `CoursePage.correctButton`
   (90 x 24) sets `correcting` (no lookups while it is on). Save: `DataStore.correctCourse` ->
   `CourseWriter.correctCourse` rewrites only the Course, Zip, City and State cells of every tee (backup first);

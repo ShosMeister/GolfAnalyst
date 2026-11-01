@@ -18,7 +18,7 @@ To look back at your rounds, press Rounds. It opens at your most recent round an
 
 To fix a round you have saved, press Edit Round; the ? button on that screen walks you through it.
 
-To change the name, click it in the Golfer's Stats section, type the name and press OK.
+To change the name, click it in the Golfer's Stats section, type the name and press OK. You can also change it in Settings.
 
 # Adding a course
 
@@ -62,9 +62,23 @@ Check files: Press it to see what would happen. The box underneath says how many
 
 Mark the imported rounds as historical: Check it for historical rounds you want to keep for looking back at. They never count toward your Handicap Index.
 
-Import: It is enabled only after a check finds something to add. Before anything is written, a copy of courses.tsv and rounds.tsv goes into a folder of its own inside the backups folder, named with the date and time (for example backups\import-2026-11-01-142530). Then the new tees and rounds are added at the end of your files; nothing you already have is changed.
+Import: It is enabled only after a check finds something to add. Before anything is written, a copy of courses.tsv and rounds.tsv goes into a folder of its own inside the backups folder, named with the date, the time and the word import (for example backups\2026-11-01_142530_import). Then the new tees and rounds are added at the end of your files; nothing you already have is changed.
 
-Putting it back: Close the program, copy the two files from that import folder back into your data folder, and open the program again.
+Putting it back: Close the program, copy the files from that folder back over the ones in your data folder, and open the program again.
+
+# Exporting rounds and courses
+
+Export makes a copy of your courses and rounds that another copy of Golf Analyst can bring in with Import. Press Export on the Home screen.
+
+What to export: Pick Everything, One course and its rounds (then pick the course from the list), or Rounds from a date. For a date, type the From date as on the round screen, for example 2026-10-22 or 10/22/2026, and leave To empty to mean today. Both days are included, and the courses and tees those rounds were played on come along too.
+
+Include historical rounds: It starts the same as the box on the Home screen. Uncheck it to leave your historical rounds out.
+
+Save into: Press Browse... and pick a folder. The program makes a new folder inside it named GolfAnalyst-export with the date and time, so nothing that is already there is ever written over. The line above the buttons always says how many sets of tees and rounds will be written. Then press Export; the bar along the bottom says where the copy went.
+
+Sharing a course with a friend: Pick One course and its rounds, choose the course, and save it on a USB stick or in a cloud folder you both use. Your friend presses Import, then Choose a whole data folder..., and picks your export folder. To add only the course and not your rounds, they empty the Rounds file box before pressing Check files. Tees they already have are skipped.
+
+Export only reads your files. Nothing in your data folder changes, so no backup is needed, and it works on the sample data too.
 
 # Starting fresh
 
@@ -76,11 +90,25 @@ Clear everything: Your rounds, your courses, your name and your settings all go,
 
 Then press Continue. The program asks twice before it clears anything. First it tells you exactly what will be removed; press Keep my data to stop there. Then it asks you to type CLEAR, and its OK button is enabled only once the word is typed.
 
-A copy first: Before anything is cleared, courses.tsv, rounds.tsv and settings.txt are copied into a separate folder inside the backups folder, named with the date and time (for example backups\clear-2026-10-31-142530). Clear and Import folders are not pruned by the program; the 20-copy limit applies only to ordinary dated backups of each data file.
+A copy first: Before anything is cleared, courses.tsv, rounds.tsv and settings.txt are copied into a folder of their own inside the backups folder, named with the date, the time and the word clear (for example backups\2026-10-31_142530_clear). The program never throws away a Clear, Import or Delete course backup; Backups to keep in Settings applies only to the everyday ones.
 
-Putting it back: Close the program, copy the files from that clear folder back into your data folder over the emptied ones, and open the program again.
+Putting it back: Close the program, copy the files from that folder back over the ones in your data folder, and open the program again.
 
 On the sample data Clear never changes anything. It offers to make your own data folder instead.
+
+# Settings and your backups
+
+Press Settings on the Home screen. Nothing changes until you press OK, and Cancel leaves everything as it was.
+
+Backups to keep: Pick how many backups of each everyday kind to keep. 20 is plenty for most golfers; pick All if you never want any thrown away.
+
+A copy on a USB stick or in the cloud: Press Browse... beside Also copy every backup to, and pick a folder on a USB stick or in a cloud folder such as OneDrive, Dropbox or Google Drive. From then on every backup is copied there as well, so you still have it if something happens to your computer. Press Clear to stop. If the USB stick is not plugged in, your change is still saved; the bar along the bottom just says the extra copy was not made.
+
+Getting a backup back: Press Open backups folder. Each backup is a folder named with the date, the time and what was done, for example 2026-11-01_143012_edit-round. Close the program, copy the files from that folder back over the ones in your data folder, and open the program again. Anything you saved after that backup has to be entered again.
+
+Moving your data: Press Change... beside Data folder and pick a folder; the program tells you what is in it. Copy my data there and use it copies your files into it (only offered when it has no data files yet); Use this folder as it is uses the files already there. Press OK. The program uses the new folder from the next time it is opened, and your old folder is left as it was.
+
+On the sample data only your name is kept. Press Create my own data folder first.
 
 # Closing the program
 

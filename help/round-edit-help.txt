@@ -16,7 +16,7 @@ Changed your mind? Press Cancel and the round goes back to how it was.
 
 Historical: You can check or uncheck the Historical box at any time. A historical round never counts toward your Handicap Index. See Home Info for how Include historical rounds affects statistics.
 
-A safety copy: Every time you save an edit, a copy of rounds.tsv is saved in the backups folder in your data folder, with the date and time in its name (for example rounds-2026-10-29-143012.tsv). If an edit went wrong, close the program, copy the right backup over rounds.tsv, and open the program again. The program normally keeps the 20 newest ordinary backup copies of each data file. Clear and Import folders are separate and are not pruned.
+A safety copy: Every time you save an edit, a copy of rounds.tsv as it was goes into a folder of its own inside the backups folder in your data folder, named with the date, the time and what was done (for example backups\2026-10-29_143012_edit-round). If an edit went wrong, close the program, copy the files from that folder back over the ones in your data folder, and open the program again. The program keeps the 20 newest of each kind, or as many as Backups to keep says in Settings.
 
 Leaving with unsaved changes: If you press an arrow, Cancel or the Home button after changing something, the program asks "Discard your changes?" Say No to go back and press Save, or Yes to leave the round as it was.
 
@@ -32,6 +32,6 @@ The wrong course: The course and tees cannot be changed here. If you entered a r
 
 4. Type DELETE. The OK button is enabled only once the word is typed (capitals or not). Press OK, or Cancel to keep the round.
 
-Only that round's line is taken out of rounds.tsv. Your other rounds, your notes in the file and the round numbers are left alone. Your handicap and statistics are recalculated immediately, and the screen shows the round before it (or the Home screen, if it was your only round). The bar along the bottom gives the name of the backup copy.
+Only that round's line is taken out of rounds.tsv. Your other rounds, your notes in the file and the round numbers are left alone. Your handicap and statistics are recalculated immediately, and the screen shows the round before it (or the Home screen, if it was your only round). The bar along the bottom gives the name of the backup folder.
 
-Getting a deleted round back: The backup has the date and time in its name, as described above. To undo the delete, close the program, copy that file over rounds.tsv, and open the program again. Any round you saved after the delete has to be entered again.
+Getting a deleted round back: The backup folder is named with the date, the time and delete-round, as described above. To undo the delete, close the program, copy the files from that folder back over the ones in your data folder, and open the program again. Any round you saved after the delete has to be entered again.

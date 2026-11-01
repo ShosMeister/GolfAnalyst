@@ -22,11 +22,11 @@ Date: The day you played. You can change it.
 
 Historical: Check this for a historical round. It never counts toward your Handicap Index; see Home Info for how historical rounds affect statistics. You can check or uncheck it.
 
-Delete round: The small button under Historical, there only while you edit. It removes this round from your rounds, but only after two questions: the first names the round (its number, course, tees, date and score) and the second asks you to type DELETE. A backup copy of rounds.tsv is saved before the round is removed. The Help explains how to restore it.
+Delete round: The small button under Historical, there only while you edit. It removes this round from your rounds, but only after two questions: the first names the round (its number, course, tees, date and score) and the second asks you to type DELETE. A copy of rounds.tsv as it was is saved in a dated folder in the backups folder before the round is removed. The Help explains how to restore it.
 
 # Save and Cancel, at the right end of the frame under the tables
 
-Save: Puts your changes in rounds.tsv in place of the round as it was. Only that round's line is changed. A backup copy of rounds.tsv is saved before the change; the Help explains how to restore it. Save is enabled only when every hole you played is complete and correct.
+Save: Puts your changes in rounds.tsv in place of the round as it was. Only that round's line is changed. A copy of rounds.tsv as it was is saved in a dated folder in the backups folder before the change; the Help explains how to put it back. Save is enabled only when every hole you played is complete and correct.
 
 Cancel: Goes back to the round as it was, without saving.
 

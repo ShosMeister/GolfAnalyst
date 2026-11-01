@@ -37,9 +37,9 @@ If you change your mind, press Cancel. Once you have typed anything, the program
 
 # Fixing a course
 
-Made a mistake after saving, or found a better scorecard? Press New Course and type the course name and ZIP just as before. The title changes to Edit Course and the course's tees appear in the frames. Click the cell you want, type over it, and press Save. Only the existing tees you changed are rewritten; new tees are added at the end. When existing tees are changed, a dated backup copy of the course file is saved in the backups folder first.
+Made a mistake after saving, or found a better scorecard? Press New Course and type the course name and ZIP just as before. The title changes to Edit Course and the course's tees appear in the frames. Click the cell you want, type over it, and press Save. Only the existing tees you changed are rewritten; new tees are added at the end. When existing tees are changed, a copy of courses.tsv as it was is saved first, in a folder of its own inside the backups folder named with the date, the time and edit-course.
 
-Getting a backup back: If a change to a course went wrong, close the program, copy the backup of courses.tsv (it has the date and time in its name) over courses.tsv in your data folder, and open the program again. Anything you changed on a course after that backup was made has to be entered again.
+Getting a backup back: If a change to a course went wrong, close the program, copy the files from that backup folder back over the ones in your data folder, and open the program again. Anything you changed on a course after that backup was made has to be entered again.
 
 A few things to know: a set of tees that is already in the program must keep its rating (rounds were played on it, so it cannot be left out); if you change a rating, slope, par or handicap number on tees you have played, the bar at the bottom reminds you that your handicap will be worked out again for those rounds, which is exactly what you want when fixing a typo; and the Nine-hole course box cannot be changed for a course you have saved. The name and ZIP stay locked while you fix a course, so they cannot be changed by accident; to correct them, see below.
 
@@ -69,7 +69,7 @@ Deleting a course removes all of its sets of tees and every round played on them
 
 Only that course's lines are taken out of courses.tsv and rounds.tsv. Your other courses and rounds, and any notes in the files, are left alone, and nothing is renumbered. Your handicap and statistics are worked out again straight away, and you are taken back to the Home screen.
 
-Getting a deleted course back: Before anything is removed, copies of courses.tsv and rounds.tsv go into a folder of their own inside the backups folder, named with the date and time (for example backups\delete-course-2026-11-01-142530). To get the course back, press Import on the Home screen, press Choose a whole data folder... and pick that backup folder, then Check files and Import. Import skips everything that is already in the program, so only the deleted course and its rounds are added back, with new numbers.
+Getting a deleted course back: Before anything is removed, copies of courses.tsv and rounds.tsv go into a folder of their own inside the backups folder, named with the date, the time and delete-course (for example backups\2026-11-01_142530_delete-course). To get the course back, press Import on the Home screen, press Choose a whole data folder... and pick that backup folder, then Check files and Import. Import skips everything that is already in the program, so only the deleted course and its rounds are added back, with new numbers. If you have changed nothing since the delete, you can instead close the program, copy the files from that folder back over the ones in your data folder, and open it again.
 
 # The ZIP code check
 

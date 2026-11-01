@@ -42,13 +42,31 @@ Include historical rounds: Decides whether historical rounds count in the number
 
 The buttons on the left are for putting information in. The buttons on the right are for looking at it.
 
-On the left: New Course adds a course and its tees, or fixes a course you have already saved. New Round is the screen for entering a round. Edit Round is for correcting or deleting a round you have saved. Import brings in rounds and courses from another copy of the program or from a spreadsheet. Clear empties your rounds, or everything, so you can start fresh. It asks twice and keeps a copy of your files first.
+On the left: New Course adds a course and its tees, or fixes a course you have already saved. New Round is the screen for entering a round. Edit Round is for correcting or deleting a round you have saved. Import brings in rounds and courses from another copy of the program or from a spreadsheet. Export makes a copy of your courses and rounds that another copy of the program can Import. Clear empties your rounds, or everything, so you can start fresh. It asks twice and keeps a copy of your files first.
 
-On the right: Rounds is the screen for looking at the rounds you have saved. Stats Board, Analyzer and Best Round show your statistics in more detail, and Print prints what you are looking at.
+On the right: Rounds is the screen for looking at the rounds you have saved. Stats Board, Analyzer and Best Round show your statistics in more detail, and Print prints what you are looking at. Settings keeps your name, your choices about backups and which data folder the program uses.
 
 The Analyzer and Print buttons are there, but those features are not built yet.
 
 Import: Adds rounds and courses from files laid out like rounds.tsv and courses.tsv. It only ever adds: a set of tees or a round you already have is skipped, and it never changes a tee or a round that is already in the program. It shows you what it will add before it writes anything, and keeps a copy of your files in the backups folder first.
+
+Export: Makes a copy of your courses and rounds in a new folder of its own: everything, one course and its rounds, or your rounds from a date. It is laid out just like your own files, so another copy of Golf Analyst can bring it in with Import. Export only reads your files; it never changes them.
+
+# Settings
+
+The Settings button opens a window with these choices. Nothing changes until you press OK. They are kept in settings.txt in your data folder.
+
+Your name: The name shown under Golfer's Stats.
+
+Backups to keep: How many backups of each everyday kind the program keeps: 10, 20 (the usual), 50, 100 or All. The everyday kinds are edited rounds, deleted rounds and fixed courses; when there are more than this, the oldest go. Backups made by Import, Clear and Delete course are always kept.
+
+Also copy every backup to: A second folder, such as a USB stick or a cloud folder, that gets a copy of every backup as it is made. It says not set when there is none. If that folder cannot be reached, your change is still saved and the bar along the bottom says the extra copy was not made.
+
+Data folder: The folder that holds your courses.tsv, rounds.tsv and settings.txt. A different folder chosen here is used from the next time the program is opened, and the old one is left as it was.
+
+Open backups folder: Shows the backups folder on your computer. Every backup is a folder of its own, named with the date, the time and what was done, for example 2026-11-01_143012_edit-round. Inside are copies of the files as they were, with their usual names.
+
+On the sample data only your name is kept, and the data folder row offers to create your own data folder instead.
 
 # Across the top and bottom
 
@@ -99,6 +117,6 @@ Courses: Courses and their sets of tees are typed in on the New Course screen, w
 
 Looking at your golf: The Stats Board shows your statistics course by course and tee by tee, with your nine-hole rounds kept apart. Best Round shows your lowest round on a course, or a composite of your best score on every hole.
 
-Looking after your data: Import adds rounds and courses from another copy of the program or from a spreadsheet, after showing you what it will add. Clear lets you start fresh. Every change to your files keeps a dated copy in a backups folder.
+Looking after your data: Import adds rounds and courses from another copy of the program or from a spreadsheet, after showing you what it will add. Export makes a copy of everything, one course, or your rounds from a date, ready for Import. Clear lets you start fresh. Every change to your files first keeps a copy of them in a dated folder of its own in the backups folder. Putting one back is just copying its files over yours, and Settings lets you choose how many to keep and have them copied to a USB stick or a cloud folder too.
 
-Around the program: Every screen has its own photo. Press and hold the yellow Golf Analyst text at the bottom left of any screen to see all of it. The i and ? buttons explain every screen. Every dialog box has the same wooden look.
+Around the program: Every screen has its own photo. Press and hold the yellow Golf Analyst text at the bottom left of any screen to see all of it. The i and ? buttons explain every screen. Every dialog box has the same wooden look. Settings keeps your name, your backup choices and which data folder to use.
