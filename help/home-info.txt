@@ -107,4 +107,4 @@ Golf Analyst v4.60: Added a Historical box on the round screens, so old rounds c
 
 Golf Analyst v4.70: Added Delete Round and Clear, each with two confirmations. Every change to your files now keeps a dated copy in a backups folder, so nothing is ever overwritten.
 
-Golf Analyst v4.71: The questions asked before deleting a round or clearing your data now size themselves to their words, so no line is hidden behind the buttons.
+Golf Analyst v4.71: Fixed all the dialog boxes that ask for your input, so their text is always fully readable.
