@@ -11,7 +11,6 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.IOException;
 import javax.swing.BorderFactory;
-import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 
 /*
@@ -44,6 +43,7 @@ public final class HomePage extends Page
     private static final int LEFT_PANEL_WIDTH = 300;
     private static final int RIGHT_PANEL_WIDTH = 330;
     private static final int CHECK_PICTURE = 18;
+    static final String NAME_TITLE = "Golfer's name";
     static final String INCLUDE_HISTORICAL_TIP = "Count old (historical) rounds in your averages, percentages, the Stats Board and Best Round. "
             + "They never count toward your Handicap Index.";
     final ValueBox handicapIndex = new ValueBox();
@@ -253,15 +253,14 @@ public final class HomePage extends Page
      */
     private void changeGolferName()
     {
-        Object answer = JOptionPane.showInputDialog(this, "Golfer's name:", "Golfer",
-                JOptionPane.PLAIN_MESSAGE, null, null, shell.store().golferName());
+        String answer = shell.askText(NAME_TITLE, "Golfer's name:", shell.store().golferName());
         if (answer == null)
         {
             return;
         }
         try
         {
-            shell.store().setGolferName(answer.toString().trim());
+            shell.store().setGolferName(answer.trim());
         }
         catch (IOException failure)
         {

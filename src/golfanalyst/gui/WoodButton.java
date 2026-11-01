@@ -31,6 +31,7 @@ public class WoodButton extends JButton
 {
 
     private boolean hover = false;
+    private boolean defaultRing = false;
 
     /*
      +--------------------------------------------------------------------------+
@@ -73,7 +74,26 @@ public class WoodButton extends JButton
     }
 
     /*
-     * paintComponent(graphics): draws the wood face, then the text in white, red (mouse over) or grey (disabled).
+     * setDefaultRing(flag): marks a dialog's default button, which keeps its gold ring even while the focus is elsewhere (in a text box, say).
+     * Passed in:  flag - true for the default button
+     * Passed out: nothing
+     */
+    public void setDefaultRing(boolean flag)
+    {
+        defaultRing = flag;
+        repaint();
+    }
+
+    /*
+     * hasDefaultRing(): whether this is a dialog's default button (for the self-test).
+     */
+    public boolean hasDefaultRing()
+    {
+        return defaultRing;
+    }
+
+    /*
+     * paintComponent(graphics): draws the wood face, then the text in white, red (mouse over) or grey (disabled), and the gold ring when it has the focus or is a dialog's default button.
      * Passed in:  graphics - what to draw on
      * Passed out: nothing
      */
@@ -100,7 +120,7 @@ public class WoodButton extends JButton
         Color color = !isEnabled() ? Theme.TEXT_DISABLED : (hover ? Theme.TEXT_HOVER : Theme.TEXT_LIGHT);
         int shift = pressed ? 1 : 0;
         Theme.drawCentered(canvas, getText(), shift, shift, getWidth(), getHeight(), color, true);
-        if (isFocusOwner())
+        if (isFocusOwner() || defaultRing)
         {
             canvas.setColor(new Color(255, 214, 0, 220));
             canvas.drawRect(3, 3, getWidth() - 7, getHeight() - 7);

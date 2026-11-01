@@ -15,7 +15,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
-import javax.swing.JCheckBox;
+import javax.swing.JComponent;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -32,9 +32,10 @@ import javax.swing.filechooser.FileNameExtensionFilter;
  | ImportForm                                                               |
  +--------------------------------------------------------------------------+
  | Purpose:                                                                 |
- | The Import window's content. It is built like the other dialogs          |
- | (ConfirmForm's wrapping text, 16 px padding, 12 px gaps, shown with      |
- | ConfirmForm.showPanel, so it is sized with pack()) and can be tried      |
+ | The Import window's content. It is dressed like every other dialog       |
+ | (ConfirmForm.dress: the wooden band titled Import, the parchment body,   |
+ | WoodButtons, 96 x 24 WoodTag captions, white hairline boxes), shown with |
+ | ConfirmForm.showPanel (so it is sized with pack()), and can be tried     |
  | without a screen.                                                        |
  |                                                                          |
  | From the top: a few words on what to pick; a Courses file row and a      |
@@ -68,18 +69,22 @@ final class ImportForm extends JPanel
     static final String CHECK_AGAIN = "Something was changed. Press Check files again.";
     private static final int PATH_WIDTH = 260;
     private static final int PREVIEW_HEIGHT = 170;
-    final JTextField coursesPath = new JTextField();
-    final JTextField roundsPath = new JTextField();
-    final JButton browseCourses = new JButton("Browse...");
-    final JButton browseRounds = new JButton("Browse...");
-    final JButton folderButton = new JButton("Choose a whole data folder...");
-    final JCheckBox historicalBox = new JCheckBox("Mark the imported rounds as historical");
-    final JButton checkButton = new JButton("Check files");
-    final JTextArea preview = new JTextArea();
-    final JButton importButton = new JButton("Import");
-    final JButton cancelButton = new JButton("Cancel");
+    private static final int BROWSE_WIDTH = 96;
+    private static final int BROWSE_HEIGHT = 28;
+    static final String HISTORICAL_TEXT = "Mark the imported rounds as historical";
+    final JTextField coursesPath = ConfirmForm.textBox("");
+    final JTextField roundsPath = ConfirmForm.textBox("");
+    final WoodButton browseCourses = browseButton();
+    final WoodButton browseRounds = browseButton();
+    final WoodButton folderButton = ConfirmForm.dialogButton("Choose a whole data folder...");
+    final ImageCheckBox historicalBox = new ImageCheckBox();
+    final WoodButton checkButton = ConfirmForm.dialogButton("Check files");
+    final JTextArea preview = ConfirmForm.readOnlyList("Nothing checked yet.");
+    final WoodButton importButton = ConfirmForm.dialogButton("Import");
+    final WoodButton cancelButton = ConfirmForm.dialogButton("Cancel");
     private final JTextArea introArea;
     private final JPanel buttonRow;
+    private final ConfirmForm.Band band;
     private final transient Checker checker;
     private transient Importer.Plan plan = null;
     private int answer = ConfirmForm.CANCELLED;
@@ -108,14 +113,12 @@ final class ImportForm extends JPanel
      */
     ImportForm(Checker checker)
     {
-        super(new BorderLayout(0, ConfirmForm.GAP));
         this.checker = checker;
-        int pad = ConfirmForm.PADDING;
-        setBorder(BorderFactory.createEmptyBorder(pad, pad, pad, pad));
+        JPanel content = ConfirmForm.clear(new JPanel(new BorderLayout(0, ConfirmForm.GAP)));
         introArea = ConfirmForm.wrappedText(INTRO);
-        add(introArea, BorderLayout.NORTH);
+        content.add(introArea, BorderLayout.NORTH);
 
-        JPanel rows = new JPanel(new GridBagLayout());
+        JPanel rows = ConfirmForm.clear(new JPanel(new GridBagLayout()));
         for (JTextField path : new JTextField[] {coursesPath, roundsPath})
         {
             Dimension size = new Dimension(PATH_WIDTH, path.getPreferredSize().height);
@@ -124,8 +127,8 @@ final class ImportForm extends JPanel
         }
         coursesPath.setToolTipText("A file laid out like courses.tsv; leave it empty to import rounds only");
         roundsPath.setToolTipText("A file laid out like rounds.tsv; leave it empty to import courses only");
-        addRow(rows, 0, new JLabel("Courses file:"), coursesPath, browseCourses);
-        addRow(rows, 1, new JLabel("Rounds file:"), roundsPath, browseRounds);
+        addRow(rows, 0, ConfirmForm.caption("Courses file"), coursesPath, browseCourses);
+        addRow(rows, 1, ConfirmForm.caption("Rounds file"), roundsPath, browseRounds);
         GridBagConstraints at = new GridBagConstraints();
         at.gridx = 0;
         at.gridy = 2;
@@ -133,32 +136,43 @@ final class ImportForm extends JPanel
         at.anchor = GridBagConstraints.WEST;
         at.insets = new Insets(4, 0, 0, 0);
         rows.add(folderButton, at);
-        JPanel checkRow = new JPanel(new BorderLayout(8, 0));
-        checkRow.add(historicalBox, BorderLayout.WEST);
+        historicalBox.setPictureSize(18);
+        historicalBox.setPreferredSize(new Dimension(22, 22));
+        JLabel historicalWords = ConfirmForm.checkLabel(HISTORICAL_TEXT);
+        historicalWords.addMouseListener(new java.awt.event.MouseAdapter()
+        {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent event)
+            {
+                historicalBox.toggle();
+            }
+        });
+        JPanel tick = ConfirmForm.clear(new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0)));
+        tick.add(historicalBox);
+        tick.add(historicalWords);
+        JPanel checkRow = ConfirmForm.clear(new JPanel(new BorderLayout(8, 0)));
+        checkRow.add(tick, BorderLayout.WEST);
         checkRow.add(checkButton, BorderLayout.EAST);
         at.gridy = 3;
         at.fill = GridBagConstraints.HORIZONTAL;
         at.insets = new Insets(ConfirmForm.GAP, 0, 0, 0);
         rows.add(checkRow, at);
-        preview.setEditable(false);
-        preview.setLineWrap(true);
-        preview.setWrapStyleWord(true);
-        preview.setFont(ConfirmForm.messageFont());
-        preview.setText("Nothing checked yet.");
         JScrollPane scroller = new JScrollPane(preview, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        scroller.setBorder(BorderFactory.createLineBorder(ConfirmForm.HAIRLINE, 1));
         scroller.setPreferredSize(new Dimension(ConfirmForm.MESSAGE_WIDTH, PREVIEW_HEIGHT));
         at.gridy = 4;
         at.fill = GridBagConstraints.BOTH;
         at.weightx = 1.0;
         at.weighty = 1.0;
         rows.add(scroller, at);
-        add(rows, BorderLayout.CENTER);
+        content.add(rows, BorderLayout.CENTER);
 
-        buttonRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        buttonRow = ConfirmForm.clear(new JPanel(new FlowLayout(FlowLayout.RIGHT, ConfirmForm.BUTTON_GAP, 0)));
         buttonRow.add(cancelButton);
         buttonRow.add(importButton);
-        add(buttonRow, BorderLayout.SOUTH);
         importButton.setEnabled(false);
+        checkButton.setDefaultRing(true);
+        band = ConfirmForm.dress(this, TITLE, content, buttonRow);
 
         DocumentListener changed = new DocumentListener()
         {
@@ -182,7 +196,7 @@ final class ImportForm extends JPanel
         };
         coursesPath.getDocument().addDocumentListener(changed);
         roundsPath.getDocument().addDocumentListener(changed);
-        historicalBox.addActionListener(event -> forgetCheck());
+        historicalBox.setOnChange(() -> forgetCheck());
         browseCourses.addActionListener(event -> browse(coursesPath, "Pick the courses file"));
         browseRounds.addActionListener(event -> browse(roundsPath, "Pick the rounds file"));
         folderButton.addActionListener(event -> browseFolder());
@@ -192,9 +206,30 @@ final class ImportForm extends JPanel
     }
 
     /*
+     * browseButton(): a 96 x 28 Browse... WoodButton.
+     */
+    private static WoodButton browseButton()
+    {
+        WoodButton button = ConfirmForm.dialogButton("Browse...");
+        Dimension size = new Dimension(BROWSE_WIDTH, BROWSE_HEIGHT);
+        button.setPreferredSize(size);
+        button.setMinimumSize(size);
+        button.setFont(Theme.font(java.awt.Font.BOLD, 13f));
+        return button;
+    }
+
+    /*
+     * band(): the wooden band with the title (for the self-test's layout check).
+     */
+    ConfirmForm.Band band()
+    {
+        return band;
+    }
+
+    /*
      * addRow(rows, row, label, path, browse): one file row: the label, the path box and its Browse... button.
      */
-    private static void addRow(JPanel rows, int row, JLabel label, JTextField path, JButton browse)
+    private static void addRow(JPanel rows, int row, JComponent label, JTextField path, JButton browse)
     {
         GridBagConstraints at = new GridBagConstraints();
         at.gridy = row;
@@ -381,7 +416,7 @@ final class ImportForm extends JPanel
     int showOn(Component owner)
     {
         answer = ConfirmForm.CANCELLED;
-        ConfirmForm.showPanel(this, owner, TITLE, checkButton, coursesPath);
+        ConfirmForm.showPanel(this, owner, checkButton, coursesPath);
         return answer;
     }
 }

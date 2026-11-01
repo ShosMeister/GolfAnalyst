@@ -37,7 +37,6 @@ import javax.swing.Box;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
-import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.ButtonGroup;
 import javax.swing.JRadioButton;
@@ -220,6 +219,8 @@ public final class RoundPage extends Page
     final WoodButton editButton = new WoodButton("Edit");
     final WoodButton cancelButton = new WoodButton("Cancel");
     final WoodButton deleteButton = new WoodButton("Delete round");
+    static final String DELETE_TITLE = "Delete round";
+    static final String SAVE_FAILED_TITLE = "Save failed";
     static final String UNSAVED_IGNORED = " Your unsaved changes in the boxes will be ignored.";
     final JComboBox<FilterItem> filterCombo = new JComboBox<>();
     final JLabel filterLabel = new JLabel("Show:");
@@ -2224,8 +2225,7 @@ public final class RoundPage extends Page
         }
         catch (IOException failure)
         {
-            JOptionPane.showMessageDialog(this, "The round could not be saved:\n" + failure.getMessage(),
-                    "Save failed", JOptionPane.ERROR_MESSAGE);
+            shell.showNotice(SAVE_FAILED_TITLE, "The round could not be saved:\n" + failure.getMessage(), null);
             return;
         }
         filterCourse = null;
@@ -2341,7 +2341,7 @@ public final class RoundPage extends Page
         }
         Round saved = rounds.get(index);
         String question = deleteQuestion(saved, store.teeMap().get(saved.teeId()), hasChanges());
-        if (!shell.confirmTwice(question, "Keep it", "Delete...", "DELETE"))
+        if (!shell.confirmTwice(DELETE_TITLE, question, null, "Keep it", "Delete...", "To confirm, type DELETE.", "DELETE"))
         {
             return;
         }

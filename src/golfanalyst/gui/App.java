@@ -4,7 +4,6 @@ import golfanalyst.DataStore;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 
@@ -117,8 +116,8 @@ public final class App
         }
         catch (IOException failure)
         {
-            JOptionPane.showMessageDialog(null, "The data folder could not be read:\n" + dataDir.toAbsolutePath()
-                    + "\n\n" + failure.getMessage(), "Golf Analyst", JOptionPane.ERROR_MESSAGE);
+            ConfirmForm.notice("The data folder could not be read:\n" + dataDir.toAbsolutePath() + "\n\n" + failure.getMessage(), null)
+                    .withTitle(AppPanel.PROBLEMS_TITLE).showOn(null);
             System.exit(1);
         }
     }

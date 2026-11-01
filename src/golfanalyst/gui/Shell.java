@@ -23,9 +23,8 @@ import golfanalyst.DataStore;
  | newCourse()      - opens the screen for adding a course and its tees     |
  | askYesNo(question) - asks a Yes / No question                            |
  | readyToSave()    - asks, on the sample data, whether to save there       |
- | confirmTwice(question, keepLabel, goLabel, word) - the two careful       |
- |                    questions before something is removed                 |
- | confirmOnce(question, keepLabel, goLabel) - one careful question         |
+ | confirmTwice(...), confirmOnce(...) - the careful questions              |
+ | showNotice(title, message, list), askText(title, question, initial)      |
  | clearData()      - Clear: asks what to clear, twice, then clears it      |
  | importData()     - Import: checks the files, then adds what is new       |
  +--------------------------------------------------------------------------+
@@ -114,28 +113,46 @@ public interface Shell
 
     /*
      +--------------------------------------------------------------------------+
-     | confirmTwice(question, keepLabel, goLabel, word)                         |
+     | confirmTwice(title, question, list, keepLabel, goLabel, prompt, word)    |
      +--------------------------------------------------------------------------+
      | Purpose:                                                                 |
      | The two careful questions before something is removed: first the         |
-     | question with a Keep button (the default) and a Go button, then "To      |
-     | confirm, type WORD." with a box whose OK stays off until it holds the    |
-     | word.                                                                    |
+     | question (with a scrolling list under it when list is not null), a Keep  |
+     | button (the default) and a Go button; then the prompt with a box whose   |
+     | OK stays off until it holds the word (capitals and extra spaces          |
+     | ignored).                                                                |
      |                                                                          |
-     | Passed in:  question  - the first question                               |
+     | Passed in:  title     - the words in the first dialog's band             |
+     |             question  - the first question                               |
+     |             list      - lines to show under it, or null                  |
      |             keepLabel - e.g. "Keep it", goLabel - e.g. "Delete..."       |
+     |             prompt    - e.g. "To confirm, type DELETE."                  |
      |             word      - the word to type, e.g. "DELETE"                  |
      | Passed out: true only if both were answered yes                          |
      +--------------------------------------------------------------------------+
      */
-    boolean confirmTwice(String question, String keepLabel, String goLabel, String word);
+    boolean confirmTwice(String title, String question, String list, String keepLabel, String goLabel, String prompt, String word);
 
     /*
-     * confirmOnce(question, keepLabel, goLabel): one careful question with a Keep button (the default) and a Go button, e.g. "Save anyway?" with "Go back".
-     * Passed in:  question, keepLabel, goLabel - the words
+     * confirmOnce(title, question, keepLabel, goLabel): one careful question with a Keep button (the default) and a Go button, e.g. "Save anyway?" with "Go back".
+     * Passed in:  title - the words in the band; question, keepLabel, goLabel - the words
      * Passed out: true only if the Go button was pressed
      */
-    boolean confirmOnce(String question, String keepLabel, String goLabel);
+    boolean confirmOnce(String title, String question, String keepLabel, String goLabel);
+
+    /*
+     * showNotice(title, message, list): a message with OK (and a scrolling list when list is not null), e.g. "Save failed".
+     * Passed in:  title - the words in the band, message - the words, list - lines under it or null
+     * Passed out: nothing
+     */
+    void showNotice(String title, String message, String list);
+
+    /*
+     * askText(title, question, initial): a question with one box to type in, e.g. the golfer's name.
+     * Passed in:  title - the words in the band, question - the words, initial - what the box starts with
+     * Passed out: what was typed, or null if Cancel was pressed
+     */
+    String askText(String title, String question, String initial);
 
     /*
      * clearData(): what Home's Clear button does: asks what to clear and confirms it twice, makes the backup folder, clears, and goes Home.

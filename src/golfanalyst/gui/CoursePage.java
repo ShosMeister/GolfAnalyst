@@ -139,6 +139,7 @@ public final class CoursePage extends Page
             + "press Cancel and start again.";
     static final String SAME_COURSE = "A course with that name and zip is already in the program.";
     static final String NOTHING_CORRECTED = "The name, zip, city and state are the same as before, so there is nothing to save.";
+    static final String SAVE_ANYWAY_TITLE = "Save anyway";
     static final Color ZIP_WARNING = new Color(240, 140, 20);
     private static final int CORRECT_WIDTH = 90;
     private static final int CORRECT_HEIGHT = 24;
@@ -1943,7 +1944,7 @@ public final class CoursePage extends Page
         {
             return;
         }
-        if (zipCheck.verdict() == ZipCodes.Verdict.STATE_DIFFERS && !shell.confirmOnce(zipCodes().saveQuestion(zipField.getText(),
+        if (zipCheck.verdict() == ZipCodes.Verdict.STATE_DIFFERS && !shell.confirmOnce(SAVE_ANYWAY_TITLE, zipCodes().saveQuestion(zipField.getText(),
                 cityField.getText(), stateField.getText()), "Go back", "Save anyway"))
         {
             return;

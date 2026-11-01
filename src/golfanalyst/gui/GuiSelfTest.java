@@ -90,6 +90,7 @@ public final class GuiSelfTest
         private final List<String> asked = new ArrayList<>();
         private boolean answerYes = true;
         private boolean confirmAnswer = false;
+        private String typedText = null;
 
         TestShell(DataStore store)
         {
@@ -229,7 +230,8 @@ public final class GuiSelfTest
          * confirmTwice(question, keepLabel, goLabel, word): remembers the question and gives the answer the test has set.
          */
         @Override
-        public boolean confirmTwice(String question, String keepLabel, String goLabel, String word)
+        public boolean confirmTwice(String title, String question, String list, String keepLabel, String goLabel, String prompt,
+                String word)
         {
             windowCalls = windowCalls + 1;
             asked.add(question);
@@ -250,11 +252,32 @@ public final class GuiSelfTest
          * confirmOnce(question, keepLabel, goLabel): remembers the question and gives the answer the test has set.
          */
         @Override
-        public boolean confirmOnce(String question, String keepLabel, String goLabel)
+        public boolean confirmOnce(String title, String question, String keepLabel, String goLabel)
         {
             windowCalls = windowCalls + 1;
             asked.add(question);
             return confirmAnswer;
+        }
+
+        /*
+         * showNotice(title, message, list): remembers the message.
+         */
+        @Override
+        public void showNotice(String title, String message, String list)
+        {
+            windowCalls = windowCalls + 1;
+            asked.add(title + ": " + message);
+        }
+
+        /*
+         * askText(title, question, initial): remembers the question and gives the text the test has set (null for Cancel).
+         */
+        @Override
+        public String askText(String title, String question, String initial)
+        {
+            windowCalls = windowCalls + 1;
+            asked.add(question);
+            return typedText;
         }
 
         /*
@@ -1606,6 +1629,36 @@ public final class GuiSelfTest
         check("dialog: Clear's sample question has Yes and No only", clearSample.cancelButton == null
                 && clearSample.noButton.getText().equals("No") && AppPanel.sampleForm("Discard your changes?") == null);
         sample.noButton.doClick();
+        check("dialog: the sample-data questions are titled Sample data", sample.title().equals(AppPanel.SAMPLE_TITLE)
+                && clearSample.title().equals("Sample data"));
+
+        ConfirmForm discard = ConfirmForm.yesNo(RoundPage.DISCARD_QUESTION).withTitle(AppPanel.DISCARD_TITLE);
+        checkDialogLayout("Discard changes", discard);
+        check("dialog: Discard changes has Yes and No, with No the default", discard.title().equals("Discard changes")
+                && discard.goButton.getText().equals("Yes") && discard.defaultButton() == discard.cancelButton
+                && discard.cancelButton.getText().equals("No") && discard.defaultButton().hasDefaultRing());
+        StringBuilder problems = new StringBuilder();
+        for (int lp = 0; lp < 40; lp = lp + 1)
+        {
+            problems.append("ERROR  rounds.tsv line ").append(lp + 2).append(": TeeID 99999 is not in courses.tsv\n");
+        }
+        ConfirmForm problemsForm = ConfirmForm.notice(AppPanel.PROBLEMS_MESSAGE, problems.toString()).withTitle(AppPanel.PROBLEMS_TITLE);
+        checkDialogLayout("Data problems, 40 lines", problemsForm);
+        check("dialog: Data problems shows the list read-only with OK", problemsForm.listArea != null && !problemsForm.listArea.isEditable()
+                && problemsForm.defaultButton().getText().equals("OK") && problemsForm.cancelButton == null);
+        ConfirmForm nameForm = ConfirmForm.textInput("Golfer's name:", longName).withTitle(HomePage.NAME_TITLE);
+        checkDialogLayout("Golfer's name", nameForm);
+        nameForm.textField.setText("  Pat Golfer ");
+        nameForm.goButton.doClick();
+        check("dialog: the name box gives what was typed, OK is the default", nameForm.answer() == ConfirmForm.GO
+                && nameForm.text().equals("  Pat Golfer ") && nameForm.defaultButton() == nameForm.goButton);
+        checkDialogLayout("Save failed", ConfirmForm.notice("The round could not be saved:\n" + longCourse
+                + " could not be written because the disk is full.", null).withTitle(RoundPage.SAVE_FAILED_TITLE));
+        ConfirmForm typedName = ConfirmForm.typed("To confirm, type the name of the course exactly: " + longCourse, longCourse);
+        typedName.wordField.setText("  the OCEAN course at kiawah   island golf resort and championship links of the lowcountry ");
+        check("dialog: the typed word ignores capitals and extra spaces", typedName.goButton.isEnabled());
+        typedName.wordField.setText("The Ocean Course");
+        check("dialog: and stays off for anything else", !typedName.goButton.isEnabled());
         check("dialog: No answers NO", sample.answer() == ConfirmForm.NO);
         java.awt.Font standard = javax.swing.UIManager.getFont("OptionPane.messageFont");
         check("dialog: the words use the system's message font, like Discard your changes?", sample.messageArea().getFont()
@@ -1613,10 +1666,11 @@ public final class GuiSelfTest
         java.awt.Font original = standard;
         javax.swing.UIManager.put("OptionPane.messageFont", new javax.swing.plaf.FontUIResource("Segoe UI", java.awt.Font.PLAIN, 12));
         ConfirmForm windowsLook = ConfirmForm.twoChoice(RoundPage.deleteQuestion(longRound, longTee, true), "Keep it", "Delete...");
-        check("dialog: with Windows' Segoe UI 12 the Delete round words use it", windowsLook.messageArea().getFont().getSize() == 12
-                && windowsLook.messageArea().getFont().getName().equals("Segoe UI"));
-        checkDialogLayout("Delete round, unsaved, Segoe UI 12", windowsLook);
-        checkDialogLayout("Clear data, Segoe UI 12", ConfirmForm.clearChoice(AppPanel.clearCounts(99999, 9999, longName),
+        check("dialog: with Windows' Segoe UI the Delete round words use it at 14 pt, dark brown", windowsLook.messageArea().getFont().getSize() == 14
+                && windowsLook.messageArea().getFont().getName().equals("Segoe UI")
+                && windowsLook.messageArea().getForeground().equals(ConfirmForm.MESSAGE_TEXT));
+        checkDialogLayout("Delete round, unsaved, Segoe UI", windowsLook);
+        checkDialogLayout("Clear data, Segoe UI", ConfirmForm.clearChoice(AppPanel.clearCounts(99999, 9999, longName),
                 AppPanel.CLEAR_ROUNDS_TEXT, AppPanel.CLEAR_EVERYTHING_TEXT));
         javax.swing.UIManager.put("OptionPane.messageFont", original);
     }
@@ -1658,13 +1712,25 @@ public final class GuiSelfTest
         layoutAll(form);
         int messageBottom = javax.swing.SwingUtilities.convertPoint(message, 0, message.getHeight(), form).y;
         int aboveBottom = 0;
-        for (Component part : form.getComponents())
+        for (Component part : row.getParent().getComponents())
         {
             if (part != row)
             {
-                aboveBottom = Math.max(aboveBottom, part.getY() + part.getHeight());
+                aboveBottom = Math.max(aboveBottom, javax.swing.SwingUtilities.convertPoint(part, 0, part.getHeight(), form).y);
             }
         }
+        Component band = form.getComponent(0);
+        java.awt.Insets edge = form.getInsets();
+        check("dialog " + name + ": the 46 px wooden band is at the top inside the 3 px border", band instanceof ConfirmForm.Band
+                && band.getHeight() == ConfirmForm.BAND_HEIGHT && band.getY() == ConfirmForm.BORDER && edge.top == ConfirmForm.BORDER
+                && edge.left == ConfirmForm.BORDER && band.getWidth() == form.getWidth() - 2 * ConfirmForm.BORDER
+                && form.getBackground().equals(Theme.HELP_PAPER));
+        boolean woodButtons = row.getComponentCount() > 0;
+        for (Component button : row.getComponents())
+        {
+            woodButtons = woodButtons && button instanceof WoodButton && button.getHeight() >= 28 && button.getWidth() >= 96;
+        }
+        check("dialog " + name + ": the buttons are WoodButtons", woodButtons);
         int rowTop = javax.swing.SwingUtilities.convertPoint(row, 0, 0, form).y;
         javax.swing.JTextArea measure = new javax.swing.JTextArea(message.getText());
         measure.setFont(message.getFont());
@@ -1790,9 +1856,9 @@ public final class GuiSelfTest
             form.fillFromFolder(other);
             form.checkButton.doClick();
             seen.add("checked: import " + (form.importButton.isEnabled() ? "on" : "off") + ": " + form.preview.getText());
-            form.historicalBox.doClick();
+            form.historicalBox.toggle();
             seen.add("changed: import " + (form.importButton.isEnabled() ? "on" : "off") + ": " + form.preview.getText());
-            form.historicalBox.doClick();
+            form.historicalBox.toggle();
             form.checkButton.doClick();
             form.cancelButton.doClick();
             return form.answer();
@@ -2128,7 +2194,7 @@ public final class GuiSelfTest
             return form.answer();
         });
         check("delete: the window asks the question, then for DELETE, and says yes when it is typed",
-                panel.confirmTwice("Delete it?", "Keep it", "Delete...", "DELETE") && titles.equals(List.of("Delete it?", "To confirm, type DELETE.")));
+                panel.confirmTwice("Delete round", "Delete it?", null, "Keep it", "Delete...", "To confirm, type DELETE.", "DELETE") && titles.equals(List.of("Delete it?", "To confirm, type DELETE.")));
         panel.setConfirmer((form, title) ->
         {
             if (form.wordField != null)
@@ -2140,13 +2206,13 @@ public final class GuiSelfTest
             form.goButton.doClick();
             return form.answer();
         });
-        check("delete: the wrong word keeps the round", !panel.confirmTwice("Delete it?", "Keep it", "Delete...", "DELETE"));
+        check("delete: the wrong word keeps the round", !panel.confirmTwice("Delete round", "Delete it?", null, "Keep it", "Delete...", "To confirm, type DELETE.", "DELETE"));
         panel.setConfirmer((form, title) ->
         {
             form.cancelButton.doClick();
             return form.answer();
         });
-        check("delete: Keep it keeps the round without the second question", !panel.confirmTwice("Delete it?", "Keep it", "Delete...", "DELETE"));
+        check("delete: Keep it keeps the round without the second question", !panel.confirmTwice("Delete round", "Delete it?", null, "Keep it", "Delete...", "To confirm, type DELETE.", "DELETE"));
         deleteFolder(temp);
     }
 

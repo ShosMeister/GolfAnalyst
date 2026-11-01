@@ -5,7 +5,6 @@ import golfanalyst.Problem;
 import golfanalyst.Stats;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
-import java.awt.Font;
 import java.awt.Frame;
 import java.awt.Window;
 import java.io.IOException;
@@ -16,8 +15,6 @@ import java.util.Map;
 import java.util.function.ToIntFunction;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
 import javax.swing.SwingUtilities;
 
 /*
@@ -64,7 +61,11 @@ public final class AppPanel extends JPanel implements Shell
     static final String CLEAR_TITLE = "Clear data";
     static final String CLEAR_ROUNDS_TEXT = "Clear my rounds only (keep my courses and my name)";
     static final String CLEAR_EVERYTHING_TEXT = "Clear everything: my rounds, my courses, my name and my settings (like a brand-new copy of the program)";
-    private static final String DIALOG_TITLE = "Golf Analyst";
+    static final String CONFIRM_TITLE = "Confirm";
+    static final String DISCARD_TITLE = "Discard changes";
+    static final String SAMPLE_TITLE = "Sample data";
+    static final String PROBLEMS_TITLE = "Data problems";
+    static final String PROBLEMS_MESSAGE = "These problems were found in the data files. Each one names the file and the line to fix.";
 
     /*
      * Confirmer: shows a ConfirmForm and gives its answer (on screen normally; the self-test answers by code).
@@ -101,7 +102,7 @@ public final class AppPanel extends JPanel implements Shell
     private final RoundPage bestPage;
     private String current = HOME;
     private transient ToIntFunction<String> asker = question -> askOnScreen(question);
-    private transient Confirmer confirmer = (form, title) -> form.showOn(this, title);
+    private transient Confirmer confirmer = (form, title) -> form.showOn(this);
     private transient ImportAsker importAsker = form -> form.showOn(this);
 
     /*
@@ -229,7 +230,7 @@ public final class AppPanel extends JPanel implements Shell
     }
 
     /*
-     * showProblems(): lists every problem found in the data files, with its file and line number, in a window.
+     * showProblems(): lists every problem found in the data files, with its file and line number, in the shared dialog titled Data problems.
      * Passed in:  nothing
      * Passed out: nothing
      */
@@ -244,11 +245,7 @@ public final class AppPanel extends JPanel implements Shell
         {
             text.append(problem).append('\n');
         }
-        JTextArea area = new JTextArea(text.toString(), 18, 80);
-        area.setEditable(false);
-        area.setFont(Theme.font(Font.PLAIN, 13f));
-        JOptionPane.showMessageDialog(this, new JScrollPane(area), "Problems found in the data files",
-                JOptionPane.WARNING_MESSAGE);
+        showNotice(PROBLEMS_TITLE, PROBLEMS_MESSAGE, text.toString().trim());
     }
 
     /*
@@ -470,35 +467,65 @@ public final class AppPanel extends JPanel implements Shell
 
     /*
      +--------------------------------------------------------------------------+
-     | confirmTwice(question, keepLabel, goLabel, word)                         |
+     | confirmTwice(title, question, list, keepLabel, goLabel, prompt, word)    |
      +--------------------------------------------------------------------------+
      | Purpose:                                                                 |
-     | Asks the two careful questions (see Shell): the question with Keep as    |
-     | the default, then "To confirm, type WORD." Both go through the           |
-     | confirmer, so the self-test can answer them.                             |
+     | Asks the two careful questions (see Shell) in the shared dialog: the     |
+     | question titled title, Keep as the default; then the typed word, titled  |
+     | Confirm. Both go through the confirmer, so the self-test can answer      |
+     | them.                                                                    |
      |                                                                          |
-     | Passed in:  question, keepLabel, goLabel - the first question            |
-     |             word - the word to type                                      |
+     | Passed in:  see Shell.confirmTwice                                       |
      | Passed out: true only if both were answered yes                          |
      +--------------------------------------------------------------------------+
      */
     @Override
-    public boolean confirmTwice(String question, String keepLabel, String goLabel, String word)
+    public boolean confirmTwice(String title, String question, String list, String keepLabel, String goLabel, String prompt,
+            String word)
     {
-        if (confirmer.ask(ConfirmForm.twoChoice(question, keepLabel, goLabel), DIALOG_TITLE) != ConfirmForm.GO)
+        ConfirmForm first = (list == null ? ConfirmForm.twoChoice(question, keepLabel, goLabel)
+                : ConfirmForm.twoChoiceWithList(question, list, keepLabel, goLabel));
+        if (ask(first.withTitle(title)) != ConfirmForm.GO)
         {
             return false;
         }
-        return confirmer.ask(ConfirmForm.typed("To confirm, type " + word + ".", word), DIALOG_TITLE) == ConfirmForm.GO;
+        return ask(ConfirmForm.typed(prompt, word).withTitle(CONFIRM_TITLE)) == ConfirmForm.GO;
     }
 
     /*
-     * confirmOnce(question, keepLabel, goLabel): one careful question in the shared dialog, Keep as the default (through the confirmer, so the self-test can answer it).
+     * confirmOnce(title, question, keepLabel, goLabel): one careful question in the shared dialog, Keep as the default (through the confirmer, so the self-test can answer it).
      */
     @Override
-    public boolean confirmOnce(String question, String keepLabel, String goLabel)
+    public boolean confirmOnce(String title, String question, String keepLabel, String goLabel)
     {
-        return confirmer.ask(ConfirmForm.twoChoice(question, keepLabel, goLabel), DIALOG_TITLE) == ConfirmForm.GO;
+        return ask(ConfirmForm.twoChoice(question, keepLabel, goLabel).withTitle(title)) == ConfirmForm.GO;
+    }
+
+    /*
+     * showNotice(title, message, list): a message with OK in the shared dialog (through the confirmer).
+     */
+    @Override
+    public void showNotice(String title, String message, String list)
+    {
+        ask(ConfirmForm.notice(message, list).withTitle(title));
+    }
+
+    /*
+     * askText(title, question, initial): a question with one box in the shared dialog (through the confirmer); the text typed, or null for Cancel.
+     */
+    @Override
+    public String askText(String title, String question, String initial)
+    {
+        ConfirmForm form = ConfirmForm.textInput(question, initial).withTitle(title);
+        return (ask(form) == ConfirmForm.GO ? form.text() : null);
+    }
+
+    /*
+     * ask(form): shows a dialog through the confirmer and gives its answer.
+     */
+    private int ask(ConfirmForm form)
+    {
+        return confirmer.ask(form, form.title());
     }
 
     /*
@@ -532,14 +559,15 @@ public final class AppPanel extends JPanel implements Shell
         int rounds = store.roundsByDate().size();
         int tees = store.dataset().tees().size();
         String name = store.golferName();
-        int choice = confirmer.ask(ConfirmForm.clearChoice(clearCounts(rounds, tees, name), CLEAR_ROUNDS_TEXT, CLEAR_EVERYTHING_TEXT),
-                CLEAR_TITLE);
+        int choice = ask(ConfirmForm.clearChoice(clearCounts(rounds, tees, name), CLEAR_ROUNDS_TEXT, CLEAR_EVERYTHING_TEXT)
+                .withTitle(CLEAR_TITLE));
         if (choice == ConfirmForm.CANCELLED)
         {
             return;
         }
         boolean everything = choice == ConfirmForm.EVERYTHING;
-        if (!confirmTwice(clearSummary(everything, rounds, tees, name), "Keep my data", "Clear...", "CLEAR"))
+        if (!confirmTwice(CLEAR_TITLE, clearSummary(everything, rounds, tees, name), null, "Keep my data", "Clear...",
+                "To confirm, type CLEAR.", "CLEAR"))
         {
             return;
         }
@@ -637,15 +665,16 @@ public final class AppPanel extends JPanel implements Shell
         ConfirmForm sample = sampleForm(question);
         if (sample != null)
         {
-            int answer = sample.showOn(this, DIALOG_TITLE);
+            int answer = sample.showOn(this);
             if (answer == ConfirmForm.GO)
             {
                 return JOptionPane.YES_OPTION;
             }
             return (answer == ConfirmForm.NO ? JOptionPane.NO_OPTION : JOptionPane.CANCEL_OPTION);
         }
-        int answer = JOptionPane.showConfirmDialog(this, question, DIALOG_TITLE, JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
-        return answer == JOptionPane.CLOSED_OPTION ? JOptionPane.CANCEL_OPTION : answer;
+        String title = (question.equals(RoundPage.DISCARD_QUESTION) ? DISCARD_TITLE : CONFIRM_TITLE);
+        int answer = ConfirmForm.yesNo(question).withTitle(title).showOn(this);
+        return (answer == ConfirmForm.GO ? JOptionPane.YES_OPTION : JOptionPane.NO_OPTION);
     }
 
     /*
@@ -657,9 +686,9 @@ public final class AppPanel extends JPanel implements Shell
     {
         if (question.equals(SAMPLE_QUESTION))
         {
-            return ConfirmForm.yesNoCancel(question, true);
+            return ConfirmForm.yesNoCancel(question, true).withTitle(SAMPLE_TITLE);
         }
-        return (question.equals(CLEAR_SAMPLE_QUESTION) ? ConfirmForm.yesNoCancel(question, false) : null);
+        return (question.equals(CLEAR_SAMPLE_QUESTION) ? ConfirmForm.yesNoCancel(question, false).withTitle(SAMPLE_TITLE) : null);
     }
 
     /*
