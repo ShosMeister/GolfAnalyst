@@ -6,17 +6,17 @@ Typed a 5 where you meant a 4? Here is how to put it right.
 
 2. Press Edit. The title at the top now starts with Edit, and the boxes you can change turn white. The course, the tees and the holes stay as they are.
 
-3. Make your changes. Click the box you want and type over it. The cursor moves on just like it does when you enter a round, and the F and S keys still tick Fwy and Sand. Everything at the bottom and on the right is worked out again as you type, including what the round does to your handicap.
+3. Make your changes. Click the box you want and type over it. The cursor moves on just like it does when you enter a round, and the F and S keys still check Fwy and Sand. Everything at the bottom and on the right is worked out again as you type, including what the round does to your handicap.
 
-4. Press Save. Only this round's line in rounds.tsv is replaced. Your other rounds and any notes in the file are left alone. Your handicap and statistics are worked out again straight away.
+4. Press Save. Only this round's line in rounds.tsv is replaced. Your other rounds and any notes in the file are left alone. Your handicap and statistics are recalculated immediately.
 
 Changed your mind? Press Cancel and the round goes back to how it was.
 
 # A few things worth knowing
 
-Historical: You can tick or untick the Historical box at any time. Ticked, the round is kept for looking back at and left out of your handicap (it counts in your statistics only if Include historical rounds is ticked on the Home screen). Unticked, it counts again.
+Historical: You can check or uncheck the Historical box at any time. A historical round never counts toward your Handicap Index. See Home Info for how Include historical rounds affects statistics.
 
-A safety copy: Every time you save an edit, the file as it was is copied into the backups folder in your data folder, with the date and time in its name (for example rounds-2026-10-29-143012.tsv). If an edit went wrong, close the program, copy the right backup over rounds.tsv, and open the program again. The 20 newest copies are kept.
+A safety copy: Every time you save an edit, a copy of rounds.tsv is saved in the backups folder in your data folder, with the date and time in its name (for example rounds-2026-10-29-143012.tsv). If an edit went wrong, close the program, copy the right backup over rounds.tsv, and open the program again. The program normally keeps the 20 newest ordinary backup copies of each data file. Clear and Import folders are separate and are not pruned.
 
 Leaving with unsaved changes: If you press an arrow, Cancel or the Home button after changing something, the program asks "Discard your changes?" Say No to go back and press Save, or Yes to leave the round as it was.
 
@@ -30,8 +30,8 @@ The wrong course: The course and tees cannot be changed here. If you entered a r
 
 3. Check it is the right round. The first question names the round by its number, course, tees, date and score, as it is saved; anything you typed in the boxes is ignored. Press Keep it to stop, or Delete... to go on.
 
-4. Type DELETE. The OK button only comes on once the word is typed (capitals or not). Press OK, or Cancel to keep the round.
+4. Type DELETE. The OK button is enabled only once the word is typed (capitals or not). Press OK, or Cancel to keep the round.
 
-Only that round's line is taken out of rounds.tsv. Your other rounds, your notes in the file and the round numbers are left alone. Your handicap and statistics are worked out again straight away, and the screen shows the round before it (or the Home screen, if it was your only round). The bar along the bottom gives the name of the backup copy.
+Only that round's line is taken out of rounds.tsv. Your other rounds, your notes in the file and the round numbers are left alone. Your handicap and statistics are recalculated immediately, and the screen shows the round before it (or the Home screen, if it was your only round). The bar along the bottom gives the name of the backup copy.
 
-Getting a deleted round back: Before the round is removed, a copy of rounds.tsv as it was goes into the backups folder in your data folder, named with the date and time (for example rounds-2026-10-31-142530.tsv). To undo the delete, close the program, copy that file over rounds.tsv, and open the program again. Any round you saved after the delete has to be entered again.
+Getting a deleted round back: The backup has the date and time in its name, as described above. To undo the delete, close the program, copy that file over rounds.tsv, and open the program again. Any round you saved after the delete has to be entered again.

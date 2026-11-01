@@ -1,16 +1,16 @@
 New Course - Info
 
-This is the screen for adding a course and up to four sets of tees, and for fixing a course that is already in the program. It is laid out like a scorecard: the captions run down the wooden frame on the left, and each set of tees has its own frame to the right. The white cells are the ones you type in. The cell with the cursor has a gold outline. The grey cells are worked out for you.
+This is the screen for adding a course and up to four sets of tees, and for fixing a course that is already in the program. It is laid out like a scorecard: the captions run down the wooden frame on the left, and each set of tees has its own frame to the right. The white cells are the ones you type in. The cell with the cursor has a gold outline. The gray cells are worked out for you.
 
 # Across the top
 
-Course and Zip: The name of the course and its 5-digit zip code. If that course is already in the program (the capitals and extra spaces do not matter, but the zip must be the same), the title changes to Edit Course and its tees appear in the frames, ready to be fixed. Any frames left empty are for new tees. The name and zip then turn grey, so they cannot be changed by accident.
+Course and ZIP: The name of the course and its 5-digit ZIP code. If that course is already in the program (capitalization and extra spaces do not matter, but the ZIP code must be the same), the title changes to Edit Course and its tees appear in the frames, ready to be fixed. Any frames left empty are for new tees. The name and ZIP then turn gray, so they cannot be changed by accident.
 
-Correct...: The small button beside the zip, there only in Edit Course. It opens the name and zip so you can correct a misspelt name or a wrong zip. The correction goes into every set of tees of the course; their rounds stay with them, and the Stats Board and Best Round simply show the new name. If the new name and zip belong to another course already in the program, both boxes turn pink and Save stays off, because two courses cannot be merged.
+Correct...: The small button beside the ZIP code, there only in Edit Course. It opens the name and ZIP so you can correct a misspelled name or a wrong ZIP. The correction goes into every set of tees of the course; their rounds stay with them, and the Stats Board and Best Round simply show the new name. If the new name and ZIP belong to another course already in the program, both boxes turn pink and Save stays disabled, because two courses cannot be merged.
 
-City and State: Where the course is. State is two capital letters, for example SC. For a course that is already in the program they are filled in for you; if you change them, every set of tees of that course gets the new city and state. For a new course, typing a zip the program knows fills in an empty City and State, and you can still change them.
+City and State: Where the course is. State is two capital letters, for example SC. For a course that is already in the program they are filled in for you; if you change them, every set of tees of that course gets the new city and state. For a new course, typing a ZIP the program knows fills in an empty City and State, and you can still change them.
 
-ZIP code check: The program has a list of US zip codes. If the state you typed is not the zip's state, the bar along the bottom says so and the State box gets an orange outline; you can still save, but Save asks first. If only the city is different, the bar just names the town the zip is listed under, which is fine for a course outside town. A zip that is not in the list gets a note asking you to check it.
+ZIP code check: The program has a list of US ZIP codes. If the state you typed is not the ZIP's state, the bar along the bottom says so and the State box gets an orange outline; you can still save, but Save asks first. If only the city is different, the bar just names the town the ZIP is listed under, which is fine for a course outside town. A ZIP that is not in the list gets a note asking you to check it.
 
 Nine-hole course: Marks a course that only has nine holes, like the ones Spark Golf plays. With it on, holes 10 to 18 and the Front 9 and Back 9 rows disappear, and the handicap numbers run from 1 to 9. For a course that is already in the program it cannot be changed, because its rounds depend on it.
 
@@ -18,7 +18,7 @@ Nine-hole course: Marks a course that only has nine holes, like the ones Spark G
 
 There are four frames, one for each set of tees. They start out named Ladies, Beginner, Intermediate and Expert, but you can call them anything (Blue, White, Gold...). Each name can only be used once on a course.
 
-Rating / Slope: The USGA Course Rating and Slope Rating from the scorecard for these tees. A tee with no rating is skipped when you save, so you only fill in the tees you want.
+Rating / Slope: The USGA Course Rating and Slope Rating from the scorecard for these tees. A set of tees for which you leave the rating blank is skipped when you save, so you only fill in the tees you want.
 
 Front 9 and Back 9: The nine-hole rating and slope of the front nine and the back nine. They are on newer scorecards and on the USGA's course rating website. You only need them if you want a nine-hole round played on this 18-hole course to count toward your handicap. Leave them blank otherwise, but if you fill in one you need the other too.
 
@@ -30,4 +30,4 @@ The arrow next to the first tee's name copies its pars and handicap numbers into
 
 # Across the bottom
 
-The bar along the bottom always tells you the next thing to fill in or fix. When everything is in order it says Ready to save, and the Save button comes on. If you changed a set of tees that already has rounds, it also tells you your handicap will be worked out again for them. Save puts your changes and new tees into courses.tsv and takes you back Home; when a course already in the program was changed, a copy of the file as it was goes into the backups folder. Cancel goes back Home without saving anything.
+The bar along the bottom always tells you the next thing to fill in or fix. When everything is in order it says Ready to save, and the Save button is enabled. If you changed a set of tees that already has rounds, it also tells you your handicap will be worked out again for them. Save puts your changes and new tees into courses.tsv and takes you back Home. If you changed existing tee details or corrected the course name or ZIP, a backup copy of the course file is saved in the backups folder first. Adding new tees alone does not need a backup. The Help explains how to restore a backup. Cancel goes back Home without saving anything.

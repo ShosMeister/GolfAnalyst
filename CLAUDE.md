@@ -1,4 +1,4 @@
-# GolfAnalyst v4.80 (Java) - notes for Claude
+# GolfAnalyst v4.00 (Java) - notes for Claude
 
 A single-golfer golf statistics program with a Swing window. Ported from HyperCard (1991) to Excel/VBA to Java.
 Courses and rounds live in two plain tab-separated text files. Written for one user who tests on Windows.
@@ -206,8 +206,14 @@ Courses and rounds live in two plain tab-separated text files. Written for one u
   before it) shows the label in bold; "3. First sentence. More" shows the first sentence in bold
   (`HelpFormatter`, shown by `HelpWindow` on parchment under a wood title band). The help window is modal (v4.22):
   the main window cannot be used until it is closed, so the help always matches the screen it was opened from.
-- Version numbers: second pair of digits, `.0x` is a bug fix and `.x0` is a feature (v4.00 -> v4.01 fix, v4.10
-  feature). Set in `Theme.VERSION` and `pom.xml`. Release zips are named `GolfAnalyst_vX.XX.zip`.
+- Version numbers: Until the first published release the version stays at 4.00, whatever is added. Do not bump
+  Theme.VERSION or pom.xml and do not add new version lines to help/home-info.txt. When a feature or fix is added, do
+  two things: (a) add it to the matching group of the v4.00 entry in help/home-info.txt (the groups are: the opening
+  line, Handicap and statistics, Rounds, Courses, Looking at your golf, Looking after your data, Around the program),
+  keeping each paragraph short and in the same friendly voice; (b) add one line to CHANGELOG.md. After the first
+  release: a bug fix raises the second pair of digits by one (4.01) and a feature raises the first of them (4.10),
+  and each release gets its own history line. Release zips are named `GolfAnalyst_vX.XX.zip`. (The "(v4.30)"-style
+  tags in these notes are the development milestones listed in CHANGELOG.md, not versions.)
 
 ## Status and backlog
 Built: Home, round entry, saved-round viewer with the Show (course/tee) filter, Info/Help, New Course (v4.10: adds

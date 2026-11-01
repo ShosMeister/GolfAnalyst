@@ -72,7 +72,7 @@ public final class Theme
     public static final int ICON_SIZE = 56;
     public static final int NAV_ICON_SIZE = 46;
     /** The version. The second pair of digits: .0x is a bug fix, .x0 is a new feature. */
-    public static final String VERSION = "4.80";
+    public static final String VERSION = "4.00";
     public static final String VERSION_TEXT = "Golf Analyst v" + VERSION;
     /** The picture stretched across the header. Change this name to use a different wood. */
     public static final String HEADER_WOOD = "Wood_Light.gif";

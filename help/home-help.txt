@@ -6,13 +6,13 @@ Okay, so you want to know how to use this thing. Here is how it all works, from 
 
 There really isn't much more you need to do when you play a round to capture the information. Normally, you write down your score. Now, instead of just your score, mark an "F" on the scorecard if you hit the fairway from the tee. Also, when you get to the green, count the number of putts and mark that on your scorecard as well. What I do is use two lines on the card. The top line is my normal score and the second line I use for the F and the number of putts (F2). Finally, if you are in the sand at any time on the hole, just put an "S" on that second line. Once you get the hang of it you'll find that it's really not that much work.
 
-Two rules to remember. A putt is only counted when your ball is on the putting green. A stroke from the fringe or the collar is not a putt, even if you use your putter. And if you hole out from off the green (a chip-in, for example) that hole has 0 putts.
+For what counts as a putt, see the Putt entry in New Round Info. The short version: a stroke from the fringe or collar is not a putt, even if you use your putter, and a chip-in has 0 putts.
 
-A tip for keeping up the pace of play. For the handicap, no hole counts for more than a net double bogey: par plus 2, plus any handicap strokes you get on that hole (par plus 5 until you have a Handicap Index). So once you reach that number, you can pick up, write it down and move on. Counting out an 8 on a hole that only counts as a 7 does nothing for your handicap, and the program applies the limit for you. That is also why the New Course screen asks for the handicap number of every hole: it needs them to know where you get strokes.
+A tip for keeping up the pace of play: for handicap purposes, the program caps each hole at net double bogey: par plus 2, plus any handicap strokes you get on that hole. See Home Info for the details. Once you reach that number, you can pick up, write it down and move on. The New Course screen needs the handicap number for every hole so it knows where you get strokes.
 
 # After you play
 
-To add the round, press New Round. Fill it in from your scorecard and press Save. You can even type the same F and S letters you marked on your card, right in the Putt box. The Help button on that screen walks you through it. When you come back to Home, your handicap and statistics already include the new round.
+To add the round, press New Round. Fill it in from your scorecard and press Save. You can even type the same F and S letters you marked on your card, right in the Putt box. The ? button on that screen walks you through it. When you come back to Home, your handicap and statistics already include the new round.
 
 To look back at your rounds, press Rounds. It opens at your most recent round and the arrows at the bottom step through the others. You can limit it to one course, or one set of tees, with the Show box.
 
@@ -22,11 +22,11 @@ To change the name, click it in the Golfer's Stats section, type the name and pr
 
 # Adding a course
 
-You cannot enter a round until its course is in the program. Press New Course, type the course name and zip, then each set of tees from the scorecard, and press Save. The ? button on that screen walks you through it.
+You cannot enter a round until its course is in the program. Press New Course, type the course name and ZIP, then each set of tees from the scorecard, and press Save. The ? button on that screen walks you through it.
 
 # Your own data
 
-When you first open the program it shows the sample data, so there is something to look at. The title bar and the bar along the bottom say so. The first time you save a course or a round, the program asks whether to make your own data folder. Say Yes, then close the program and open it again: from then on it uses your own data folder and the sample data is left alone.
+When you first open the program it shows sample data, so there is something to look at. The title bar and the bar along the bottom say so. The first time you save a course or round, the program asks whether to make your own data folder. Choose Yes, then close and reopen the program. From then on it uses your own data folder and leaves the sample data alone.
 
 # Looking course by course
 
@@ -40,13 +40,11 @@ Press Best Round to see your lowest round on a course and set of tees. Click Com
 
 Look at your four percentages: Fairways Hit, Greens In Reg, Sand Saves and Two-Putt. See which one is low compared with the others. That is where to practice.
 
-For example, I know, from using this program, that my weakness is my short game. How? Simple, my Two-Putt percentage is always 90+ but my Greens In Reg is always under 20%. That tells me that if I could get to the green in regulation, I'd be making par almost all of the time.
+For example, I know, from using this program, that my weakness is getting to the green. How? Simple: my Two-Putt percentage is always 90+ but my Greens In Reg is always under 20%. Once I am on the green I putt well, so if I could get there in regulation, I'd be making par almost all of the time.
 
-# Old rounds
+# Historical rounds
 
-Rounds too old to count toward today's handicap can still be kept, so nothing is lost. When you enter or edit a round, tick the Historical box. The round is saved and you can still step through it with Rounds, but it is left out of your Handicap Index. Whether it counts in your statistics is up to you: the Include historical rounds box under Golfer's Stats on this screen turns that on and off.
-
-To see how you play today, untick Include historical rounds. The numbers on this screen, the Stats Board and Best Round then use only your recent rounds. Tick it again to bring the old ones back. Your Handicap Index never uses old rounds either way.
+When you enter or edit a historical round, check the Historical box. To include or leave out historical rounds in the Home screen statistics, the Stats Board and Best Round, check or uncheck Include historical rounds under Golfer's Stats. Home Info explains the effect on your Handicap Index and statistics.
 
 # Seeing the whole picture
 
@@ -62,9 +60,9 @@ From Excel: Put the column headings in the first row, then use File, Save As and
 
 Check files: Press it to see what would happen. The box underneath says how many tees and rounds will be added, and lists every row that is skipped or rejected with its line number and the reason. Nothing is changed yet. A set of tees or a round you already have is skipped, and a row the program cannot read is rejected. A rounds file on its own must use the TeeIDs of your own tees.
 
-Mark the imported rounds as historical: Tick it for old rounds you want to keep for looking back at. They never count toward your Handicap Index.
+Mark the imported rounds as historical: Check it for historical rounds you want to keep for looking back at. They never count toward your Handicap Index.
 
-Import: It only comes on after a check found something to add. Before anything is written, a copy of courses.tsv and rounds.tsv goes into a folder of its own inside the backups folder, named with the date and time (for example backups\import-2026-11-01-142530). Then the new tees and rounds are added at the end of your files; nothing you already have is changed.
+Import: It is enabled only after a check finds something to add. Before anything is written, a copy of courses.tsv and rounds.tsv goes into a folder of its own inside the backups folder, named with the date and time (for example backups\import-2026-11-01-142530). Then the new tees and rounds are added at the end of your files; nothing you already have is changed.
 
 Putting it back: Close the program, copy the two files from that import folder back into your data folder, and open the program again.
 
@@ -76,9 +74,9 @@ Clear my rounds only: Your rounds go; your courses and your name stay. Handy whe
 
 Clear everything: Your rounds, your courses, your name and your settings all go, like a brand-new copy of the program.
 
-Then press Continue. The program asks twice before it clears anything. First it tells you exactly what will be removed; press Keep my data to stop there. Then it asks you to type CLEAR, and its OK button only comes on once the word is typed.
+Then press Continue. The program asks twice before it clears anything. First it tells you exactly what will be removed; press Keep my data to stop there. Then it asks you to type CLEAR, and its OK button is enabled only once the word is typed.
 
-A copy first: Before anything is cleared, courses.tsv, rounds.tsv and settings.txt are copied into a folder of their own inside the backups folder, named with the date and time (for example backups\clear-2026-10-31-142530). These copies are never deleted by the program.
+A copy first: Before anything is cleared, courses.tsv, rounds.tsv and settings.txt are copied into a separate folder inside the backups folder, named with the date and time (for example backups\clear-2026-10-31-142530). Clear and Import folders are not pruned by the program; the 20-copy limit applies only to ordinary dated backups of each data file.
 
 Putting it back: Close the program, copy the files from that clear folder back into your data folder over the emptied ones, and open the program again.
 

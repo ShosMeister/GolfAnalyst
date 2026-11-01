@@ -1,6 +1,6 @@
 Looking at Your Rounds - Info
 
-This screen shows one saved round at a time, exactly as it was saved. Nothing on it can be changed here, which is why every box is grey. To fix something, press Edit.
+This screen shows one saved round at a time, exactly as it was saved. Nothing on it can be changed here, which is why every box is gray. To fix something, press Edit.
 
 # At the top
 
@@ -10,34 +10,34 @@ Show: Which rounds the arrow buttons step through: all of them, all the rounds o
 
 Course / tee: The course and tees of this round, with the ID number of that set of tees in front.
 
-Holes: Whether it was 18 holes, the front nine or the back nine. Holes that were not played are greyed out.
+Holes: Whether it was 18 holes, the front nine or the back nine. Holes that were not played are grayed out.
 
 PCC: The Playing Conditions Calculation that was used. It is almost always 0.
 
 # The hole-by-hole tables
 
-Hole, Par, Putt and Score are what they say. A check in Fwy means you hit the fairway from the tee on that hole. A check in Sand means you were in a bunker on that hole. Out and In are the totals for holes 1 to 9 and 10 to 18.
+Hole, Par, Score and Putt are what they say, in that column order. A check in Fwy means you hit the fairway from the tee on that hole. A check in Sand means you were in a bunker on that hole. Out and In are the totals for holes 1 to 9 and 10 to 18.
 
 # The column on the right of the tables
 
 Rating: The Course Rating and the Slope Rating for the holes that were played. If it says "no rating" the round counts in your statistics but not in your handicap.
 
-Eagles, Birdies, Pars, Bogeys, DBogeys, Others: How many holes of each kind the round had. Others means triple bogey or worse.
+Eagles, Birdies, Pars, Bogeys, DBogeys, Others: The counts for each kind of score in the round. Others means triple bogey or worse.
 
-18-Hole Diff: How well you played this round once the difficulty of the course is taken into account; lower is better (the Info on the New Round screen explains it). It shows "pending" for a nine-hole round played before you had a Handicap Index, until you have played 54 holes.
+18-Hole Diff: How well you played this round once the difficulty of the course is taken into account; lower is better (New Round Info explains it). It shows "pending" for a nine-hole round played before you had a Handicap Index, until you have played 54 holes.
 
 Index After: What your Handicap Index was right after this round was added.
 
-Historical: Ticked, in the frame under the tables, for an old round that is kept only to look back at. It shows "historical" in the 18-Hole Diff box and a dash for Index After, and the bar at the bottom says so. It is never part of your handicap; whether it counts in your statistics is set on the Home screen.
+Historical: The box under the tables is checked for a historical round. The 18-Hole Diff box says "historical," Index After shows a dash, and the bar at the bottom says so. Historical rounds never count toward your Handicap Index; see Home Info for how they affect statistics.
 
 # The frame under the tables
 
 Date, Score and Putts: When the round was played and its totals.
 
-Fairway, Sand Saves, Greens In Reg and 2-Putt: The same four figures as on the Home screen, worked out for this round.
+Fairway, Sand Saves, Greens In Reg and 2-Putt: These figures are worked out for this round. See Home Info for what each one means.
 
 # The four arrows and the bar at the bottom
 
-The arrows are First, Previous, Next and Last round, within whatever you chose in Show. An arrow is greyed out when there is nowhere to go. The bar along the bottom says which round you are on and how many there are in your choice, for example Round 3 of 12.
+The arrows are First, Previous, Next and Last round, within whatever you chose in Show. An arrow is grayed out when there is nowhere to go. The bar along the bottom says which round you are on and how many there are in your choice, for example Round 3 of 12.
 
 Edit and Close: At the right end of the frame under the tables. Edit opens the round so you can fix it. Close leaves the screen.

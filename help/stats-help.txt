@@ -4,7 +4,7 @@ Here is how to use the Stats Board.
 
 # Getting here
 
-Press Stats Board on the Home screen. The Home button at the top takes you back. Whether old (historical) rounds are counted here is set by the Include historical rounds box on the Home screen.
+Press Stats Board on the Home screen. The Home button at the top takes you back. Whether historical rounds are counted here is set by the Include historical rounds box on the Home screen.
 
 # Picking a row
 
@@ -16,13 +16,13 @@ Double-click a row, or press Enter on the highlighted one, and the Rounds screen
 
 # Sorting
 
-Click any heading to sort by that column, smallest first (or A to Z for the course names). Click it again to turn the order round. A small triangle in the corner of the heading shows which column is sorted and which way. The 18-hole rows and the nine-hole rows are sorted separately, and the two total rows at the top never move. A dash always goes to the bottom, whichever way you sort. Your highlighted row stays highlighted wherever it moves to.
+Click any heading to sort by that column, smallest first (or A to Z for the course names). Click it again to reverse the sort order. A small triangle in the corner of the heading shows which column is sorted and which way. The 18-hole rows and the nine-hole rows are sorted separately, and the two total rows at the top never move. A dash always goes to the bottom, whichever way you sort. Your highlighted row stays highlighted wherever it moves to.
 
 The program remembers your sort while it is open, so you can go and look at some rounds and come back to the same order. It starts sorted by course name each time you open the program.
 
 # Reading the gold
 
-Look for the courses with no gold at all: those are the ones to work on. The Info says exactly how the gold is chosen.
+Gold marks the best figure in each column. A row with no gold does not hold the best figure in any column, or there are not enough rounds yet for gold to appear. The Info explains exactly how the gold is chosen.
 
 # The faint writing
 

@@ -4,11 +4,11 @@ Here is how to use the Best Round screen.
 
 # Getting here
 
-Press Best Round on the Home screen. It opens on the course and tees of the round you played most recently, showing your best single round there. Old (historical) rounds are included when Include historical rounds is ticked on the Home screen.
+Press Best Round on the Home screen. It opens on the course and tees of the round you played most recently, showing your best single round there. Historical rounds are included when Include historical rounds is checked on the Home screen. See Home Info for how that setting affects statistics.
 
 # Choosing the course
 
-Open the Course / tee box at the top and pick another course or set of tees. The screen changes straight away.
+Open the Course / tee at the top and pick another course or set of tees. The screen updates immediately.
 
 # Single or Composite
 

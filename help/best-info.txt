@@ -1,6 +1,6 @@
 Best Round - Info
 
-This is the Best Round screen. It shows your best golf on one course and set of tees, laid out like a saved round on the Rounds screen. Nothing on it can be changed, which is why every box is grey.
+This is the Best Round screen. It shows your best golf on one course and set of tees, laid out like a saved round on the Rounds screen. Nothing on it can be changed, which is why every box is gray.
 
 # Across the top
 
@@ -14,12 +14,12 @@ Composite: A round you never actually played. It takes your best score on every 
 
 For each hole the composite uses your lowest score there. If you made that score more than once, it uses the time with the fewest putts, and if that ties too, the most recent one. The putts, the fairway and the sand for that hole all come from that same round, so each hole is something you really did.
 
-The totals, the eagles to others, the fairways, greens in regulation, two-putts and sand saves are then worked out from those holes the usual way.
+The totals, the Eagles-to-Others counts, fairways, greens in regulation, two-putts and sand saves are then worked out from those holes the usual way.
 
 The composite is not a real round, so it has no date (it says Composite), and no 18-Hole Diff or Index After. It never counts toward your handicap or your statistics. The Rating is the rating of the tees.
 
 # The rest of the screen
 
-Everything else is the same as on the Rounds screen: the hole-by-hole tables, the column on the right and the frame underneath. The Info on the Rounds screen explains each box.
+Everything else is the same as on the Rounds screen: the hole-by-hole tables, the column on the right and the frame underneath. Rounds Info explains each box.
 
-The bar along the bottom says how many rounds the best was picked from, and for a composite it also gives your best single round, so you can see how far apart they are. Historical rounds are included when Include historical rounds is ticked on the Home screen.
+The bar along the bottom says how many rounds the best was picked from, and for a composite it also gives your best single round, so you can see how far apart they are. Historical rounds are included when Include historical rounds is checked on the Home screen. See Home Info for how that setting affects statistics.

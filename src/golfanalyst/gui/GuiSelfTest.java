@@ -627,7 +627,7 @@ public final class GuiSelfTest
         }
         String entryHelp = Files.readString(Path.of("help", "round-new-help.txt"));
         check("the entering help explains the F and S keys and says they are optional",
-                entryHelp.contains("F ticks or unticks Fwy") && entryHelp.contains("S does the same for Sand")
+                entryHelp.contains("F checks or unchecks Fwy") && entryHelp.contains("S does the same for Sand")
                         && entryHelp.contains("you do not have to use them"));
         check("the F and S keys are explained in the Help, not the Info", !Files.readString(Path.of("help", "round-new-info.txt")).contains("type F"));
         check("the Name help is not 'whose rounds these are'", !Files.readString(Path.of("help", "home-info.txt")).contains("Whose rounds"));

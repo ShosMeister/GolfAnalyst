@@ -1,16 +1,16 @@
 Stats Board - Info
 
-This is the Stats Board. It shows your statistics course by course, so you can see where you play well and where you struggle. Every number is worked out by the program from the rounds you have saved, the same way as on the Home screen. Historical rounds count here when Include historical rounds is ticked on the Home screen, and are left out when it is not.
+This is the Stats Board. It shows your statistics course by course, so you can see where you play well and where you struggle. Every number is worked out by the program from the rounds you have saved, the same way as on the Home screen. Historical rounds count here when Include historical rounds is checked on the Home screen, and are left out when it is not.
 
 # The rows
 
-Each row is one course and set of tees, written as Course:Tee. Your 18-hole rounds come first, one row for each set of tees you have played.
+Each row is one course and set of tees, shown in the row as Course:Tee. Your 18-hole rounds come first, one row for each set of tees you have played.
 
 Nine-hole rounds are never mixed in with 18-hole ones, because the scores cannot be compared. They come after the tan Nine-hole rounds band, which is always there, even before you have played a nine-hole round. A nine played on an 18-hole course gets its own row for the front nine and for the back nine, marked (Front 9) or (Back 9). A nine-hole course gets just one row.
 
 # The columns
 
-Course : Tee Box: The course and the set of tees.
+Course : Tee Box: The course and the set of tees. Each row displays them as Course:Tee.
 
 Rating\Slope: The Course Rating and Slope Rating of those tees. For a front nine or back nine row it is that nine's own rating, or a dash if the course file has none.
 
@@ -20,15 +20,15 @@ Avg: Your average score.
 
 Best: Your lowest score.
 
-Fwy %: The percentage of fairways you hit from the tee. Only par 4s and par 5s are counted, since on a par 3 you are aiming at the green.
+Fwy %: Fairways hit, as a percentage of par 4s and par 5s played. See Home Info for the full definition.
 
-GIR %: The percentage of holes where you reached the green in regulation, which means you had a putt for birdie or better.
+GIR %: Greens reached in regulation, as a percentage of holes played. See Home Info for the full definition.
 
-2-Putt %: The percentage of holes where you took two putts or fewer.
+2-Putt %: Holes completed with two putts or fewer, as a percentage of holes played. See Home Info for the full definition.
 
 Putts/Rnd: Your average number of putts in a round.
 
-Sand %: Your sand saves: how often you were in the sand and still made par or better.
+Sand %: Sand saves, as a percentage of holes where you were in a bunker. See Home Info for the full definition.
 
 All of the percentages use every hole played in that row. A dash means there is nothing to work it out from yet, for example Sand % on a course where you have never been in a bunker.
 
@@ -38,7 +38,7 @@ The rest of the list is blank rows, like an empty sheet of paper, so the board a
 
 The headings and the two total rows stay in place while the rows below them scroll. All 18-hole rounds and All nine-hole rounds give the same figures over every round of that kind, so they match the Home screen. Both are always shown: a total with no rounds shows 0 under Rnds and a dash everywhere else.
 
-# The colours
+# The colors
 
 Gold: The best figure in each column, among the rows with two or more rounds. The lowest Avg, Best and Putts/Rnd, and the highest of the percentages. The 18-hole rows and the nine-hole rows each have their own gold. There is no gold until at least two rows have two or more rounds, because one round on its own does not tell you much.
 
@@ -46,7 +46,7 @@ Cream with a gold outline: The row you have picked.
 
 # The faint writing
 
-When a part of the board has nothing in it yet, its first row says so in faint grey letters. Before you have saved any rounds the top row says No rounds yet. Press New Round on the Home screen. Until you play a nine-hole round, the row under the Nine-hole rounds band says No nine-hole rounds yet. The faint writing goes away by itself as soon as there is a row to show.
+When a part of the board has nothing in it yet, its first row says so in faint gray letters. Before you have saved any rounds the top row says No rounds yet. Press New Round on the Home screen. Until you play a nine-hole round, the row under the Nine-hole rounds band says No nine-hole rounds yet. The faint writing goes away by itself as soon as there is a row to show.
 
 # Across the bottom
 

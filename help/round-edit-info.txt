@@ -1,6 +1,6 @@
 Editing a Round - Info
 
-This is a round you have already saved, opened so you can fix it. The title at the top starts with Edit, followed by the round's number, the course and the tees, so you always know which round you are changing. The white boxes are the ones you can change. The grey boxes are worked out for you as you type.
+This is a round you have already saved, opened so you can fix it. The title at the top starts with Edit, followed by the round's number, the course and the tees, so you always know which round you are changing. The white boxes are the ones you can change. The gray boxes are worked out for you as you type.
 
 # Across the top
 
@@ -10,23 +10,23 @@ PCC: The day's Playing Conditions Calculation, normally 0. If your handicap reco
 
 # The hole-by-hole tables
 
-Score and Putt: The score and putts of each hole you played. You can change any of them.
+Score and Putt: Your score and putts for each hole you played. You can change either one.
 
 Fwy and Sand: Whether you hit the fairway from the tee and whether you were in a bunker.
 
 # The column on the right and the frame under the tables
 
-These show the round as it would be with your changes: the eagles to others, the totals, fairways, sand saves, greens in regulation and two-putts, and what the round does to your handicap.
+These show the round as it would be with your changes: the Eagles-to-Others counts, the totals, fairways, sand saves, greens in regulation and two-putts, and what the round does to your handicap.
 
 Date: The day you played. You can change it.
 
-Historical: Ticked for an old round that is kept to look back at. It is never part of your handicap; whether it counts in your statistics is set on the Home screen. You can tick or untick it.
+Historical: Check this for a historical round. It never counts toward your Handicap Index; see Home Info for how historical rounds affect statistics. You can check or uncheck it.
 
-Delete round: The small button under Historical, there only while you edit. It removes this round from your rounds, but only after two questions: the first names the round (its number, course, tees, date and score) and the second asks you to type DELETE. Before the round is removed, a copy of rounds.tsv as it was goes into the backups folder, so a round deleted by mistake can be put back; the Help says how.
+Delete round: The small button under Historical, there only while you edit. It removes this round from your rounds, but only after two questions: the first names the round (its number, course, tees, date and score) and the second asks you to type DELETE. A backup copy of rounds.tsv is saved before the round is removed. The Help explains how to restore it.
 
 # Save and Cancel, at the right end of the frame under the tables
 
-Save: Puts your changes in rounds.tsv in place of the round as it was. Only that round's line is changed. Before saving, the file as it was is copied into the backups folder, so a bad edit can be undone; the Help says how. Save is only on when every hole you played is complete and correct.
+Save: Puts your changes in rounds.tsv in place of the round as it was. Only that round's line is changed. A backup copy of rounds.tsv is saved before the change; the Help explains how to restore it. Save is enabled only when every hole you played is complete and correct.
 
 Cancel: Goes back to the round as it was, without saving.
 
