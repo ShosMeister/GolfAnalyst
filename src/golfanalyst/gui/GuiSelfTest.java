@@ -1582,6 +1582,18 @@ public final class GuiSelfTest
                 && clearSample.noButton.getText().equals("No") && AppPanel.sampleForm("Discard your changes?") == null);
         sample.noButton.doClick();
         check("dialog: No answers NO", sample.answer() == ConfirmForm.NO);
+        java.awt.Font standard = javax.swing.UIManager.getFont("OptionPane.messageFont");
+        check("dialog: the words use the system's message font, like Discard your changes?", sample.messageArea().getFont()
+                .equals(ConfirmForm.messageFont()) && (standard == null || ConfirmForm.messageFont().equals(standard)));
+        java.awt.Font original = standard;
+        javax.swing.UIManager.put("OptionPane.messageFont", new javax.swing.plaf.FontUIResource("Segoe UI", java.awt.Font.PLAIN, 12));
+        ConfirmForm windowsLook = ConfirmForm.twoChoice(RoundPage.deleteQuestion(longRound, longTee, true), "Keep it", "Delete...");
+        check("dialog: with Windows' Segoe UI 12 the Delete round words use it", windowsLook.messageArea().getFont().getSize() == 12
+                && windowsLook.messageArea().getFont().getName().equals("Segoe UI"));
+        checkDialogLayout("Delete round, unsaved, Segoe UI 12", windowsLook);
+        checkDialogLayout("Clear data, Segoe UI 12", ConfirmForm.clearChoice(AppPanel.clearCounts(99999, 9999, longName),
+                AppPanel.CLEAR_ROUNDS_TEXT, AppPanel.CLEAR_EVERYTHING_TEXT));
+        javax.swing.UIManager.put("OptionPane.messageFont", original);
     }
 
     /*

@@ -4,6 +4,7 @@ import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Dialog;
 import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.Window;
@@ -40,7 +41,9 @@ import javax.swing.event.DocumentListener;
  | box that wraps at 420 px and is exactly as tall as its lines, so the     |
  | window can never cut it off; then the typing box or the choices (if      |
  | any); then, 12 px below, the buttons on the right. The window is sized   |
- | to its content with pack() and is at least 440 px wide.                  |
+ | to its content with pack() and is at least 440 px wide. The words are in |
+ | the system's own message font (Segoe UI 12 on Windows), the same as the  |
+ | program's other questions such as "Discard your changes?".               |
  |                                                                          |
  | Four kinds:                                                              |
  | twoChoice   - a question with a Keep button (the default) and a Go       |
@@ -228,12 +231,23 @@ final class ConfirmForm extends JPanel
         area.setFocusable(false);
         area.setOpaque(false);
         area.setBorder(BorderFactory.createEmptyBorder());
-        area.setFont(UIManager.getFont("Label.font"));
+        area.setFont(messageFont());
         area.setSize(width, Short.MAX_VALUE);
         Dimension wrapped = new Dimension(width, area.getPreferredSize().height);
         area.setPreferredSize(wrapped);
         area.setMinimumSize(wrapped);
         return area;
+    }
+
+    /*
+     * messageFont(): the system's own font for the words of a message box (Segoe UI 12 on Windows, as "Discard your changes?" uses), or the label font where the look has none.
+     * Passed in:  nothing
+     * Passed out: the font
+     */
+    static Font messageFont()
+    {
+        Font font = UIManager.getFont("OptionPane.messageFont");
+        return (font != null ? font : UIManager.getFont("Label.font"));
     }
 
     /*
