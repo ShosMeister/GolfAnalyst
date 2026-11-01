@@ -2340,14 +2340,7 @@ public final class RoundPage extends Page
             return;
         }
         Round saved = rounds.get(index);
-        Tee tee = store.teeMap().get(saved.teeId());
-        String question = String.format("Delete round %05d (%s:%s, %s, score %d)? It will be removed from your rounds, and your "
-                + "handicap and statistics will be worked out again. A copy of your file is kept first.", saved.id(),
-                tee.courseName(), tee.teeName(), saved.date(), saved.totalScore());
-        if (hasChanges())
-        {
-            question = question + UNSAVED_IGNORED;
-        }
+        String question = deleteQuestion(saved, store.teeMap().get(saved.teeId()), hasChanges());
         if (!shell.confirmTwice(question, "Keep it", "Delete...", "DELETE"))
         {
             return;
@@ -2384,6 +2377,19 @@ public final class RoundPage extends Page
             showRoundAt((index > 0 ? index - 1 : 0));
         }
         shell.setStatus(message);
+    }
+
+    /*
+     * deleteQuestion(round, tee, unsaved): the first Delete round question, naming the saved round, with a note when the boxes hold unsaved changes.
+     * Passed in:  round - the round as saved, tee - its course and tees, unsaved - true if anything was typed
+     * Passed out: the words
+     */
+    static String deleteQuestion(Round round, Tee tee, boolean unsaved)
+    {
+        String question = String.format("Delete round %05d (%s:%s, %s, score %d)? It will be removed from your rounds, and your "
+                + "handicap and statistics will be worked out again. A copy of your file is kept first.", round.id(),
+                tee.courseName(), tee.teeName(), round.date(), round.totalScore());
+        return (unsaved ? question + UNSAVED_IGNORED : question);
     }
 
     /*

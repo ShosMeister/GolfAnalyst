@@ -239,6 +239,11 @@ Not built either: deleting a tee, renaming a course or changing its zip.
   everything also resets settings.txt. Goes Home; footer "Cleared. A copy of everything as it was is in
   backups\clear-....". Sample data: `CLEAR_SAMPLE_QUESTION` (Yes only makes the data folder) and `DataStore.clear`
   refuses it too. Dialogs are `ConfirmForm` panels shown by `AppPanel`'s `Confirmer`, which the tests replace.
+- `ConfirmForm` (the one dialog helper: Delete round, type DELETE, Clear data, its summary, type CLEAR, both sample-data
+  questions): 16 px padding, message in a JTextArea wrapping at 420 px whose height is worked out for that width
+  before pack() (a wrapping text box asked for its size with no width reports too few lines; that once hid the last
+  line behind the buttons), 12 px gap, buttons on the right, window packed and at least 440 wide, default button
+  focused. `GuiSelfTest.checkDialogLayouts` lays each out with its longest text and checks overlaps and gaps.
 - **Import**: bulk rounds and/or courses from the program's own tab-separated format; show what will be added and
   what is rejected (with line numbers) before writing anything; give duplicate IDs fresh numbers.
 

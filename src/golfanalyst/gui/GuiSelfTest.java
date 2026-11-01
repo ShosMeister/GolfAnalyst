@@ -853,6 +853,7 @@ public final class GuiSelfTest
         checkPeek();
         checkBackupFailure();
         checkConfirmForms();
+        checkDialogLayouts();
         checkDeleteRound();
         checkClearData();
         checkFooterHand();
@@ -1502,8 +1503,8 @@ public final class GuiSelfTest
         ConfirmForm choice = ConfirmForm.clearChoice("You have 3 rounds.", AppPanel.CLEAR_ROUNDS_TEXT, AppPanel.CLEAR_EVERYTHING_TEXT);
         check("confirm: Clear starts with neither choice ticked and Continue off", !choice.roundsOnlyChoice.isSelected()
                 && !choice.everythingChoice.isSelected() && !choice.goButton.isEnabled() && choice.goButton.getText().equals("Continue"));
-        check("confirm: Clear's choices say what they do", choice.roundsOnlyChoice.getText().equals(
-                "Clear my rounds only (keep my courses and my name)") && choice.everythingChoice.getText().equals(
+        check("confirm: Clear's choices say what they do", ConfirmForm.choiceText(choice.roundsOnlyChoice).equals(
+                "Clear my rounds only (keep my courses and my name)") && ConfirmForm.choiceText(choice.everythingChoice).equals(
                 "Clear everything: my rounds, my courses, my name and my settings (like a brand-new copy of the program)"));
         choice.everythingChoice.doClick();
         check("confirm: choosing one turns Continue on", choice.goButton.isEnabled());
@@ -1512,6 +1513,172 @@ public final class GuiSelfTest
         choice.roundsOnlyChoice.doClick();
         choice.goButton.doClick();
         check("confirm: or rounds only", choice.answer() == ConfirmForm.ROUNDS_ONLY);
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | checkDialogLayouts()                                                     |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Lays out every careful question with the longest message it can show     |
+     | (a very long course and tee name, big counts, a long golfer's name, and  |
+     | the extra sentence about unsaved changes) and checks each one with       |
+     | checkDialogLayout. It also checks which button is the default. The       |
+     | measurements are printed so they can be read in test.bat's output.       |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing                                                      |
+     +--------------------------------------------------------------------------+
+     */
+    private static void checkDialogLayouts()
+    {
+        int[] pars = new int[golfanalyst.Tee.HOLES];
+        int[] index = new int[golfanalyst.Tee.HOLES];
+        int[] eights = new int[golfanalyst.Tee.HOLES];
+        int[] putts = new int[golfanalyst.Tee.HOLES];
+        for (int hole = 0; hole < golfanalyst.Tee.HOLES; hole = hole + 1)
+        {
+            pars[hole] = 4;
+            index[hole] = hole + 1;
+            eights[hole] = 8;
+            putts[hole] = 3;
+        }
+        String longCourse = "The Ocean Course at Kiawah Island Golf Resort and Championship Links of the Lowcountry";
+        golfanalyst.Tee longTee = new golfanalyst.Tee(9999, longCourse, "Kiawah Island", "SC", "29455",
+                "Championship Blue and White Combination", golfanalyst.Tee.HOLES, 77.2, 155, 7876, pars, index, 0, 0, 0, 0);
+        boolean[] none = new boolean[golfanalyst.Tee.HOLES];
+        Round longRound = new Round(99999, 9999, java.time.LocalDate.of(2026, 12, 31), 0, 0, golfanalyst.Tee.HOLES, eights, putts,
+                none, none.clone());
+        String longName = "Bartholomew Maximilian Featherstonehaugh-Cholmondeley the Third";
+
+        ConfirmForm deleteForm = ConfirmForm.twoChoice(RoundPage.deleteQuestion(longRound, longTee, false), "Keep it", "Delete...");
+        checkDialogLayout("Delete round", deleteForm);
+        check("dialog: Keep it is the Delete round default", deleteForm.defaultButton() == deleteForm.cancelButton
+                && deleteForm.cancelButton.getText().equals("Keep it"));
+        checkDialogLayout("Delete round, unsaved changes",
+                ConfirmForm.twoChoice(RoundPage.deleteQuestion(longRound, longTee, true), "Keep it", "Delete..."));
+        ConfirmForm typeDelete = ConfirmForm.typed("To confirm, type DELETE.", "DELETE");
+        checkDialogLayout("type DELETE", typeDelete);
+        check("dialog: OK is the typed question's default (on only for the word)", typeDelete.defaultButton() == typeDelete.goButton);
+        ConfirmForm clearForm = ConfirmForm.clearChoice(AppPanel.clearCounts(99999, 9999, longName), AppPanel.CLEAR_ROUNDS_TEXT,
+                AppPanel.CLEAR_EVERYTHING_TEXT);
+        checkDialogLayout("Clear data", clearForm);
+        check("dialog: Cancel is the Clear data default", clearForm.defaultButton() == clearForm.cancelButton);
+        ConfirmForm summary = ConfirmForm.twoChoice(AppPanel.clearSummary(true, 99999, 9999, longName), "Keep my data", "Clear...");
+        checkDialogLayout("Clear summary, everything", summary);
+        check("dialog: Keep my data is the summary's default", summary.defaultButton() == summary.cancelButton
+                && summary.cancelButton.getText().equals("Keep my data"));
+        checkDialogLayout("Clear summary, rounds only",
+                ConfirmForm.twoChoice(AppPanel.clearSummary(false, 99999, 9999, longName), "Keep my data", "Clear..."));
+        checkDialogLayout("type CLEAR", ConfirmForm.typed("To confirm, type CLEAR.", "CLEAR"));
+        ConfirmForm sample = AppPanel.sampleForm(AppPanel.SAMPLE_QUESTION);
+        checkDialogLayout("sample data, saving", sample);
+        check("dialog: the saving question has Yes (the default), No and Cancel", sample.defaultButton() == sample.goButton
+                && sample.goButton.getText().equals("Yes") && sample.noButton.getText().equals("No")
+                && sample.cancelButton.getText().equals("Cancel"));
+        ConfirmForm clearSample = AppPanel.sampleForm(AppPanel.CLEAR_SAMPLE_QUESTION);
+        checkDialogLayout("sample data, Clear", clearSample);
+        check("dialog: Clear's sample question has Yes and No only", clearSample.cancelButton == null
+                && clearSample.noButton.getText().equals("No") && AppPanel.sampleForm("Discard your changes?") == null);
+        sample.noButton.doClick();
+        check("dialog: No answers NO", sample.answer() == ConfirmForm.NO);
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | checkDialogLayout(name, form)                                            |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Gives a question its own preferred size (at least 440 px wide), lays     |
+     | it out with no screen, and checks that:                                  |
+     | - no part overlaps another (at every level of the panel);                |
+     | - the message box is as tall as its words need at the width it got, so   |
+     |   no line is cut off;                                                    |
+     | - the message ends above the buttons, with at least 12 px between        |
+     |   everything above and the row of buttons;                               |
+     | - the buttons fit in their row and the row fits in the panel.            |
+     | Then it prints the numbers.                                              |
+     |                                                                          |
+     | Passed in:  name - which question, for the check names                   |
+     |             form - the question                                          |
+     | Passed out: nothing                                                      |
+     +--------------------------------------------------------------------------+
+     */
+    private static void checkDialogLayout(String name, ConfirmForm form)
+    {
+        java.awt.Dimension wanted = form.getPreferredSize();
+        form.setSize(Math.max(wanted.width, ConfirmForm.MIN_WIDTH), wanted.height);
+        layoutAll(form);
+        javax.swing.JTextArea message = form.messageArea();
+        javax.swing.JPanel row = form.buttonRow();
+        int messageBottom = javax.swing.SwingUtilities.convertPoint(message, 0, message.getHeight(), form).y;
+        Component above = message.getParent();
+        int aboveBottom = javax.swing.SwingUtilities.convertPoint(above, 0, above.getHeight(), form).y;
+        int rowTop = javax.swing.SwingUtilities.convertPoint(row, 0, 0, form).y;
+        javax.swing.JTextArea measure = new javax.swing.JTextArea(message.getText());
+        measure.setFont(message.getFont());
+        measure.setLineWrap(true);
+        measure.setWrapStyleWord(true);
+        measure.setBorder(message.getBorder());
+        measure.setSize(message.getWidth(), Short.MAX_VALUE);
+        int needed = measure.getPreferredSize().height;
+        int lineHeight = message.getFontMetrics(message.getFont()).getHeight();
+        int buttonsWidth = 0;
+        for (Component button : row.getComponents())
+        {
+            buttonsWidth = Math.max(buttonsWidth, button.getX() + button.getWidth());
+        }
+        check("dialog " + name + ": no part overlaps another", noOverlaps(form));
+        check("dialog " + name + ": the message box is tall enough for every line", message.getHeight() >= needed);
+        check("dialog " + name + ": the message ends above the buttons", messageBottom < rowTop);
+        check("dialog " + name + ": at least 12 px between the content and the buttons", rowTop - aboveBottom >= ConfirmForm.GAP);
+        check("dialog " + name + ": the buttons fit, and the panel is at least 440 px wide", buttonsWidth <= row.getWidth()
+                && row.getY() + row.getHeight() <= form.getHeight() - ConfirmForm.PADDING && form.getWidth() >= ConfirmForm.MIN_WIDTH);
+        System.out.println(String.format("  layout  %-30s %3d x %3d px, message %3d x %3d (%d lines, needs %3d), "
+                + "message bottom %3d, buttons top %3d, gap %2d", name, form.getWidth(), form.getHeight(), message.getWidth(),
+                message.getHeight(), needed / lineHeight, needed, messageBottom, rowTop, rowTop - aboveBottom));
+    }
+
+    /*
+     * layoutAll(container): lays out a container and everything inside it, as a window would when it is shown.
+     * Passed in:  container - the top of the tree
+     * Passed out: nothing
+     */
+    private static void layoutAll(Container container)
+    {
+        container.doLayout();
+        for (Component child : container.getComponents())
+        {
+            if (child instanceof Container)
+            {
+                layoutAll((Container) child);
+            }
+        }
+    }
+
+    /*
+     * noOverlaps(container): whether no two visible children overlap, inside this container and every container within it.
+     * Passed in:  container - the top of the tree
+     * Passed out: true if nothing overlaps
+     */
+    private static boolean noOverlaps(Container container)
+    {
+        Component[] children = container.getComponents();
+        for (int lp1 = 0; lp1 < children.length; lp1 = lp1 + 1)
+        {
+            for (int lp2 = lp1 + 1; lp2 < children.length; lp2 = lp2 + 1)
+            {
+                if (children[lp1].isVisible() && children[lp2].isVisible() && children[lp1].getBounds().intersects(children[lp2].getBounds()))
+                {
+                    return false;
+                }
+            }
+            if (children[lp1] instanceof Container && !noOverlaps((Container) children[lp1]))
+            {
+                return false;
+            }
+        }
+        return true;
     }
 
     /*

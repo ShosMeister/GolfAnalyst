@@ -511,18 +511,14 @@ public final class AppPanel extends JPanel implements Shell
         int rounds = store.roundsByDate().size();
         int tees = store.dataset().tees().size();
         String name = store.golferName();
-        String roundsText = rounds + (rounds == 1 ? " round" : " rounds");
-        String teesText = tees + (tees == 1 ? " course and tee" : " courses and tees");
-        String counts = "You have " + roundsText + " and " + teesText + (name.isEmpty() ? "" : ", and your name is " + name) + ".";
-        int choice = confirmer.ask(ConfirmForm.clearChoice(counts, CLEAR_ROUNDS_TEXT, CLEAR_EVERYTHING_TEXT), CLEAR_TITLE);
+        int choice = confirmer.ask(ConfirmForm.clearChoice(clearCounts(rounds, tees, name), CLEAR_ROUNDS_TEXT, CLEAR_EVERYTHING_TEXT),
+                CLEAR_TITLE);
         if (choice == ConfirmForm.CANCELLED)
         {
             return;
         }
         boolean everything = choice == ConfirmForm.EVERYTHING;
-        String removed = (everything ? roundsText + ", " + teesText + (name.isEmpty() ? "" : " and your name") : roundsText);
-        String summary = "This will remove " + removed + ".\nA copy of everything is kept first.";
-        if (!confirmTwice(summary, "Keep my data", "Clear...", "CLEAR"))
+        if (!confirmTwice(clearSummary(everything, rounds, tees, name), "Keep my data", "Clear...", "CLEAR"))
         {
             return;
         }
@@ -552,15 +548,75 @@ public final class AppPanel extends JPanel implements Shell
     }
 
     /*
-     * askOnScreen(question): asks a question in a small window over this one: Yes / No / Cancel for the sample-data question, Yes / No for anything else.
+     * askOnScreen(question): asks a question in a small window over this one: the two sample-data questions in the shared ConfirmForm window (Yes / No / Cancel, or Yes / No for Clear's), Yes / No for anything else.
      * Passed in:  question - the words to ask
      * Passed out: JOptionPane.YES_OPTION, NO_OPTION or CANCEL_OPTION (closing the window counts as Cancel)
      */
     private int askOnScreen(String question)
     {
-        int buttons = question.equals(SAMPLE_QUESTION) ? JOptionPane.YES_NO_CANCEL_OPTION : JOptionPane.YES_NO_OPTION;
-        int answer = JOptionPane.showConfirmDialog(this, question, "Golf Analyst", buttons, JOptionPane.QUESTION_MESSAGE);
+        ConfirmForm sample = sampleForm(question);
+        if (sample != null)
+        {
+            int answer = sample.showOn(this, DIALOG_TITLE);
+            if (answer == ConfirmForm.GO)
+            {
+                return JOptionPane.YES_OPTION;
+            }
+            return (answer == ConfirmForm.NO ? JOptionPane.NO_OPTION : JOptionPane.CANCEL_OPTION);
+        }
+        int answer = JOptionPane.showConfirmDialog(this, question, DIALOG_TITLE, JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
         return answer == JOptionPane.CLOSED_OPTION ? JOptionPane.CANCEL_OPTION : answer;
+    }
+
+    /*
+     * sampleForm(question): the shared-window form for a sample-data question (Yes / No / Cancel for saving, Yes / No for Clear), or null for any other question.
+     * Passed in:  question - the words to ask
+     * Passed out: the form, or null
+     */
+    static ConfirmForm sampleForm(String question)
+    {
+        if (question.equals(SAMPLE_QUESTION))
+        {
+            return ConfirmForm.yesNoCancel(question, true);
+        }
+        return (question.equals(CLEAR_SAMPLE_QUESTION) ? ConfirmForm.yesNoCancel(question, false) : null);
+    }
+
+    /*
+     * clearCounts(rounds, tees, name): the first line of the Clear data window, e.g. "You have 37 rounds and 12 courses and tees, and your name is Pat."
+     * Passed in:  rounds, tees - how many there are, name - the golfer's name or ""
+     * Passed out: the words
+     */
+    static String clearCounts(int rounds, int tees, String name)
+    {
+        return "You have " + roundsWords(rounds) + " and " + teesWords(tees) + (name.isEmpty() ? "" : ", and your name is " + name) + ".";
+    }
+
+    /*
+     * clearSummary(everything, rounds, tees, name): Clear's summary question, e.g. "This will remove 37 rounds." and "A copy of everything is kept first."
+     * Passed in:  everything - true for Clear everything, rounds, tees - how many there are, name - the golfer's name or ""
+     * Passed out: the words
+     */
+    static String clearSummary(boolean everything, int rounds, int tees, String name)
+    {
+        String removed = (everything ? roundsWords(rounds) + ", " + teesWords(tees) + (name.isEmpty() ? "" : " and your name") : roundsWords(rounds));
+        return "This will remove " + removed + ".\nA copy of everything is kept first.";
+    }
+
+    /*
+     * roundsWords(count): "1 round" or "37 rounds".
+     */
+    private static String roundsWords(int count)
+    {
+        return count + (count == 1 ? " round" : " rounds");
+    }
+
+    /*
+     * teesWords(count): "1 course and tee" or "12 courses and tees".
+     */
+    private static String teesWords(int count)
+    {
+        return count + (count == 1 ? " course and tee" : " courses and tees");
     }
 
     /*
