@@ -106,3 +106,5 @@ Golf Analyst v4.50: Added the Best Round screen. For any course and set of tees 
 Golf Analyst v4.60: Added a Historical box on the round screens, so old rounds can be marked without editing a file, and an Include historical rounds box on the Home screen, so your statistics, the Stats Board and Best Round can count your old rounds or leave them out.
 
 Golf Analyst v4.70: Added Delete Round and Clear, each with two confirmations. Every change to your files now keeps a dated copy in a backups folder, so nothing is ever overwritten.
+
+Golf Analyst v4.71: The questions asked before deleting a round or clearing your data now size themselves to their words, so no line is hidden behind the buttons.

@@ -1,4 +1,4 @@
-# GolfAnalyst v4.70 (Java) - notes for Claude
+# GolfAnalyst v4.71 (Java) - notes for Claude
 
 A single-golfer golf statistics program with a Swing window. Ported from HyperCard (1991) to Excel/VBA to Java.
 Courses and rounds live in two plain tab-separated text files. Written for one user who tests on Windows.
