@@ -52,6 +52,22 @@ To see how you play today, untick Include historical rounds. The numbers on this
 
 Every screen has its own photo behind it. To see all of it, press and hold the mouse button on the yellow Golf Analyst text at the bottom left. The boxes and buttons disappear until you let go, and nothing you type while holding it goes anywhere.
 
+# Importing rounds and courses
+
+You can add rounds and courses from another copy of Golf Analyst, or from a spreadsheet. Press Import on the Home screen.
+
+What to pick: A courses file, a rounds file, or both. They are tab-separated text laid out like courses.tsv and rounds.tsv. To bring in another copy's data, press Choose a whole data folder... and pick its data folder; both files are filled in for you. Either file can be left empty.
+
+From Excel: Put the column headings in the first row, then use File, Save As and choose Text (Tab delimited). Rounds need RoundID, TeeID, Date, Scores, Putts, Fairways and Sand (Holes, PCC and Historical can be left out). Courses need TeeID, Course, Tee, Rating, Slope, Pars and StrokeIndex (City, State, Zip, Holes, Yardage and the front and back nine ratings can be left out). The numbers for each hole go in one cell, separated by commas.
+
+Check files: Press it to see what would happen. The box underneath says how many tees and rounds will be added, and lists every row that is skipped or rejected with its line number and the reason. Nothing is changed yet. A set of tees or a round you already have is skipped, and a row the program cannot read is rejected. A rounds file on its own must use the TeeIDs of your own tees.
+
+Mark the imported rounds as historical: Tick it for old rounds you want to keep for looking back at. They never count toward your Handicap Index.
+
+Import: It only comes on after a check found something to add. Before anything is written, a copy of courses.tsv and rounds.tsv goes into a folder of its own inside the backups folder, named with the date and time (for example backups\import-2026-11-01-142530). Then the new tees and rounds are added at the end of your files; nothing you already have is changed.
+
+Putting it back: Close the program, copy the two files from that import folder back into your data folder, and open the program again.
+
 # Starting fresh
 
 Clear empties your data so you can start again, for example to hand the program to another golfer. Press Clear on the Home screen and pick one of the two choices:

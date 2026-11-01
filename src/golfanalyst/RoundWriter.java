@@ -5,6 +5,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -339,5 +341,67 @@ public final class RoundWriter
         LineReplacer.LineMaker remove = (headerCells, oldCells) -> null;
         LineReplacer.Spliced spliced = LineReplacer.splice(text, "roundid", Map.of(roundId, remove), file.getFileName().toString());
         return LineReplacer.write(file, spliced.text());
+    }
+    /*
+     +--------------------------------------------------------------------------+
+     | additionFor(existing, rounds, tees)                                      |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | The text to add at the end of rounds.tsv for new rounds (Import): a      |
+     | line ending first if the file does not end with one, the standard        |
+     | header if it has none (with Historical when a round is historical),      |
+     | then one line per round in the header's column order, with the file's    |
+     | own line ending style.                                                   |
+     |                                                                          |
+     | Passed in:  existing - the file's text as it is ("" for no file)         |
+     |             rounds   - the new rounds                                    |
+     |             tees     - every tee, keyed by TeeID                         |
+     | Passed out: the text to add (may be "")                                  |
+     +--------------------------------------------------------------------------+
+     */
+    static String additionFor(String existing, List<Round> rounds, Map<Integer, Tee> tees)
+    {
+        if (rounds.isEmpty())
+        {
+            return "";
+        }
+        String[] headerCells = findHeader(existing);
+        String newline = (existing.contains("\r\n") ? "\r\n" : "\n");
+        StringBuilder addition = new StringBuilder();
+        if (!existing.isEmpty() && !existing.endsWith("\n"))
+        {
+            addition.append(newline);
+        }
+        if (headerCells == null)
+        {
+            boolean anyHistorical = rounds.stream().anyMatch(Round::historical);
+            String header = STANDARD_HEADER + (anyHistorical ? "\t" + HISTORICAL_HEADING : "");
+            addition.append(header).append(newline);
+            headerCells = header.split("\t");
+        }
+        for (Round round : rounds)
+        {
+            addition.append(formatLine(round, tees.get(round.teeId()), headerCells)).append(newline);
+        }
+        return addition.toString();
+    }
+
+    /*
+     * checkLoads(oldText, newText, tees): reads rounds.tsv as it would become with the loader's checks; an error on a line added at the end (or on the file as a whole) stops the write.
+     * Passed in:  oldText - the file as it is, newText - as it would become, tees - every tee by TeeID
+     * Passed out: nothing; throws IOException naming the first problem
+     */
+    static void checkLoads(String oldText, String newText, Map<Integer, Tee> tees) throws IOException
+    {
+        int oldLineCount = (oldText.isEmpty() ? 0 : LineReplacer.lines(oldText).size());
+        List<Problem> problems = new ArrayList<>();
+        DataLoader.parseRounds(LineReplacer.lines(newText), tees, problems);
+        for (Problem problem : problems)
+        {
+            if (problem.severity() == Problem.Severity.ERROR && (problem.line() > oldLineCount || problem.line() == 0))
+            {
+                throw new IOException("a round would not load: " + problem.message());
+            }
+        }
     }
 }

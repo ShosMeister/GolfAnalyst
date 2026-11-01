@@ -160,7 +160,7 @@ public final class CourseWriter
      | Passed out: the text to add (may be "")                                  |
      +--------------------------------------------------------------------------+
      */
-    private static String additionFor(String existing, List<Tee> tees)
+    static String additionFor(String existing, List<Tee> tees)
     {
         if (tees.isEmpty())
         {
@@ -201,7 +201,7 @@ public final class CourseWriter
      | Passed out: nothing; throws IOException naming the first problem         |
      +--------------------------------------------------------------------------+
      */
-    private static void checkLoads(String oldText, String newText, Set<Integer> changedLines) throws IOException
+    static void checkLoads(String oldText, String newText, Set<Integer> changedLines) throws IOException
     {
         int oldLineCount = oldText.isEmpty() ? 0 : LineReplacer.lines(oldText).size();
         List<Problem> problems = new ArrayList<>();
@@ -287,5 +287,49 @@ public final class CourseWriter
         String result = spliced.text() + additionFor(spliced.text(), added);
         checkLoads(text, result, spliced.lineNumbers());
         LineReplacer.write(file, result);
+    }
+    /*
+     +--------------------------------------------------------------------------+
+     | correctCourse(file, teeIds, name, zip, city, state)                      |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Corrects a course's name and zip (with its city and state) on every one  |
+     | of its tee rows. Only the Course, Zip, City and State cells change:      |
+     | every other cell keeps its text exactly as it was, TeeIDs never change   |
+     | (so every round stays linked), and the rest of the file is untouched.    |
+     | The result is checked with the loader first; then a dated copy goes in   |
+     | the backups folder and the file is written safely (see LineReplacer).    |
+     |                                                                          |
+     | Passed in:  file   - the courses.tsv path                                |
+     |             teeIds - the TeeIDs of every tee of the course               |
+     |             name, zip, city, state - the corrected values                |
+     | Passed out: the backup copy made; throws Backups.Failed if the copy      |
+     |             cannot be made, or IOException if a TeeID is missing, a line |
+     |             would not load, or the file cannot be written                |
+     +--------------------------------------------------------------------------+
+     */
+    public static Path correctCourse(Path file, List<Integer> teeIds, String name, String zip, String city, String state)
+            throws IOException
+    {
+        String text = Files.readString(file, StandardCharsets.UTF_8);
+        Map<String, String> values = Map.of("course", name, "zip", zip, "city", city, "state", state);
+        Map<Integer, LineReplacer.LineMaker> makers = new HashMap<>();
+        for (int teeId : teeIds)
+        {
+            makers.put(teeId, (headerCells, oldCells) ->
+            {
+                StringBuilder line = new StringBuilder();
+                for (int col = 0; col < Math.max(headerCells.length, oldCells.length); col = col + 1)
+                {
+                    String column = (col < headerCells.length ? DataLoader.normalize(headerCells[col]) : "");
+                    String cell = (values.containsKey(column) ? values.get(column) : (col < oldCells.length ? oldCells[col] : ""));
+                    line.append(col > 0 ? "\t" : "").append(cell);
+                }
+                return line.toString();
+            });
+        }
+        LineReplacer.Spliced spliced = LineReplacer.splice(text, "teeid", makers, file.getFileName().toString());
+        checkLoads(text, spliced.text(), spliced.lineNumbers());
+        return LineReplacer.write(file, spliced.text());
     }
 }

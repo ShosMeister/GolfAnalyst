@@ -47,7 +47,7 @@ import javax.swing.SwingUtilities;
  | windowTitle()       - the text for the window's title bar                |
  | the Shell methods   - store, setStatus, refreshTitle, goHome, newRound,  |
  |                       browseRounds, editRound, newCourse, readyToSave,   |
- |                       askYesNo, confirmTwice, clearData                  |
+ |                       askYesNo, confirmTwice, clearData, importData      |
  +--------------------------------------------------------------------------+
  */
 @SuppressWarnings({"serial", "this-escape"})
@@ -77,6 +77,17 @@ public final class AppPanel extends JPanel implements Shell
         int ask(ConfirmForm form, String title);
     }
 
+    /*
+     * ImportAsker: shows the Import window and gives its answer (on screen normally; the self-test answers by code).
+     */
+    interface ImportAsker
+    {
+        /*
+         * ask(form): ConfirmForm.GO once Import is pressed, CANCELLED otherwise.
+         */
+        int ask(ImportForm form);
+    }
+
     private final transient DataStore store;
     private final transient Path helpDir;
     private final HeaderBar header = new HeaderBar();
@@ -91,6 +102,7 @@ public final class AppPanel extends JPanel implements Shell
     private String current = HOME;
     private transient ToIntFunction<String> asker = question -> askOnScreen(question);
     private transient Confirmer confirmer = (form, title) -> form.showOn(this, title);
+    private transient ImportAsker importAsker = form -> form.showOn(this);
 
     /*
      +--------------------------------------------------------------------------+
@@ -481,6 +493,15 @@ public final class AppPanel extends JPanel implements Shell
     }
 
     /*
+     * confirmOnce(question, keepLabel, goLabel): one careful question in the shared dialog, Keep as the default (through the confirmer, so the self-test can answer it).
+     */
+    @Override
+    public boolean confirmOnce(String question, String keepLabel, String goLabel)
+    {
+        return confirmer.ask(ConfirmForm.twoChoice(question, keepLabel, goLabel), DIALOG_TITLE) == ConfirmForm.GO;
+    }
+
+    /*
      +--------------------------------------------------------------------------+
      | clearData()                                                              |
      +--------------------------------------------------------------------------+
@@ -535,6 +556,65 @@ public final class AppPanel extends JPanel implements Shell
         navigate(HOME);
         setStatus("Cleared. A copy of everything as it was is in " + golfanalyst.Backups.FOLDER + java.io.File.separator
                 + folder.getFileName() + ".");
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | importData()                                                             |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | What Home's Import button does. On the sample data it first asks the     |
+     | sample-data question, as saving does. Then the Import window: the        |
+     | golfer picks files and presses Check files (nothing is written) and      |
+     | then Import. The store makes the backup folder first (if that fails      |
+     | nothing is written and the footer says why), adds the new lines at the   |
+     | end of the files and reloads; the window stays on Home and the footer    |
+     | says what was imported and where the copy is.                            |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing                                                      |
+     +--------------------------------------------------------------------------+
+     */
+    @Override
+    public void importData()
+    {
+        if (!readyToSave())
+        {
+            return;
+        }
+        ImportForm form = new ImportForm((courses, rounds, historical) -> store.checkImport(courses, rounds, historical));
+        golfanalyst.Importer.Plan plan = (importAsker.ask(form) == ConfirmForm.GO ? form.plan() : null);
+        if (plan == null || !plan.hasWork())
+        {
+            return;
+        }
+        Path folder;
+        try
+        {
+            folder = store.applyImport(plan);
+        }
+        catch (IOException failure)
+        {
+            setStatus((failure instanceof golfanalyst.Backups.Failed ? "" : "Nothing was imported: ") + failure.getMessage());
+            return;
+        }
+        navigate(HOME);
+        int skipped = plan.teesSkipped() + plan.roundsSkipped();
+        int rejected = plan.teesRejected() + plan.roundsRejected();
+        setStatus("Imported " + golfanalyst.Importer.count(plan.newTees().size(), "tee", "tees") + " and "
+                + golfanalyst.Importer.count(plan.newRounds().size(), "round", "rounds") + ". " + skipped + " skipped, " + rejected
+                + " rejected. A copy of your files as they were is in " + golfanalyst.Backups.FOLDER + java.io.File.separator
+                + folder.getFileName() + ".");
+    }
+
+    /*
+     * setImportAsker(newAsker): replaces the on-screen Import window with answers given by code (for the self-test).
+     * Passed in:  newAsker - takes the form and gives its answer
+     * Passed out: nothing
+     */
+    void setImportAsker(ImportAsker newAsker)
+    {
+        importAsker = newAsker;
     }
 
     /*

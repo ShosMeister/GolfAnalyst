@@ -212,7 +212,7 @@ final class ConfirmForm extends JPanel
      | Passed out: the text box, MESSAGE_WIDTH wide and as tall as its lines    |
      +--------------------------------------------------------------------------+
      */
-    private static JTextArea wrappedText(String text)
+    static JTextArea wrappedText(String text)
     {
         return wrappedText(text, MESSAGE_WIDTH);
     }
@@ -412,17 +412,41 @@ final class ConfirmForm extends JPanel
     int showOn(Component owner, String title)
     {
         answer = CANCELLED;
+        showPanel(this, owner, title, defaultButton, (wordField != null ? wordField : defaultButton));
+        return answer;
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | showPanel(panel, owner, title, defaultButton, firstFocus)                |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | The one way the program's own dialogs are shown (ConfirmForm and the     |
+     | Import window): a modal window over the program, sized to the panel      |
+     | with pack() (never a fixed height), at least MIN_WIDTH wide, centred,    |
+     | with the default button set and the focus on firstFocus. It returns      |
+     | when the window is closed.                                               |
+     |                                                                          |
+     | Passed in:  panel         - the dialog's content                         |
+     |             owner         - something in the program window              |
+     |             title         - the window's title                           |
+     |             defaultButton - the button Enter presses                     |
+     |             firstFocus    - where the focus starts                       |
+     | Passed out: nothing                                                      |
+     +--------------------------------------------------------------------------+
+     */
+    static void showPanel(JPanel panel, Component owner, String title, JButton defaultButton, Component firstFocus)
+    {
         Window parent = (owner == null ? null : SwingUtilities.getWindowAncestor(owner));
         JDialog dialog = new JDialog(parent, title, Dialog.ModalityType.APPLICATION_MODAL);
         dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
-        dialog.setContentPane(this);
+        dialog.setContentPane(panel);
         dialog.getRootPane().setDefaultButton(defaultButton);
         dialog.pack();
         dialog.setMinimumSize(new Dimension(Math.max(MIN_WIDTH, dialog.getWidth()), dialog.getHeight()));
         dialog.setSize(dialog.getMinimumSize());
         dialog.setResizable(false);
         dialog.setLocationRelativeTo(parent);
-        Component firstFocus = (wordField != null ? wordField : defaultButton);
         dialog.addWindowListener(new WindowAdapter()
         {
             @Override
@@ -432,6 +456,5 @@ final class ConfirmForm extends JPanel
             }
         });
         dialog.setVisible(true);
-        return answer;
     }
 }

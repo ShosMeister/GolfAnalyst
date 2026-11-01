@@ -39,6 +39,7 @@ import java.util.stream.Stream;
  | folderFor(file)              - the backups folder beside a data file     |
  | copiesOf(file)               - the copies kept of a file, oldest first   |
  | copyForClear(dataDir, fileNames, when) - Clear's own dated folder        |
+ | copyIntoFolder(dataDir, prefix, fileNames, when) - the same for Import   |
  +--------------------------------------------------------------------------+
  */
 public final class Backups
@@ -236,11 +237,33 @@ public final class Backups
      */
     public static Path copyForClear(Path dataDir, List<String> fileNames, LocalDateTime when) throws IOException
     {
+        return copyIntoFolder(dataDir, CLEAR_PREFIX, fileNames, when);
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | copyIntoFolder(dataDir, prefix, fileNames, when)                         |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Copies the named files of the data folder (those that exist) into a      |
+     | dated folder of their own in the backups folder, e.g.                    |
+     | backups\clear-2026-10-31-142530 or backups\import-... (-2, -3 ... in the |
+     | same second). Used by Clear and Import; these folders are never pruned.  |
+     |                                                                          |
+     | Passed in:  dataDir   - the data folder                                  |
+     |             prefix    - the start of the folder's name, e.g. "clear-"    |
+     |             fileNames - the files to copy                                |
+     |             when      - the time to put in the folder's name             |
+     | Passed out: the folder made; throws Failed if a copy cannot be made      |
+     +--------------------------------------------------------------------------+
+     */
+    public static Path copyIntoFolder(Path dataDir, String prefix, List<String> fileNames, LocalDateTime when) throws IOException
+    {
         try
         {
             Path parent = dataDir.toAbsolutePath().resolve(FOLDER);
             Files.createDirectories(parent);
-            String base = CLEAR_PREFIX + STAMP.format(when);
+            String base = prefix + STAMP.format(when);
             Path folder = parent.resolve(base);
             int count = 1;
             while (Files.exists(folder))

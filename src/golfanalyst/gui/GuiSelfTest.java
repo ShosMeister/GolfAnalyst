@@ -237,6 +237,27 @@ public final class GuiSelfTest
         }
 
         /*
+         * importData(): remembers that Import was asked for (Import itself is tested on the real AppPanel).
+         */
+        @Override
+        public void importData()
+        {
+            windowCalls = windowCalls + 1;
+            lastPage = "import";
+        }
+
+        /*
+         * confirmOnce(question, keepLabel, goLabel): remembers the question and gives the answer the test has set.
+         */
+        @Override
+        public boolean confirmOnce(String question, String keepLabel, String goLabel)
+        {
+            windowCalls = windowCalls + 1;
+            asked.add(question);
+            return confirmAnswer;
+        }
+
+        /*
          * clearData(): remembers that Clear was asked for (Clear itself is tested on the real AppPanel).
          */
         @Override
@@ -412,6 +433,7 @@ public final class GuiSelfTest
         HomePage home = new HomePage(shell);
         RoundPage page = new RoundPage(shell);
         CoursePage coursePage = new CoursePage(shell);
+        coursePage.useZipCodes(golfanalyst.ZipCodes.load(Path.of("no-zip-list-for-these-tests.tsv")));
         check("building the pages makes no calls to the window", shell.windowCalls == 0);
 
         // Home
@@ -854,6 +876,9 @@ public final class GuiSelfTest
         checkBackupFailure();
         checkConfirmForms();
         checkDialogLayouts();
+        checkImportScreen();
+        checkCorrectCourseScreen();
+        checkZipScreen();
         checkDeleteRound();
         checkClearData();
         checkFooterHand();
@@ -1618,14 +1643,28 @@ public final class GuiSelfTest
      */
     private static void checkDialogLayout(String name, ConfirmForm form)
     {
+        checkPanelLayout(name, form, form.messageArea(), form.buttonRow());
+    }
+
+    /*
+     * checkPanelLayout(name, form, message, row): the checks of checkDialogLayout for any dialog panel (ConfirmForm or the Import window), given its message box and its row of buttons.
+     * Passed in:  name - for the check names, form - the panel, message - its message box, row - its row of buttons
+     * Passed out: nothing
+     */
+    private static void checkPanelLayout(String name, javax.swing.JPanel form, javax.swing.JTextArea message, javax.swing.JPanel row)
+    {
         java.awt.Dimension wanted = form.getPreferredSize();
         form.setSize(Math.max(wanted.width, ConfirmForm.MIN_WIDTH), wanted.height);
         layoutAll(form);
-        javax.swing.JTextArea message = form.messageArea();
-        javax.swing.JPanel row = form.buttonRow();
         int messageBottom = javax.swing.SwingUtilities.convertPoint(message, 0, message.getHeight(), form).y;
-        Component above = message.getParent();
-        int aboveBottom = javax.swing.SwingUtilities.convertPoint(above, 0, above.getHeight(), form).y;
+        int aboveBottom = 0;
+        for (Component part : form.getComponents())
+        {
+            if (part != row)
+            {
+                aboveBottom = Math.max(aboveBottom, part.getY() + part.getHeight());
+            }
+        }
         int rowTop = javax.swing.SwingUtilities.convertPoint(row, 0, 0, form).y;
         javax.swing.JTextArea measure = new javax.swing.JTextArea(message.getText());
         measure.setFont(message.getFont());
@@ -1691,6 +1730,290 @@ public final class GuiSelfTest
             }
         }
         return true;
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | checkImportScreen()                                                      |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Import through the real window logic, with the Import window answered    |
+     | by code: Home's Import button; Import off until a check finds something  |
+     | and off again after a change; the preview; Cancel changes nothing;       |
+     | Import adds the lines, stays on Home and says so in the footer; on the   |
+     | sample data the sample-data question comes first and Cancel imports      |
+     | nothing; and the window's layout with its longest preview.               |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing (throws IOException if a temporary file fails)       |
+     +--------------------------------------------------------------------------+
+     */
+    private static void checkImportScreen() throws IOException
+    {
+        Path temp = Files.createTempDirectory("golfanalyst-import-screen");
+        Path data = temp.resolve(DataStore.DATA_FOLDER);
+        Files.createDirectories(data);
+        Files.copy(Path.of("sample-data", DataLoader.COURSES_FILE), data.resolve(DataLoader.COURSES_FILE));
+        Files.copy(Path.of("sample-data", DataLoader.ROUNDS_FILE), data.resolve(DataLoader.ROUNDS_FILE));
+        DataStore store = new DataStore(data);
+        golfanalyst.Tee white = store.teeMap().get(1);
+        Path other = temp.resolve("other");
+        Files.createDirectories(other);
+        golfanalyst.Tee hills = new golfanalyst.Tee(1, "Import Hills", "Fort Mill", "SC", "29708", "Blue", white.holes(), 71.2, 128, 6400,
+                white.pars(), white.strokeIndex(), 0, 0, 0, 0);
+        Files.writeString(other.resolve(DataLoader.COURSES_FILE), golfanalyst.CourseWriter.STANDARD_HEADER + "\n"
+                + golfanalyst.CourseWriter.formatLine(hills, golfanalyst.CourseWriter.STANDARD_HEADER.split("\t")) + "\n", StandardCharsets.UTF_8);
+        int[] fives = new int[golfanalyst.Tee.HOLES];
+        int[] twos = new int[golfanalyst.Tee.HOLES];
+        java.util.Arrays.fill(fives, 5);
+        java.util.Arrays.fill(twos, 2);
+        boolean[] none = new boolean[golfanalyst.Tee.HOLES];
+        Round played = new Round(1, 1, java.time.LocalDate.parse("2030-05-02"), 0, 0, golfanalyst.Tee.HOLES, fives, twos, none, none.clone());
+        Files.writeString(other.resolve(DataLoader.ROUNDS_FILE), golfanalyst.RoundWriter.STANDARD_HEADER + "\n"
+                + golfanalyst.RoundWriter.formatLine(played, hills, golfanalyst.RoundWriter.STANDARD_HEADER.split("\t")) + "\n", StandardCharsets.UTF_8);
+        String coursesBefore = Files.readString(data.resolve(DataLoader.COURSES_FILE), StandardCharsets.UTF_8);
+        int tees = store.dataset().tees().size();
+        int rounds = store.roundsByDate().size();
+
+        TestShell homeShell = new TestShell(store);
+        HomePage home = new HomePage(homeShell);
+        ((WoodButton) findByText(home, "Import")).doClick();
+        check("import: Home's Import button asks the window to import", homeShell.lastPage.equals("import"));
+
+        AppPanel panel = new AppPanel(store, Path.of("help"), "");
+        List<String> seen = new ArrayList<>();
+        panel.setImportAsker(form ->
+        {
+            seen.add("start: import " + (form.importButton.isEnabled() ? "on" : "off"));
+            form.checkButton.doClick();
+            seen.add("empty check: " + form.preview.getText());
+            form.fillFromFolder(other);
+            form.checkButton.doClick();
+            seen.add("checked: import " + (form.importButton.isEnabled() ? "on" : "off") + ": " + form.preview.getText());
+            form.historicalBox.doClick();
+            seen.add("changed: import " + (form.importButton.isEnabled() ? "on" : "off") + ": " + form.preview.getText());
+            form.historicalBox.doClick();
+            form.checkButton.doClick();
+            form.cancelButton.doClick();
+            return form.answer();
+        });
+        panel.importData();
+        check("import: Import starts off", seen.get(0).equals("start: import off"));
+        check("import: Check files with nothing picked says so", seen.get(1).equals("empty check: " + ImportForm.NOTHING_PICKED));
+        check("import: a check that finds something turns Import on and shows the preview", seen.get(2).equals(
+                "checked: import on: 1 new tee will be added.\n1 round will be added.\n"));
+        check("import: changing anything turns Import off until the next check", seen.get(3).equals("changed: import off: "
+                + ImportForm.CHECK_AGAIN));
+        check("import: Cancel imports nothing", Files.readString(data.resolve(DataLoader.COURSES_FILE), StandardCharsets.UTF_8)
+                .equals(coursesBefore) && !Files.exists(data.resolve("backups")));
+
+        panel.setImportAsker(form ->
+        {
+            form.fillFromFolder(other);
+            form.checkButton.doClick();
+            form.importButton.doClick();
+            return form.answer();
+        });
+        panel.importData();
+        java.util.List<Path> folders = new ArrayList<>();
+        try (Stream<Path> list = Files.list(data.resolve("backups")))
+        {
+            list.forEach(folders::add);
+        }
+        check("import: Import adds the tee and the round and stays on Home", store.dataset().tees().size() == tees + 1
+                && store.roundsByDate().size() == rounds + 1 && panel.currentPageName().equals(AppPanel.HOME)
+                && Files.readString(data.resolve(DataLoader.COURSES_FILE), StandardCharsets.UTF_8).startsWith(coursesBefore));
+        check("import: the footer says what was imported and where the copy is", folders.size() == 1
+                && panel.footer().status().equals("Imported 1 tee and 1 round. 0 skipped, 0 rejected. A copy of your files as they were is in backups"
+                        + java.io.File.separator + folders.get(0).getFileName() + "."));
+
+        Path parent = Files.createTempDirectory("golfanalyst-import-sample");
+        Path sample = parent.resolve(DataStore.SAMPLE_FOLDER);
+        Files.createDirectories(sample);
+        Files.copy(Path.of("sample-data", DataLoader.COURSES_FILE), sample.resolve(DataLoader.COURSES_FILE));
+        Files.copy(Path.of("sample-data", DataLoader.ROUNDS_FILE), sample.resolve(DataLoader.ROUNDS_FILE));
+        String sampleCourses = Files.readString(sample.resolve(DataLoader.COURSES_FILE), StandardCharsets.UTF_8);
+        AppPanel samplePanel = new AppPanel(new DataStore(sample), Path.of("help"), "");
+        List<String> sampleAsked = new ArrayList<>();
+        samplePanel.setAsker(question ->
+        {
+            sampleAsked.add(question);
+            return javax.swing.JOptionPane.CANCEL_OPTION;
+        });
+        samplePanel.setImportAsker(form ->
+        {
+            sampleAsked.add("import window");
+            return ConfirmForm.CANCELLED;
+        });
+        samplePanel.importData();
+        check("import: on the sample data the sample question comes first, and Cancel imports nothing",
+                sampleAsked.equals(List.of(AppPanel.SAMPLE_QUESTION))
+                        && Files.readString(sample.resolve(DataLoader.COURSES_FILE), StandardCharsets.UTF_8).equals(sampleCourses));
+        deleteFolder(parent);
+
+        ImportForm layout = new ImportForm((courses, roundsFile, historical) -> null);
+        StringBuilder longPreview = new StringBuilder("812 new tees will be added (95 already here, skipped; 37 rejected).\n");
+        for (int lp = 0; lp < 60; lp = lp + 1)
+        {
+            longPreview.append("  rounds-from-the-old-spreadsheet-of-the-club.tsv, line ").append(lp + 2)
+                    .append(": no tee with that number (TeeID 99999)\n");
+        }
+        layout.preview.setText(longPreview.toString());
+        layout.coursesPath.setText("C:\\Users\\Someone With A Long Name\\Documents\\Golf\\Old copies\\data\\courses.tsv");
+        checkPanelLayout("Import, longest preview", layout, layout.introArea(), layout.buttonRow());
+        check("import: Check files is the window's default, Import starts off", !layout.importButton.isEnabled());
+        deleteFolder(temp);
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | checkCorrectCourseScreen()                                               |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Correct... on the New Course screen, on a copy of the sample data: it    |
+     | shows only in Edit Course; the name and zip are locked until it is       |
+     | pressed; another course's name and zip turn both pink and keep Save off; |
+     | no change says so and keeps Save off; a new name saves into every tee    |
+     | (TeeIDs and rounds unchanged, a backup copy first) and says so.          |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing (throws IOException if a temporary file fails)       |
+     +--------------------------------------------------------------------------+
+     */
+    private static void checkCorrectCourseScreen() throws IOException
+    {
+        Path temp = Files.createTempDirectory("golfanalyst-correct-screen");
+        Files.copy(Path.of("sample-data", DataLoader.COURSES_FILE), temp.resolve(DataLoader.COURSES_FILE));
+        Files.copy(Path.of("sample-data", DataLoader.ROUNDS_FILE), temp.resolve(DataLoader.ROUNDS_FILE));
+        DataStore store = new DataStore(temp);
+        TestShell shell = new TestShell(store);
+        CoursePage page = new CoursePage(shell);
+        page.useZipCodes(golfanalyst.ZipCodes.load(temp.resolve("no-zip-list.tsv")));
+        page.showNew();
+        check("correct: no Correct... button on a new course", !page.correctButton.isVisible() && page.courseField.isEditable());
+        page.courseField.setText("Sample Links");
+        page.zipField.setText("29000");
+        List<Integer> ids = store.teesForCourse("Sample Links", "29000").stream().map(golfanalyst.Tee::id).toList();
+        int rounds = store.roundsByDate().size();
+        check("correct: in Edit Course the name and zip are locked, with Correct... beside them", page.title().equals("Edit Course")
+                && page.correctButton.isVisible() && !page.courseField.isEditable() && !page.zipField.isEditable()
+                && page.courseField.getBackground().equals(Theme.FIELD_FACE) && page.correctButton.getPreferredSize().width == 90
+                && page.correctButton.getPreferredSize().height == 24);
+        page.correctButton.doClick();
+        check("correct: Correct... unlocks them and says what it does", page.isCorrecting() && page.courseField.isEditable()
+                && page.zipField.isEditable() && shell.status.equals(CoursePage.CORRECT_NOTE));
+        page.courseField.setText("Parkside Nine");
+        check("correct: another course's name and zip turn both pink and keep Save off", !page.saveButton.isEnabled()
+                && shell.status.equals(CoursePage.SAME_COURSE) && page.courseField.getBackground().equals(Theme.FIELD_ERROR)
+                && page.zipField.getBackground().equals(Theme.FIELD_ERROR) && page.title().equals("Edit Course"));
+        page.courseField.setText("Sample Links");
+        check("correct: no change says so and keeps Save off", !page.saveButton.isEnabled()
+                && shell.status.equals(CoursePage.NOTHING_CORRECTED) && !page.zipField.getBackground().equals(Theme.FIELD_ERROR));
+        page.courseField.setText("Sample Links Golf Club");
+        check("correct: a new name can be saved", page.saveButton.isEnabled());
+        page.saveButton.doClick();
+        List<Integer> after = store.teesForCourse("Sample Links Golf Club", "29000").stream().map(golfanalyst.Tee::id).toList();
+        check("correct: every tee has the new name and keeps its TeeID, every round stays", after.equals(ids)
+                && store.teesForCourse("Sample Links", "29000").isEmpty() && store.roundsByDate().size() == rounds
+                && store.dataset().errorCount() == 0);
+        check("correct: the footer says so, and a backup copy was made", shell.status.equals("Corrected the course. Its " + ids.size()
+                + " sets of tees and all their rounds are unchanged. A copy of the file as it was is in the backups folder.")
+                && shell.lastPage.equals("home") && !golfanalyst.Backups.copiesOf(temp.resolve(DataLoader.COURSES_FILE)).isEmpty());
+        page.showNew();
+        check("correct: a new course is not in correcting mode", !page.isCorrecting() && !page.correctButton.isVisible());
+        deleteFolder(temp);
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | checkZipScreen()                                                         |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | The zip check on the New Course screen with a small zip list: the page   |
+     | is built without calling the window; a known zip fills an empty city     |
+     | and state but never what was typed; a different state warns, outlines    |
+     | State in orange and asks at Save ("Go back" keeps the screen); a         |
+     | different city only hints; an unknown zip gets a note; no list does      |
+     | nothing; and the Save question's layout with long names.                 |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing (throws IOException if a temporary file fails)       |
+     +--------------------------------------------------------------------------+
+     */
+    private static void checkZipScreen() throws IOException
+    {
+        Path temp = Files.createTempDirectory("golfanalyst-zip-screen");
+        Files.copy(Path.of("sample-data", DataLoader.COURSES_FILE), temp.resolve(DataLoader.COURSES_FILE));
+        Files.copy(Path.of("sample-data", DataLoader.ROUNDS_FILE), temp.resolve(DataLoader.ROUNDS_FILE));
+        Path list = temp.resolve(golfanalyst.ZipCodes.FILE);
+        Files.writeString(list, "Zip\tCity\tState\n29708\tFort Mill\tSC\n28202\tCharlotte\tNC\n"
+                + "99950\tKetchikan Gateway Borough Census Area Unorganized Territory North\tAK\n", StandardCharsets.UTF_8);
+        golfanalyst.ZipCodes zips = golfanalyst.ZipCodes.load(list);
+        DataStore store = new DataStore(temp);
+        TestShell shell = new TestShell(store);
+        CoursePage page = new CoursePage(shell);
+        check("zip: the New Course page is built without calling the window", shell.windowCalls == 0);
+        page.useZipCodes(zips);
+        int[] pars = new int[18];
+        int[] index = new int[18];
+        for (int hole = 0; hole < 18; hole = hole + 1)
+        {
+            pars[hole] = 4;
+            index[hole] = hole + 1;
+        }
+
+        page.showNew();
+        page.courseField.setText("Zip Test Links");
+        page.zipField.setText("29708");
+        check("zip: a known zip fills in an empty city and state", page.cityField.getText().equals("Fort Mill")
+                && page.stateField.getText().equals("SC") && page.cityField.isEditable());
+
+        page.showNew();
+        page.courseField.setText("Zip Test Links");
+        page.cityField.setText("Charlotte");
+        page.stateField.setText("NC");
+        page.zipField.setText("29708");
+        check("zip: what was typed is never replaced", page.cityField.getText().equals("Charlotte") && page.stateField.getText().equals("NC"));
+        check("zip: a different state warns in the footer", shell.status.startsWith("ZIP 29708 is in SC, but the state says NC."));
+        javax.swing.border.Border border = page.stateField.getBorder();
+        check("zip: and outlines State in orange", border instanceof javax.swing.border.LineBorder
+                && ((javax.swing.border.LineBorder) border).getLineColor().equals(CoursePage.ZIP_WARNING));
+        fillTee(page, 0, "Blue", "70.4", "125", pars, index);
+        check("zip: Save stays on", page.saveButton.isEnabled());
+        int tees = store.dataset().tees().size();
+        int askedBefore = shell.asked.size();
+        shell.confirmAnswer = false;
+        page.saveButton.doClick();
+        check("zip: Save asks first, and Go back saves nothing", shell.asked.size() == askedBefore + 1
+                && shell.asked.get(askedBefore).equals("ZIP 29708 is Fort Mill, SC, but you entered Charlotte, NC. Save anyway?")
+                && store.dataset().tees().size() == tees);
+
+        page.stateField.setText("SC");
+        check("zip: a different city only hints", shell.status.startsWith("ZIP 29708 is listed under Fort Mill. That is fine if the course "
+                + "is in a nearby town.") && !(page.stateField.getBorder() instanceof javax.swing.border.LineBorder
+                && ((javax.swing.border.LineBorder) page.stateField.getBorder()).getLineColor().equals(CoursePage.ZIP_WARNING)));
+        int askedNow = shell.asked.size();
+        page.saveButton.doClick();
+        check("zip: with only the city different, Save does not ask and saves", shell.asked.size() == askedNow
+                && store.dataset().tees().size() == tees + 1 && shell.lastPage.equals("home"));
+
+        page.showNew();
+        page.courseField.setText("Zip Test Hills");
+        page.zipField.setText("99999");
+        check("zip: an unknown zip gets a note", shell.status.startsWith("That ZIP code is not in my list (it may be new). Please check it.")
+                && page.cityField.getText().isEmpty());
+
+        CoursePage noList = new CoursePage(shell);
+        noList.useZipCodes(golfanalyst.ZipCodes.load(temp.resolve("nowhere.tsv")));
+        noList.showNew();
+        noList.courseField.setText("Zip Test Hills");
+        noList.zipField.setText("29708");
+        check("zip: with no list nothing is filled and nothing is said", noList.cityField.getText().isEmpty()
+                && !shell.status.contains("ZIP"));
+
+        checkDialogLayout("Save anyway?, long names", ConfirmForm.twoChoice(zips.saveQuestion("99950",
+                "Lake Wobegon Heights on the Northern Shore of Lake Superior", "MN"), "Go back", "Save anyway"));
+        deleteFolder(temp);
     }
 
     /*

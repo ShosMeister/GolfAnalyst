@@ -1,4 +1,4 @@
-# GolfAnalyst v4.71 (Java)
+# GolfAnalyst v4.80 (Java)
 
 Golf Analyst with its window. It has the one-window layout of the earlier versions: a wood header
 with Home, Help and Info buttons that stays the same on every screen, a status footer that stays
@@ -58,7 +58,7 @@ Pages so far: **Home** (handicap, statistics and the buttons), **Round** (enter 
 or look back through saved ones with the four arrow buttons, limited to one course or set of tees with the
 Show box) and **New Course** (a course and up to four sets of tees). The Home buttons are in two columns:
 data entry on the left (New Course, New Round, Edit Round, Import, Clear) and viewing on the right (Rounds,
-Stats Board, Analyzer, Best Round, Print). Import, Analyzer and Print are in place and say "not built yet" in
+Stats Board, Analyzer, Best Round, Print). Analyzer and Print are in place and say "not built yet" in
 the footer; the rest work.
 
 - **Editing a round:** Edit Round on the Home screen opens the saved rounds at the latest one. Step to the
@@ -75,6 +75,21 @@ the footer; the rest work.
   after a choice, a summary (Keep my data as the default) and typing CLEAR. First courses.tsv, rounds.tsv
   and settings.txt are copied into `backups/clear-YYYY-MM-DD-HHMMSS/` (never pruned); each file keeps only
   its header row. The sample data is never cleared.
+- **Import:** Home's Import button adds rounds and/or courses from files in the program's own layout
+  (another copy's data folder, or a spreadsheet saved as Text (Tab delimited)). Check files shows what
+  would be added, skipped (already here) and rejected (with line numbers) before anything is written.
+  Tees are matched by course and tee name (and zip); new ones get new TeeIDs, rounds are remapped and
+  get new RoundIDs, duplicates are skipped. Import copies both files into `backups/import-.../` first and
+  only adds lines at the end. It never changes a tee or round you already have.
+- **Correcting a course:** in Edit Course the name and zip are locked; Correct... opens them, and Save
+  writes the corrected name and zip (with the city and state) into every tee of the course. TeeIDs and
+  rounds do not change. A name and zip that belong to another course are refused.
+- **ZIP code check:** New Course fills in an empty city and state from the zip, warns (and asks at Save)
+  when the state does not match, and hints when only the city differs. The list is `zipcodes.tsv` in the
+  program folder (Zip, City, State); without it the check does nothing.
+
+  ZIP code data from GeoNames ([www.geonames.org](https://www.geonames.org)), used under a Creative
+  Commons Attribution license. The data is provided as is.
 
 - **Entering a course:** the page looks like the round page: a centred row of wood frames over the
   photo, captions down the left frame and one frame per tee, with spreadsheet-style cells (the cell with

@@ -25,7 +25,9 @@ import golfanalyst.DataStore;
  | readyToSave()    - asks, on the sample data, whether to save there       |
  | confirmTwice(question, keepLabel, goLabel, word) - the two careful       |
  |                    questions before something is removed                 |
+ | confirmOnce(question, keepLabel, goLabel) - one careful question         |
  | clearData()      - Clear: asks what to clear, twice, then clears it      |
+ | importData()     - Import: checks the files, then adds what is new       |
  +--------------------------------------------------------------------------+
  */
 public interface Shell
@@ -129,7 +131,19 @@ public interface Shell
     boolean confirmTwice(String question, String keepLabel, String goLabel, String word);
 
     /*
+     * confirmOnce(question, keepLabel, goLabel): one careful question with a Keep button (the default) and a Go button, e.g. "Save anyway?" with "Go back".
+     * Passed in:  question, keepLabel, goLabel - the words
+     * Passed out: true only if the Go button was pressed
+     */
+    boolean confirmOnce(String question, String keepLabel, String goLabel);
+
+    /*
      * clearData(): what Home's Clear button does: asks what to clear and confirms it twice, makes the backup folder, clears, and goes Home.
      */
     void clearData();
+
+    /*
+     * importData(): what Home's Import button does: the Import window, a check of the files, then (after a backup) the new rounds and courses added.
+     */
+    void importData();
 }

@@ -571,6 +571,9 @@ public final class SelfTest
             checkHistorical();
             checkBackups();
             checkDeleteAndClear();
+            checkImport();
+            checkCorrectCourse();
+            checkZipCodes();
         }
         catch (IOException failure)
         {
@@ -1438,6 +1441,303 @@ public final class SelfTest
                 && Files.readString(sample.resolve(DataLoader.ROUNDS_FILE), StandardCharsets.UTF_8).equals(sampleRounds)
                 && !Files.exists(sample.resolve(Backups.FOLDER)));
         deleteTree(parent);
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | checkImport()                                                            |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Tests Import on a copy of the sample data (with a comment and Windows    |
+     | line endings added to its files) and import files made for the test.     |
+     |                                                                          |
+     | It checks that:                                                          |
+     | - a tee matching one of mine (capitals and spaces ignored) is skipped    |
+     |   and keeps my TeeID; new tees get the next TeeIDs, with no collision;   |
+     | - a bad tee row is rejected with its line number and reason;             |
+     | - rounds are remapped to my TeeIDs, numbered from my highest RoundID;    |
+     |   duplicates (of mine or earlier in the file) are skipped; a round on    |
+     |   an unknown tee or with bad scores is rejected with its line and why;   |
+     | - the preview's words; the historical option; a rounds-only import;      |
+     | - an empty, missing or unreadable file;                                  |
+     | - nothing is written when there is nothing to add or the backup fails;   |
+     | - Import only adds lines at the end (old text, comments and line         |
+     |   endings kept) after copying both files to backups\import-...           |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing (throws IOException if a temporary file fails)       |
+     +--------------------------------------------------------------------------+
+     */
+    private static void checkImport() throws IOException
+    {
+        Path temp = Files.createTempDirectory("golfanalyst-import-test");
+        Path data = temp.resolve("data");
+        Files.createDirectories(data);
+        String myCourses = "# my courses\r\n" + Files.readString(Path.of("sample-data", DataLoader.COURSES_FILE), StandardCharsets.UTF_8)
+                .replace("\r\n", "\n").replace("\n", "\r\n");
+        String myRounds = "# my rounds\r\n" + Files.readString(Path.of("sample-data", DataLoader.ROUNDS_FILE), StandardCharsets.UTF_8)
+                .replace("\r\n", "\n").replace("\n", "\r\n");
+        Files.writeString(data.resolve(DataLoader.COURSES_FILE), myCourses, StandardCharsets.UTF_8);
+        Files.writeString(data.resolve(DataLoader.ROUNDS_FILE), myRounds, StandardCharsets.UTF_8);
+        DataStore store = new DataStore(data);
+        int nextTee = store.nextTeeId();
+        int nextRound = store.nextRoundId();
+        int teeCount = store.dataset().tees().size();
+        int roundCount = store.roundsByDate().size();
+        Tee white = store.teeMap().get(1);
+        Round mine = store.roundsByDate().stream().filter(round -> round.teeId() == 1 && !round.isNineHole()).findFirst().orElse(null);
+
+        Path files = temp.resolve("import");
+        Files.createDirectories(files);
+        String[] courseHeader = CourseWriter.STANDARD_HEADER.split("\t");
+        Tee sameWhite = new Tee(101, "  sample   LINKS ", white.city(), white.state(), white.zip(), "WHITE", white.holes(), white.rating(),
+                white.slope(), white.yardage(), white.pars(), white.strokeIndex(), 0, 0, 0, 0);
+        Tee hillsBlue = new Tee(102, "Import Hills", "Fort Mill", "SC", "29708", "Blue", white.holes(), 71.2, 128, 6400, white.pars(),
+                white.strokeIndex(), 0, 0, 0, 0);
+        int[] badPars = white.pars().clone();
+        badPars[0] = 7;
+        Tee badTee = new Tee(103, "Import Hills", "Fort Mill", "SC", "29708", "Green", white.holes(), 69.0, 120, 0, badPars,
+                white.strokeIndex(), 0, 0, 0, 0);
+        Tee hillsRed = new Tee(104, "import hills", "Fort Mill", "SC", "29708", "Red", white.holes(), 68.5, 118, 5600, white.pars(),
+                white.strokeIndex(), 0, 0, 0, 0);
+        Path coursesIn = files.resolve("courses-in.tsv");
+        Files.writeString(coursesIn, CourseWriter.STANDARD_HEADER + "\n" + CourseWriter.formatLine(sameWhite, courseHeader) + "\n"
+                + CourseWriter.formatLine(hillsBlue, courseHeader) + "\n" + CourseWriter.formatLine(badTee, courseHeader) + "\n"
+                + CourseWriter.formatLine(hillsRed, courseHeader) + "\n", StandardCharsets.UTF_8);
+
+        String[] roundHeader = RoundWriter.STANDARD_HEADER.split("\t");
+        int[] fives = new int[Tee.HOLES];
+        int[] twos = new int[Tee.HOLES];
+        Arrays.fill(fives, 5);
+        Arrays.fill(twos, 2);
+        boolean[] none = new boolean[Tee.HOLES];
+        Round onWhite = new Round(1, 101, LocalDate.parse("2030-05-01"), 0, 0, Tee.HOLES, fives, twos, none, none.clone());
+        Round onBlue = new Round(2, 102, LocalDate.parse("2030-05-02"), 0, 0, Tee.HOLES, fives, twos, none, none.clone());
+        Round copyOfMine = new Round(3, 101, mine.date(), mine.pcc(), 0, Tee.HOLES, mine.scores(), mine.putts(), mine.fairway(), mine.sand());
+        Round onNothing = new Round(4, 999, LocalDate.parse("2030-05-03"), 0, 0, Tee.HOLES, fives, twos, none, none.clone());
+        String blueLine = RoundWriter.formatLine(onBlue, hillsBlue, roundHeader);
+        Path roundsIn = files.resolve("rounds-in.tsv");
+        Files.writeString(roundsIn, RoundWriter.STANDARD_HEADER + "\n"
+                + RoundWriter.formatLine(onWhite, sameWhite, roundHeader) + "\n"
+                + blueLine + "\n"
+                + "# a comment\n"
+                + blueLine.replaceFirst("^2\t", "5\t") + "\n"
+                + RoundWriter.formatLine(onNothing, hillsBlue, roundHeader) + "\n"
+                + blueLine.replaceFirst("^2\t", "6\t").replace("\t5,5,5,", "\tx,5,5,") + "\n"
+                + RoundWriter.formatLine(copyOfMine, sameWhite, roundHeader) + "\n", StandardCharsets.UTF_8);
+
+        Importer.Plan plan = store.checkImport(coursesIn, roundsIn, false);
+        check("import: a tee like mine (capitals and spaces ignored) is skipped, two new tees get the next TeeIDs",
+                plan.newTees().size() == 2 && plan.newTees().get(0).id() == nextTee && plan.newTees().get(1).id() == nextTee + 1
+                        && plan.newTees().get(0).teeName().equals("Blue") && plan.teesSkipped() == 1);
+        check("import: a second new tee of a course new in the file takes the first one's spelling",
+                plan.newTees().get(1).courseName().equals("Import Hills"));
+        check("import: the bad tee row is rejected with its line number and reason", plan.teesRejected() == 1
+                && plan.rejected().get(0).file().equals("courses-in.tsv") && plan.rejected().get(0).line() == 4
+                && plan.rejected().get(0).reason().contains("Pars"));
+        check("import: the rounds are remapped to my TeeIDs and numbered from my highest RoundID", plan.newRounds().size() == 2
+                && plan.newRounds().get(0).teeId() == 1 && plan.newRounds().get(0).id() == nextRound
+                && plan.newRounds().get(1).teeId() == nextTee && plan.newRounds().get(1).id() == nextRound + 1);
+        List<String> reasons = plan.rejected().stream().map(Importer.Note::toString).toList();
+        check("import: a round on an unknown tee is rejected with its line and the reason",
+                reasons.contains("rounds-in.tsv, line 6: no tee with that number (TeeID 999)"));
+        check("import: a round with bad scores is rejected with its line", plan.roundsRejected() == 2
+                && reasons.stream().anyMatch(reason -> reason.startsWith("rounds-in.tsv, line 7: ")));
+        check("import: a round repeated in the file and a round I already have are skipped", plan.roundsSkipped() == 2
+                && plan.skipped().stream().anyMatch(note -> note.line() == 5 && note.reason().startsWith("already here"))
+                && plan.skipped().stream().anyMatch(note -> note.line() == 8));
+        check("import: the preview says it in plain words", plan.summary().startsWith(
+                "2 new tees will be added (1 already here, skipped; 1 rejected).\n2 rounds will be added (2 already here, skipped; 2 rejected).\n"));
+        check("import: without the historical box the file's own flag is kept", plan.newRounds().stream().noneMatch(Round::historical));
+        check("import: with it every imported round is historical",
+                store.checkImport(coursesIn, roundsIn, true).newRounds().stream().allMatch(Round::historical));
+        check("import: checking writes nothing", Files.readString(data.resolve(DataLoader.COURSES_FILE), StandardCharsets.UTF_8).equals(myCourses)
+                && !Files.exists(data.resolve(Backups.FOLDER)));
+
+        Path onlyRounds = files.resolve("only-rounds.tsv");
+        Round onMyWhite = new Round(1, 1, LocalDate.parse("2030-06-01"), 0, 0, Tee.HOLES, fives, twos, none, none.clone());
+        Files.writeString(onlyRounds, RoundWriter.STANDARD_HEADER + "\n" + RoundWriter.formatLine(onMyWhite, white, roundHeader) + "\n"
+                + RoundWriter.formatLine(onNothing, hillsBlue, roundHeader) + "\n", StandardCharsets.UTF_8);
+        Importer.Plan roundsOnly = store.checkImport(null, onlyRounds, false);
+        check("import: rounds only keep my TeeIDs and reject a TeeID I do not have", roundsOnly.newRounds().size() == 1
+                && roundsOnly.newRounds().get(0).teeId() == 1 && roundsOnly.roundsRejected() == 1 && !roundsOnly.hadCourses()
+                && roundsOnly.summary().startsWith("1 round will be added (1 rejected)."));
+
+        Path empty = files.resolve("empty.tsv");
+        Files.writeString(empty, "", StandardCharsets.UTF_8);
+        Path junk = files.resolve("junk.tsv");
+        Files.writeString(junk, "hello\tworld\n1\t2\n", StandardCharsets.UTF_8);
+        Importer.Plan nothing = store.checkImport(empty, junk, false);
+        check("import: an empty file and an unreadable one say so and give nothing to import", !nothing.hasWork()
+                && nothing.rejected().get(0).toString().equals("empty.tsv: the file is empty")
+                && nothing.rejected().get(1).reason().startsWith("the file cannot be read: ")
+                && nothing.summary().contains("There is nothing new to import."));
+        check("import: a missing file says so", store.checkImport(files.resolve("nowhere.tsv"), null, false).rejected().get(0).reason()
+                .startsWith("the file was not found"));
+        boolean refused = false;
+        try
+        {
+            store.applyImport(nothing);
+        }
+        catch (IOException expected)
+        {
+            refused = true;
+        }
+        check("import: nothing is written when there is nothing to import", refused && !Files.exists(data.resolve(Backups.FOLDER))
+                && Files.readString(data.resolve(DataLoader.ROUNDS_FILE), StandardCharsets.UTF_8).equals(myRounds));
+
+        Path folder = store.applyImport(plan);
+        String coursesAfter = Files.readString(data.resolve(DataLoader.COURSES_FILE), StandardCharsets.UTF_8);
+        String roundsAfter = Files.readString(data.resolve(DataLoader.ROUNDS_FILE), StandardCharsets.UTF_8);
+        check("import: courses.tsv keeps every old line and comment and gains two lines at the end, Windows endings kept",
+                coursesAfter.startsWith(myCourses) && LineReplacer.lines(coursesAfter).size() == LineReplacer.lines(myCourses).size() + 2
+                        && coursesAfter.endsWith("\r\n") && !coursesAfter.substring(myCourses.length()).replace("\r\n", "").contains("\n"));
+        check("import: rounds.tsv keeps every old line and gains two lines at the end",
+                roundsAfter.startsWith(myRounds) && LineReplacer.lines(roundsAfter).size() == LineReplacer.lines(myRounds).size() + 2);
+        check("import: the backup folder holds both files as they were", folder.getFileName().toString().startsWith("import-")
+                && Files.readString(folder.resolve(DataLoader.COURSES_FILE), StandardCharsets.UTF_8).equals(myCourses)
+                && Files.readString(folder.resolve(DataLoader.ROUNDS_FILE), StandardCharsets.UTF_8).equals(myRounds));
+        check("import: everything is reloaded with the new tees and rounds", store.dataset().tees().size() == teeCount + 2
+                && store.roundsByDate().size() == roundCount + 2 && store.dataset().errorCount() == 0
+                && store.teeMap().get(nextTee).teeName().equals("Blue"));
+        check("import: importing the same files again finds nothing new", !store.checkImport(coursesIn, roundsIn, false).hasWork());
+
+        Path blocked = temp.resolve("blocked");
+        Files.createDirectories(blocked);
+        Files.writeString(blocked.resolve(DataLoader.COURSES_FILE), myCourses, StandardCharsets.UTF_8);
+        Files.writeString(blocked.resolve(DataLoader.ROUNDS_FILE), myRounds, StandardCharsets.UTF_8);
+        Files.writeString(blocked.resolve(Backups.FOLDER), "a file where the folder should be", StandardCharsets.UTF_8);
+        DataStore blockedStore = new DataStore(blocked);
+        boolean stopped = false;
+        try
+        {
+            blockedStore.applyImport(blockedStore.checkImport(coursesIn, roundsIn, false));
+        }
+        catch (Backups.Failed expected)
+        {
+            stopped = true;
+        }
+        check("import: if the backup cannot be made nothing is written", stopped
+                && Files.readString(blocked.resolve(DataLoader.COURSES_FILE), StandardCharsets.UTF_8).equals(myCourses)
+                && Files.readString(blocked.resolve(DataLoader.ROUNDS_FILE), StandardCharsets.UTF_8).equals(myRounds));
+        deleteTree(temp);
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | checkCorrectCourse()                                                     |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Tests correcting a course's name and zip on a copy of the sample data:   |
+     | a new name, a new zip and both; every tee of the course changes in the   |
+     | Course, Zip, City and State cells only, other lines and comments are     |
+     | untouched, TeeIDs and rounds stay, and a backup copy is made first.      |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing (throws IOException if a temporary file fails)       |
+     +--------------------------------------------------------------------------+
+     */
+    private static void checkCorrectCourse() throws IOException
+    {
+        Path temp = Files.createTempDirectory("golfanalyst-correct-test");
+        Files.copy(Path.of("sample-data", DataLoader.COURSES_FILE), temp.resolve(DataLoader.COURSES_FILE));
+        Files.copy(Path.of("sample-data", DataLoader.ROUNDS_FILE), temp.resolve(DataLoader.ROUNDS_FILE));
+        DataStore store = new DataStore(temp);
+        int rounds = store.roundsByDate().size();
+        String[][] corrections = {{"Sample Links Golf Club", "29000", "Anytown", "SC"}, {"Sample Links Golf Club", "29001", "Anytown", "SC"},
+            {"Sample Links GC", "29002", "Newtown", "NC"}};
+        String[] what = {"a new name", "a new zip", "both, with the city and state"};
+        String courseName = "Sample Links";
+        String zip = "29000";
+        for (int lp = 0; lp < corrections.length; lp = lp + 1)
+        {
+            List<Tee> tees = store.teesForCourse(courseName, zip);
+            Set<Integer> ids = new java.util.HashSet<>();
+            tees.forEach(tee -> ids.add(tee.id()));
+            Path coursesFile = temp.resolve(DataLoader.COURSES_FILE);
+            List<String> before = Files.readAllLines(coursesFile, StandardCharsets.UTF_8);
+            String beforeText = Files.readString(coursesFile, StandardCharsets.UTF_8);
+            String[] fix = corrections[lp];
+            Path copy = store.correctCourse(tees, fix[0], fix[1], fix[2], fix[3]);
+            List<String> after = Files.readAllLines(coursesFile, StandardCharsets.UTF_8);
+            String[] header = RoundWriter.findHeader(beforeText);
+            boolean onlyThose = before.size() == after.size();
+            int changedLines = 0;
+            for (int line = 0; onlyThose && line < before.size(); line = line + 1)
+            {
+                if (before.get(line).equals(after.get(line)))
+                {
+                    continue;
+                }
+                changedLines = changedLines + 1;
+                String[] oldCells = before.get(line).split("\t", -1);
+                String[] newCells = after.get(line).split("\t", -1);
+                onlyThose = onlyThose && oldCells.length == newCells.length && ids.contains(Integer.parseInt(oldCells[0].trim()));
+                for (int col = 0; onlyThose && col < oldCells.length; col = col + 1)
+                {
+                    String column = DataLoader.normalize(header[col]);
+                    boolean allowed = Set.of("course", "zip", "city", "state").contains(column);
+                    onlyThose = allowed || oldCells[col].equals(newCells[col]);
+                }
+            }
+            check("correct course, " + what[lp] + ": only the Course, Zip, City and State cells of its tees change",
+                    onlyThose && changedLines == tees.size());
+            List<Tee> corrected = store.teesForCourse(fix[0], fix[1]);
+            check("correct course, " + what[lp] + ": the same TeeIDs, with the new values", corrected.size() == tees.size()
+                    && corrected.stream().allMatch(tee -> ids.contains(tee.id()) && tee.city().equals(fix[2]) && tee.state().equals(fix[3]))
+                    && store.teesForCourse(courseName, zip).isEmpty() == !(courseName.equals(fix[0]) && zip.equals(fix[1])));
+            check("correct course, " + what[lp] + ": every round stays linked", store.roundsByDate().size() == rounds
+                    && store.dataset().errorCount() == 0);
+            check("correct course, " + what[lp] + ": a backup copy holds the file as it was",
+                    Files.readString(copy, StandardCharsets.UTF_8).equals(beforeText));
+            courseName = fix[0];
+            zip = fix[1];
+        }
+        deleteTree(temp);
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | checkZipCodes()                                                          |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Tests the zip list: filling an empty city and state, a state that        |
+     | differs (and Save's question), a city that differs, capitals and spaces  |
+     | ignored, an unknown zip, an unfinished zip, a missing file, and that     |
+     | the program's own zipcodes.tsv is there and knows 29708.                 |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing (throws IOException if a temporary file fails)       |
+     +--------------------------------------------------------------------------+
+     */
+    private static void checkZipCodes() throws IOException
+    {
+        Path temp = Files.createTempDirectory("golfanalyst-zip-test");
+        Path file = temp.resolve(ZipCodes.FILE);
+        Files.writeString(file, "Zip\tCity\tState\n29708\tFort Mill\tSC\n28202\tCharlotte\tNC\nnot\ta\tzip\n", StandardCharsets.UTF_8);
+        ZipCodes zips = ZipCodes.load(file);
+        check("zip: a known zip with no city or state fills them in", zips.check("29708", "", "").verdict() == ZipCodes.Verdict.FILL
+                && zips.check("29708", " ", "").place().equals(new ZipCodes.Place("Fort Mill", "SC")));
+        ZipCodes.Check state = zips.check("29708", "Charlotte", "NC");
+        check("zip: a different state warns", state.verdict() == ZipCodes.Verdict.STATE_DIFFERS
+                && state.message().equals("ZIP 29708 is in SC, but the state says NC."));
+        check("zip: and Save asks with both places named", zips.saveQuestion("29708", "Charlotte", "NC")
+                .equals("ZIP 29708 is Fort Mill, SC, but you entered Charlotte, NC. Save anyway?"));
+        ZipCodes.Check city = zips.check("29708", "Rock Hill", "SC");
+        check("zip: a different city only hints", city.verdict() == ZipCodes.Verdict.CITY_DIFFERS
+                && city.message().equals("ZIP 29708 is listed under Fort Mill. That is fine if the course is in a nearby town."));
+        check("zip: capitals and extra spaces are ignored", zips.check("29708", "  fort   MILL ", "sc").verdict() == ZipCodes.Verdict.MATCH);
+        check("zip: a typed city with no state is not filled or warned about", zips.check("29708", "Fort Mill", "").verdict()
+                == ZipCodes.Verdict.MATCH);
+        check("zip: an unknown zip gets a note", zips.check("99999", "", "").message()
+                .equals("That ZIP code is not in my list (it may be new). Please check it."));
+        check("zip: an unfinished zip says nothing", zips.check("2970", "", "").verdict() == ZipCodes.Verdict.NONE);
+        ZipCodes missing = ZipCodes.load(temp.resolve("nowhere.tsv"));
+        check("zip: with no file every check quietly does nothing", missing.isEmpty()
+                && missing.check("29708", "", "").verdict() == ZipCodes.Verdict.NONE && missing.find("29708") == null);
+        check("zip: the program's zipcodes.tsv is there and knows 29708", ZipCodes.standard().find("29708") != null
+                && ZipCodes.standard().find("29708").city().equals("Fort Mill"));
+        deleteTree(temp);
     }
 
     /*

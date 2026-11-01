@@ -30,9 +30,8 @@ import javax.swing.JPanel;
  | The buttons are laid out in two columns: data entry on the left (New     |
  | Course, New Round, Edit Round, Import, Clear) and viewing on the right   |
  | (Rounds, Stats Board, Analyzer, Best Round, Print). The grid fills       |
- | across each row, so the order they are added in is row by row. Import,   |
- | Analyzer and Print are in place and say so in the footer until they are  |
- | built.                                                                   |
+ | across each row, so the order they are added in is row by row. Analyzer  |
+ | and Print are in place and say so in the footer until they are built.    |
  |                                                                          |
  | Public Methods:                                                          |
  | onShow() - refreshes every figure from the data                          |
@@ -130,7 +129,7 @@ public final class HomePage extends Page
         buttons.add(actionButton("Stats Board", () -> shell.statsBoard()));
         buttons.add(actionButton("Edit Round", () -> shell.editRound()));
         buttons.add(actionButton("Analyzer", () -> shell.setStatus("Analyzer is not built yet.")));
-        buttons.add(actionButton("Import", () -> shell.setStatus("Import is not built yet.")));
+        buttons.add(actionButton("Import", () -> shell.importData()));
         buttons.add(actionButton("Best Round", () -> shell.bestRound()));
         buttons.add(actionButton("Clear", () -> shell.clearData()));
         buttons.add(actionButton("Print", () -> shell.setStatus("Print is not built yet.")));

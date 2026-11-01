@@ -1,4 +1,4 @@
-# GolfAnalyst v4.71 (Java) - notes for Claude
+# GolfAnalyst v4.80 (Java) - notes for Claude
 
 A single-golfer golf statistics program with a Swing window. Ported from HyperCard (1991) to Excel/VBA to Java.
 Courses and rounds live in two plain tab-separated text files. Written for one user who tests on Windows.
@@ -216,9 +216,9 @@ sample-data title/footer and save question, styled Help/Info windows, Edit Round
 and the press-and-hold peek on the version text (v4.21), modal Help/Info windows (v4.22), historical rounds (v4.30), the
 Stats Board (v4.40), Close back to the Stats Board and the close-box question (v4.41), Best Round (v4.50), the
 Historical box on the round screens and Include historical rounds on Home (v4.60), the backups folder, Delete Round
-and Clear (v4.70).
-Not built (buttons are in place and say "not built yet"): Import, Analyzer, Print.
-Not built either: deleting a tee, renaming a course or changing its zip.
+and Clear (v4.70), dialogs sized to their text (v4.71), Import, Correct... and the ZIP code check (v4.80).
+Not built (buttons are in place and say "not built yet"): Analyzer, Print.
+Not built either: deleting a tee, merging two courses.
 - **Edit Course** (built, v4.20): no separate button. On New Course, typing a saved course's name and zip loads its
   tees (first four) into the frames; title "Edit Course"; empty frames take new tees. City/state editable (a change
   rewrites every tee of the course); nine-hole box locked. A loaded tee must keep its rating. Only changed tees are
@@ -245,8 +245,26 @@ Not built either: deleting a tee, renaming a course or changing its zip.
   before pack() (a wrapping text box asked for its size with no width reports too few lines; that once hid the last
   line behind the buttons), 12 px gap, buttons on the right, window packed and at least 440 wide, default button
   focused. `GuiSelfTest.checkDialogLayouts` lays each out with its longest text and checks overlaps and gaps.
-- **Import**: bulk rounds and/or courses from the program's own tab-separated format; show what will be added and
-  what is rejected (with line numbers) before writing anything; give duplicate IDs fresh numbers.
+- **Import** (built, v4.80): `Importer` (engine) `check` reads each data row alone with the loader (`onlyLine` blanks
+  the others so line numbers stay true) and returns a `Plan`; nothing is written. Tees match by `sameName` course + tee
+  (zips agree when both set): matched = skipped, mine never changed; new = next TeeIDs, course spelling of mine or of
+  an earlier new tee. Rounds: TeeID refers to the imported courses file when one is given, else must be mine ("no tee
+  with that number"); duplicate = same tee, date, holes, scores, putts (vs mine or earlier in file); new RoundIDs;
+  "Mark as historical" sets Y. `apply`: `Backups.copyIntoFolder(..., "import-", ...)` first, check both results with
+  the loader, append via `LineReplacer.writeSafely` (a Historical header column may be added). `ImportForm` (gui) is
+  the window, built with `ConfirmForm`'s pieces and shown by `ConfirmForm.showPanel`; `AppPanel.importData` (sample
+  safeguard via `readyToSave`, `ImportAsker` hook for tests). Footer "Imported 3 tees and 35 rounds. 4 skipped, 2
+  rejected. A copy of your files as they were is in backups\import-...."
+- **Correct...** (built, v4.80): in Edit Course `courseField`/`zipField` are locked; `CoursePage.correctButton`
+  (90 x 24) sets `correcting` (no lookups while it is on). Save: `DataStore.correctCourse` ->
+  `CourseWriter.correctCourse` rewrites only the Course, Zip, City and State cells of every tee (backup first);
+  another course's name+zip is `SAME_COURSE` with both cells pink; no change is `NOTHING_CORRECTED`.
+- **ZIP code check** (built, v4.80): `zipcodes.tsv` in the program folder (40,979 rows from GeoNames US.zip: postal
+  code, place name, state code; military APO/FPO rows have no state and are left out). `ZipCodes` (engine) loads it
+  once (`standard()`), quietly empty if missing; `check` gives NONE/FILL/MATCH/STATE_DIFFERS/CITY_DIFFERS/UNKNOWN.
+  CoursePage: `zipChanged` fills an empty city AND state when the zip changes; `refresh` puts the note first in the
+  footer and outlines State in `ZIP_WARNING` orange on STATE_DIFFERS; Save then asks `Shell.confirmOnce` ("... Save
+  anyway?", Go back default). Tests use `useZipCodes` (the older course tests run with an empty list).
 
 ## Working agreements
 - Explain decisions plainly and give a recommendation; say when something is untested (no Windows, no real window

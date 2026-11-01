@@ -4,9 +4,13 @@ This is the screen for adding a course and up to four sets of tees, and for fixi
 
 # Across the top
 
-Course and Zip: The name of the course and its 5-digit zip code. If that course is already in the program (the capitals and extra spaces do not matter, but the zip must be the same), the title changes to Edit Course and its tees appear in the frames, ready to be fixed. Any frames left empty are for new tees.
+Course and Zip: The name of the course and its 5-digit zip code. If that course is already in the program (the capitals and extra spaces do not matter, but the zip must be the same), the title changes to Edit Course and its tees appear in the frames, ready to be fixed. Any frames left empty are for new tees. The name and zip then turn grey, so they cannot be changed by accident.
 
-City and State: Where the course is. State is two capital letters, for example SC. For a course that is already in the program they are filled in for you; if you change them, every set of tees of that course gets the new city and state.
+Correct...: The small button beside the zip, there only in Edit Course. It opens the name and zip so you can correct a misspelt name or a wrong zip. The correction goes into every set of tees of the course; their rounds stay with them, and the Stats Board and Best Round simply show the new name. If the new name and zip belong to another course already in the program, both boxes turn pink and Save stays off, because two courses cannot be merged.
+
+City and State: Where the course is. State is two capital letters, for example SC. For a course that is already in the program they are filled in for you; if you change them, every set of tees of that course gets the new city and state. For a new course, typing a zip the program knows fills in an empty City and State, and you can still change them.
+
+ZIP code check: The program has a list of US zip codes. If the state you typed is not the zip's state, the bar along the bottom says so and the State box gets an orange outline; you can still save, but Save asks first. If only the city is different, the bar just names the town the zip is listed under, which is fine for a course outside town. A zip that is not in the list gets a note asking you to check it.
 
 Nine-hole course: Marks a course that only has nine holes, like the ones Spark Golf plays. With it on, holes 10 to 18 and the Front 9 and Back 9 rows disappear, and the handicap numbers run from 1 to 9. For a course that is already in the program it cannot be changed, because its rounds depend on it.
 

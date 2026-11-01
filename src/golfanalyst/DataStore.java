@@ -43,6 +43,8 @@ import java.util.Properties;
  | replaceRound(round)       - saves an edited round (backup first), reloads|
  | deleteRound(roundId)      - removes one round (backup first), reloads    |
  | clear(everything)         - Clear: backup folder, then header rows only  |
+ | checkImport(...), applyImport(plan) - Import: check, then add            |
+ | correctCourse(tees, name, zip, city, state) - Correct... a course        |
  | nextTeeId()               - an unused tee id                             |
  | teesForCourse(name, zip)  - the tees a course already has                |
  | addTees(tees)             - adds tees to courses.tsv and reloads         |
@@ -281,6 +283,57 @@ public final class DataStore
                 LineReplacer.writeSafely(settings, "#Golf Analyst settings\n");
             }
         }
+        reload();
+        return folder;
+    }
+
+
+    /*
+     +--------------------------------------------------------------------------+
+     | correctCourse(tees, name, zip, city, state)                              |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Corrects a course's name and zip, with its city and state, on every one  |
+     | of its tees (see CourseWriter.correctCourse: only those four cells       |
+     | change, TeeIDs stay, a backup copy first), then reloads, so the Stats    |
+     | Board, Best Round and the rounds show the new name.                      |
+     |                                                                          |
+     | Passed in:  tees - every tee of the course                               |
+     |             name, zip, city, state - the corrected values                |
+     | Passed out: the backup copy made (throws Backups.Failed or IOException;  |
+     |             then nothing is written)                                     |
+     +--------------------------------------------------------------------------+
+     */
+    public Path correctCourse(List<Tee> tees, String name, String zip, String city, String state) throws IOException
+    {
+        List<Integer> ids = new ArrayList<>();
+        for (Tee tee : tees)
+        {
+            ids.add(tee.id());
+        }
+        Path copy = CourseWriter.correctCourse(dir.resolve(DataLoader.COURSES_FILE), ids, name, zip, city, state);
+        reload();
+        return copy;
+    }
+
+    /*
+     * checkImport(coursesFile, roundsFile, markHistorical): what importing these files would do (see Importer.check); nothing is written.
+     * Passed in:  coursesFile, roundsFile - the files, either may be null; markHistorical - true to mark the rounds historical
+     * Passed out: the plan (throws IOException if a file cannot be read)
+     */
+    public Importer.Plan checkImport(Path coursesFile, Path roundsFile, boolean markHistorical) throws IOException
+    {
+        return Importer.check(coursesFile, roundsFile, dataset, markHistorical);
+    }
+
+    /*
+     * applyImport(plan): does an import worked out by checkImport (backup folder first, then the new lines added at the end), then reloads everything.
+     * Passed in:  plan - from checkImport
+     * Passed out: the backup folder made (throws Backups.Failed or IOException; then nothing is written)
+     */
+    public Path applyImport(Importer.Plan plan) throws IOException
+    {
+        Path folder = Importer.apply(dir, plan);
         reload();
         return folder;
     }

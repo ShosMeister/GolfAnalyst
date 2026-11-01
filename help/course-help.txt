@@ -4,7 +4,7 @@ Here is how to put a course in, straight from the scorecard. Have the card in fr
 
 # The course
 
-Type the name of the course and press Enter, then the 5-digit zip. If the course is already in the program, the bottom bar says so and lists the tees it has. Just fill in the new tees. Otherwise type the city and the state. If it is a nine-hole course, tick the Nine-hole course box before you start on the tees.
+Type the name of the course and press Enter, then the 5-digit zip. If the course is already in the program, the bottom bar says so and lists the tees it has. Just fill in the new tees. Otherwise type the city and the state, or let the program fill them in: when it knows the zip, an empty city and state are filled in for you. If it is a nine-hole course, tick the Nine-hole course box before you start on the tees.
 
 You do not have to fuss over capitals. If you type the whole name in lower case or in capitals, the program gives each word a capital letter for you. If you mix them, it leaves them exactly as you typed them, so names like TPC Sawgrass or McDonough come out right.
 
@@ -39,4 +39,26 @@ If you change your mind, press Cancel. Once you have typed anything, the program
 
 Made a mistake after saving, or found a better scorecard? Press New Course and type the course name and zip just as before. The title changes to Edit Course and the course's tees appear in the frames. Click the cell you want, type over it, and press Save. Only the tees you changed are rewritten, and a copy of the file as it was goes into the backups folder in your data folder, just in case.
 
-A few things to know: a set of tees that is already in the program must keep its rating (rounds were played on it, so it cannot be left out); if you change a rating, slope, par or handicap number on tees you have played, the bar at the bottom reminds you that your handicap will be worked out again for those rounds, which is exactly what you want when fixing a typo; and the Nine-hole course box cannot be changed for a course you have saved. If you change the course name or zip after you have started fixing things, nothing is thrown away: Save just stays off until you put them back.
+A few things to know: a set of tees that is already in the program must keep its rating (rounds were played on it, so it cannot be left out); if you change a rating, slope, par or handicap number on tees you have played, the bar at the bottom reminds you that your handicap will be worked out again for those rounds, which is exactly what you want when fixing a typo; and the Nine-hole course box cannot be changed for a course you have saved. The name and zip stay locked while you fix a course, so they cannot be changed by accident; to correct them, see below.
+
+# Correcting the name or zip
+
+1. Find the course. Press New Course and type its name and zip as they are now. The title changes to Edit Course and the name and zip turn grey.
+
+2. Press Correct... It is the small button beside the zip. The two boxes open, and the bar along the bottom explains what will happen.
+
+3. Type the right name or zip. If they match another course already in the program, both boxes turn pink and Save stays off, because two courses cannot be merged.
+
+4. Press Save. Every set of tees of the course gets the corrected name and zip. Their rounds stay with them, and a copy of courses.tsv as it was goes into the backups folder first. If nothing was actually changed, the bar says so and nothing is saved.
+
+To add a different course instead, press Cancel and start again.
+
+# The ZIP code check
+
+The program knows the city and state of every US zip code, so it can catch a slip of the finger.
+
+A different state: The bar along the bottom says which state the zip is in, and the State box gets an orange outline. Check the zip and the state on the scorecard. If you are sure, you can still save: Save asks "Save anyway?" first, and Go back takes you back to fix it.
+
+A different city: The bar names the town the zip is listed under. That is fine if the course is just outside town, so nothing more is asked.
+
+A zip that is not in the list: The bar asks you to check it. It may simply be a new zip code.

@@ -42,11 +42,13 @@ Include historical rounds: Decides whether old (historical) rounds count in the 
 
 The buttons on the left are for putting information in. The buttons on the right are for looking at it.
 
-On the left: New Course adds a course and its tees, or fixes a course you have already saved. New Round is the screen for entering a round. Edit Round is for correcting or deleting a round you have saved, Import is for loading many rounds or courses at once, and Clear empties your rounds, or everything, so you can start fresh. It asks twice and keeps a copy of your files first.
+On the left: New Course adds a course and its tees, or fixes a course you have already saved. New Round is the screen for entering a round. Edit Round is for correcting or deleting a round you have saved, Import adds rounds and courses from another copy of the program or from a spreadsheet, after showing you what it will add, and Clear empties your rounds, or everything, so you can start fresh. It asks twice and keeps a copy of your files first.
 
 On the right: Rounds is the screen for looking at the rounds you have saved. Stats Board, Analyzer and Best Round show your statistics in more detail, and Print prints what you are looking at.
 
-Import, Analyzer and Print are not built yet. They are in place and will be added.
+Analyzer and Print are not built yet. They are in place and will be added.
+
+Import: Adds rounds and courses from files laid out like rounds.tsv and courses.tsv. It only ever adds: a set of tees or a round you already have is skipped, and it never changes a tee or a round that is already in the program. It shows you what it will add before it writes anything, and keeps a copy of your files in the backups folder first.
 
 # Across the top and bottom
 
@@ -59,6 +61,8 @@ The yellow Golf Analyst text at the bottom left of every screen is the version o
 Welcome to the Golf Analyst - a program written by Angelo Mileto.
 
 The original version of this program was written in 1991 in HyperCard on the Mac, before the USGA came up with the Slope system for handicapping. It has been rewritten several times since, and this version runs on Windows, Mac and Linux.
+
+ZIP code data from GeoNames (www.geonames.org), used under a Creative Commons Attribution license. The data is provided as is.
 
 # History: Mac HyperCard Version
 Golf Analyst v2.10: Written by Angelo Mileto, September 1991 in HyperCard. Special thanks go out to Dave Speer and the gang at Computer Solutions in San Antonio, Texas, without whose help this stack would not have been possible.
@@ -108,3 +112,5 @@ Golf Analyst v4.60: Added a Historical box on the round screens, so old rounds c
 Golf Analyst v4.70: Added Delete Round and Clear, each with two confirmations. Every change to your files now keeps a dated copy in a backups folder, so nothing is ever overwritten.
 
 Golf Analyst v4.71: Fixed all the dialog boxes that ask for your input, so their text is always fully readable.
+
+Golf Analyst v4.80: Added Import, so rounds and courses from another copy of the program or from a spreadsheet can be added after a check. A course's name and zip can now be corrected. The New Course screen fills in the city and state from the ZIP code and warns if they do not match.

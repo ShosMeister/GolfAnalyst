@@ -2,6 +2,7 @@ package golfanalyst.gui;
 
 import golfanalyst.DataStore;
 import golfanalyst.Tee;
+import golfanalyst.ZipCodes;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -133,6 +134,19 @@ public final class CoursePage extends Page
     final WoodButton copyButton = new WoodButton("►");
     final WoodButton saveButton = new WoodButton("Save");
     final WoodButton cancelButton = new WoodButton("Cancel");
+    final WoodButton correctButton = new WoodButton("Correct...");
+    static final String CORRECT_NOTE = "Changing the name or zip corrects this course for all its tees. To add a different course, "
+            + "press Cancel and start again.";
+    static final String SAME_COURSE = "A course with that name and zip is already in the program.";
+    static final String NOTHING_CORRECTED = "The name, zip, city and state are the same as before, so there is nothing to save.";
+    static final Color ZIP_WARNING = new Color(240, 140, 20);
+    private static final int CORRECT_WIDTH = 90;
+    private static final int CORRECT_HEIGHT = 24;
+    private boolean correcting = false;
+    private JTextField alsoBadField = null;
+    private transient ZipCodes zipCodes = null;
+    ZipCodes.Check zipCheck = new ZipCodes.Check(ZipCodes.Verdict.NONE, null, "");
+    private javax.swing.border.Border stateBorder = null;
     final JScrollPane scroller;
     final JPanel framesRow = new JPanel(new FlowLayout(FlowLayout.CENTER, FRAME_GAP, 0));
 
@@ -208,8 +222,10 @@ public final class CoursePage extends Page
      | buildCourseBar()                                                         |
      +--------------------------------------------------------------------------+
      | Purpose:                                                                 |
-     | The light bar across the top: course name, zip, city, state and the      |
-     | nine-hole box. Changing the name or zip looks the course up.             |
+     | The light bar across the top: course name, zip (with the Correct...      |
+     | button for a course already in the program), city, state and the         |
+     | nine-hole box. Changing the name or zip looks the course up; a complete  |
+     | zip fills in an empty city and state from the zip list.                  |
      |                                                                          |
      | Passed in:  nothing                                                      |
      | Passed out: the bar                                                      |
@@ -228,13 +244,22 @@ public final class CoursePage extends Page
         zipField.setToolTipText("The course's 5-digit zip code");
         stateField.setToolTipText("Two letters, for example SC");
         nineHoleCheck.setToolTipText("Tick for a nine-hole course (handicap numbers 1 to 9)");
+        zipField.getDocument().addDocumentListener(new ChangeWatcher(() -> zipChanged()));
         DocumentListener lookup = new ChangeWatcher(() -> courseChanged());
         courseField.getDocument().addDocumentListener(lookup);
         zipField.getDocument().addDocumentListener(lookup);
+        Dimension correctSize = new Dimension(CORRECT_WIDTH, CORRECT_HEIGHT);
+        correctButton.setPreferredSize(correctSize);
+        correctButton.setMinimumSize(correctSize);
+        correctButton.setFont(Theme.font(Font.BOLD, 12f));
+        correctButton.setFocusable(false);
+        correctButton.setToolTipText("Correct this course's name or zip (for all its tees)");
+        correctButton.addActionListener(event -> startCorrecting());
         bar.add(new JLabel("Course:"));
         bar.add(courseField);
         bar.add(new JLabel("Zip:"));
         bar.add(zipField);
+        bar.add(correctButton);
         bar.add(new JLabel("City:"));
         bar.add(cityField);
         bar.add(new JLabel("State:"));
@@ -670,6 +695,8 @@ public final class CoursePage extends Page
      | matches, those boxes and frames are emptied again, unless something was  |
      | already changed: then nothing is thrown away, Save stays off and the     |
      | footer asks for the name and zip to be put back (see findMistake).       |
+     | While correcting (Correct...) it is the same course, so it is not looked |
+     | up again.                                                                |
      |                                                                          |
      | Passed in:  nothing                                                      |
      | Passed out: nothing                                                      |
@@ -679,6 +706,11 @@ public final class CoursePage extends Page
     {
         if (updating)
         {
+            return;
+        }
+        if (correcting)
+        {
+            refresh();
             return;
         }
         List<Tee> found = typedCourse();
@@ -862,7 +894,8 @@ public final class CoursePage extends Page
      +--------------------------------------------------------------------------+
      | Purpose:                                                                 |
      | Brings the screen up to date: the nine-hole box is locked for a course   |
-     | already in the program (its rounds depend on it); a nine-hole course     |
+     | already in the program (its rounds depend on it), and so are its name    |
+     | and zip until Correct... is pressed; a nine-hole course                  |
      | hides the front / back rows and holes 10 to 18 in every frame. Then the  |
      | colours and par totals. The tee cells are never greyed: they can be      |
      | typed in from the start. It never calls the window, so it is safe        |
@@ -876,6 +909,11 @@ public final class CoursePage extends Page
     {
         boolean nine = nineHoleCheck.isSelected();
         nineHoleCheck.setEnabled(!editing());
+        boolean lockCourse = editing() && !correcting;
+        courseField.setEditable(!lockCourse);
+        zipField.setEditable(!lockCourse);
+        correctButton.setVisible(editing());
+        correctButton.setEnabled(!correcting);
         for (JComponent part : frontRow)
         {
             part.setVisible(!nine);
@@ -939,7 +977,8 @@ public final class CoursePage extends Page
      | first: the footer names it and its cell turns pink. Otherwise the        |
      | footer names the next thing still to fill in, with no pink, because a    |
      | cell you have not reached yet is not a mistake. Save is on only when     |
-     | nothing is left, and the footer then says "Ready to save."               |
+     | nothing is left, and the footer then says "Ready to save." A note from   |
+     | the zip check (see zipChanged) comes first in the footer.                |
      |                                                                          |
      | Passed in:  nothing                                                      |
      | Passed out: nothing                                                      |
@@ -951,18 +990,22 @@ public final class CoursePage extends Page
         {
             return;
         }
+        zipCheck = zipCodes().check(zipField.getText(), cityField.getText(), stateField.getText());
         String wrong = findWrong();
         JTextField pink = badField;
+        JTextField alsoPink = alsoBadField;
         String problem = wrong != null ? wrong : findMistake();
         badField = wrong != null ? pink : null;
-        if (problem == null && editing() && changedTees().isEmpty() && newTeeCount() == 0)
+        alsoBadField = wrong != null ? alsoPink : null;
+        if (problem == null && editing() && changedTees().isEmpty() && newTeeCount() == 0 && !courseCorrected())
         {
-            problem = existingTees.get(0).courseName() + " is already in the program; its tees are shown here."
-                    + " Change what you need, or fill in an empty frame to add a tee.";
+            problem = (correcting ? NOTHING_CORRECTED : existingTees.get(0).courseName() + " is already in the program; its tees"
+                    + " are shown here. Change what you need, or fill in an empty frame to add a tee.");
         }
         saveButton.setEnabled(problem == null);
         colourBoxes();
-        shell.setStatus(problem == null ? READY_TO_SAVE + roundsNote() : problem);
+        String status = (problem == null ? READY_TO_SAVE + roundsNote() : problem);
+        shell.setStatus((zipCheck.message().isEmpty() ? status : zipCheck.message() + "  " + status));
     }
 
     /*
@@ -1003,7 +1046,7 @@ public final class CoursePage extends Page
     }
 
     /*
-     * colourBoxes(): pink for a real mistake, cream for the cell with the cursor, white for a box you can type in, grey for one you cannot.
+     * colourBoxes(): pink for a real mistake, cream for the cell with the cursor, white for a box you can type in, grey for one you cannot; an orange outline on State when it is not the zip's state.
      */
     private void colourBoxes()
     {
@@ -1015,12 +1058,18 @@ public final class CoursePage extends Page
             {
                 face = Theme.FIELD_FOCUS;
             }
-            if (field == badField)
+            if (field == badField || field == alsoBadField)
             {
                 face = Theme.FIELD_ERROR;
             }
             field.setBackground(face);
         }
+        if (stateBorder == null)
+        {
+            stateBorder = stateField.getBorder();
+        }
+        boolean stateDiffers = zipCheck.verdict() == ZipCodes.Verdict.STATE_DIFFERS;
+        stateField.setBorder((stateDiffers ? BorderFactory.createLineBorder(ZIP_WARNING, 2) : stateBorder));
     }
 
     /*
@@ -1349,6 +1398,9 @@ public final class CoursePage extends Page
         }
         loadedPlace = "";
         badField = null;
+        alsoBadField = null;
+        correcting = false;
+        zipCheck = new ZipCodes.Check(ZipCodes.Verdict.NONE, null, "");
         updating = false;
         saveButton.setEnabled(false);
         applyState();
@@ -1437,6 +1489,8 @@ public final class CoursePage extends Page
      +--------------------------------------------------------------------------+
      | Purpose:                                                                 |
      | Looks only for real mistakes, the kind that turn a cell pink at once:    |
+     | while correcting, a name and zip that belong to another course (Course   |
+     | and Zip both pink);                                                      |
      | a rated tee whose name is already used on the course (ignoring           |
      | capitals, saved tees included), a rating of 0, and on any tee a stroke   |
      | index outside 1 to 18 (1 to 9 on a nine-hole course) or used twice.      |
@@ -1449,6 +1503,12 @@ public final class CoursePage extends Page
     private String findWrong()
     {
         badField = null;
+        alsoBadField = null;
+        if (correcting && courseClash())
+        {
+            alsoBadField = zipField;
+            return mistake(courseField, SAME_COURSE);
+        }
         Set<String> names = new HashSet<>();
         for (Tee tee : notLoaded())
         {
@@ -1521,7 +1581,7 @@ public final class CoursePage extends Page
         {
             return mistake(zipField, "Type the course's 5-digit zip.");
         }
-        if (editing() && !typedCourse().equals(existingTees))
+        if (editing() && !correcting && !typedCourse().equals(existingTees))
         {
             return mistake(courseField, "The course name or zip no longer matches " + existingTees.get(0).courseName()
                     + ". Put it back to save your changes, or press Cancel to leave them.");
@@ -1769,8 +1829,8 @@ public final class CoursePage extends Page
     {
         boolean nine = nineHoleCheck.isSelected();
         Tee model = existingTees.isEmpty() ? null : existingTees.get(0);
-        String course = model == null ? courseField.getText().trim() : model.courseName();
-        String zip = model == null ? zipField.getText() : model.zip();
+        String course = ((model == null || correcting) ? courseField.getText().trim() : model.courseName());
+        String zip = ((model == null || correcting) ? zipField.getText().trim() : model.zip());
         return new Tee(id, course, cityField.getText().trim(), stateField.getText().trim(), zip,
                 teeNameFields[tee].getText().trim(), playedHoles(), decimal(ratingFields[tee]), whole(slopeFields[tee]),
                 whole(yardageFields[tee]), numbers(parFields[tee]), numbers(indexFields[tee]),
@@ -1787,7 +1847,8 @@ public final class CoursePage extends Page
      | frame was changed, keeping its TeeID; and, when the city or state was    |
      | changed, every other tee of the course too (with only the city and       |
      | state changed), since they all share them. Tees not changed are left     |
-     | out, so their lines are not touched. Call it only when findMistake       |
+     | out, so their lines are not touched. (A corrected name or zip is saved   |
+     | for every tee separately, see save.) Call it only when findMistake       |
      | found nothing.                                                           |
      |                                                                          |
      | Passed in:  nothing                                                      |
@@ -1797,7 +1858,7 @@ public final class CoursePage extends Page
     private List<Tee> changedTees()
     {
         List<Tee> changed = new ArrayList<>();
-        boolean place = placeChanged();
+        boolean place = placeChanged() && !courseCorrected();
         for (int tee = 0; tee < TEES; tee = tee + 1)
         {
             if (frameChanged(tee) || (place && loadedTees[tee] != null))
@@ -1858,7 +1919,11 @@ public final class CoursePage extends Page
      | tees of a course already in the program get their lines replaced (the    |
      | file as it was is copied to the backups folder), new tees are added with |
      | TeeIDs, everything is reloaded and the window goes Home with a message   |
-     | such as "Updated 1 tee and added 1 tee for Sample Links." If the file    |
+     | such as "Updated 1 tee and added 1 tee for Sample Links." A corrected    |
+     | name or zip is written into every tee of the course first (only the      |
+     | Course, Zip, City and State cells change; a backup copy first). When the |
+     | state is not the zip's, it first asks "... Save anyway?" (Go back is     |
+     | the default). If the file                                                |
      | cannot be written the footer says why and nothing changes.               |
      |                                                                          |
      | Passed in:  nothing                                                      |
@@ -1874,22 +1939,55 @@ public final class CoursePage extends Page
             tidyBox(field);
         }
         refresh();
-        if (!saveButton.isEnabled() || !shell.readyToSave())
+        if (!saveButton.isEnabled())
+        {
+            return;
+        }
+        if (zipCheck.verdict() == ZipCodes.Verdict.STATE_DIFFERS && !shell.confirmOnce(zipCodes().saveQuestion(zipField.getText(),
+                cityField.getText(), stateField.getText()), "Go back", "Save anyway"))
+        {
+            return;
+        }
+        if (!shell.readyToSave())
         {
             return;
         }
         DataStore store = shell.store();
+        boolean corrected = courseCorrected();
+        int teeCount = existingTees.size();
+        if (corrected)
+        {
+            try
+            {
+                store.correctCourse(existingTees, courseField.getText().trim(), zipField.getText().trim(), cityField.getText().trim(),
+                        stateField.getText().trim());
+            }
+            catch (IOException failure)
+            {
+                shell.setStatus("The course could not be corrected: " + failure.getMessage());
+                return;
+            }
+        }
         List<Tee> tees = buildTees(store.nextTeeId());
         List<Tee> changed = changedTees();
         List<String> skipped = skippedTees();
-        String course = editing() ? existingTees.get(0).courseName() : tees.get(0).courseName();
+        String course = (editing() ? teeFromFrame(0, 0).courseName() : tees.get(0).courseName());
         try
         {
-            store.updateTees(changed, tees);
+            if (!changed.isEmpty() || !tees.isEmpty())
+            {
+                store.updateTees(changed, tees);
+            }
         }
         catch (IOException failure)
         {
-            shell.setStatus("The course could not be saved: " + failure.getMessage());
+            shell.setStatus((corrected ? "The course was corrected, but its tees could not be saved: " : "The course could not be saved: ")
+                    + failure.getMessage());
+            return;
+        }
+        if (corrected)
+        {
+            correctedMessage(teeCount, changed.size(), tees.size());
             return;
         }
         List<String> done = new ArrayList<>();
@@ -1914,6 +2012,133 @@ public final class CoursePage extends Page
         }
         shell.goHome();
         shell.setStatus(message);
+    }
+
+    /*
+     * correctedMessage(teeCount, changedCount, addedCount): goes Home and says the course was corrected: "Corrected the course. Its 3 sets of tees and all their rounds are unchanged.", plus any tees changed or added at the same time.
+     */
+    private void correctedMessage(int teeCount, int changedCount, int addedCount)
+    {
+        String message = "Corrected the course. Its " + teeCount + (teeCount == 1 ? " set of tees and all its rounds are unchanged."
+                : " sets of tees and all their rounds are unchanged.");
+        if (changedCount > 0 || addedCount > 0)
+        {
+            message = message + " Also " + (changedCount > 0 ? "updated " + changedCount + (changedCount == 1 ? " tee" : " tees") : "")
+                    + (changedCount > 0 && addedCount > 0 ? " and " : "")
+                    + (addedCount > 0 ? "added " + addedCount + (addedCount == 1 ? " tee" : " tees") : "") + ".";
+        }
+        shell.goHome();
+        shell.setStatus(message + " A copy of the file as it was is in the backups folder.");
+    }
+
+    /*
+     * startCorrecting(): what Correct... does: unlocks the Course and Zip boxes of the course on the screen and says what correcting does. The course is not looked up again while they change.
+     */
+    private void startCorrecting()
+    {
+        if (!editing())
+        {
+            return;
+        }
+        correcting = true;
+        applyState();
+        refresh();
+        shell.setStatus(CORRECT_NOTE);
+        courseField.requestFocusInWindow();
+    }
+
+    /*
+     * isCorrecting(): whether Correct... was pressed for the course on the screen (for the self-test).
+     */
+    boolean isCorrecting()
+    {
+        return correcting;
+    }
+
+    /*
+     * courseCorrected(): whether, while correcting, the name or zip typed differs from the course's own (a change of capitals counts).
+     */
+    private boolean courseCorrected()
+    {
+        if (!correcting || existingTees.isEmpty())
+        {
+            return false;
+        }
+        Tee original = existingTees.get(0);
+        return !courseField.getText().trim().equals(original.courseName()) || !zipField.getText().trim().equals(original.zip());
+    }
+
+    /*
+     * courseClash(): whether, while correcting, the typed name and zip (capitals and extra spaces ignored) belong to another course already in the program.
+     */
+    private boolean courseClash()
+    {
+        if (!courseReady())
+        {
+            return false;
+        }
+        Set<Integer> ours = new HashSet<>();
+        for (Tee tee : existingTees)
+        {
+            ours.add(tee.id());
+        }
+        for (Tee tee : shell.store().teesForCourse(courseField.getText(), zipField.getText()))
+        {
+            if (!ours.contains(tee.id()))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /*
+     * zipCodes(): the zip list, read the first time it is needed (never while the page is being built).
+     */
+    private ZipCodes zipCodes()
+    {
+        if (zipCodes == null)
+        {
+            zipCodes = ZipCodes.standard();
+        }
+        return zipCodes;
+    }
+
+    /*
+     * useZipCodes(list): uses another zip list (for the self-test).
+     */
+    void useZipCodes(ZipCodes list)
+    {
+        zipCodes = list;
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | zipChanged()                                                             |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Runs when the zip changes (after the course lookup). When the 5-digit    |
+     | zip is in the zip list and the City and State are BOTH empty, fills      |
+     | them in (they stay editable; nothing typed is ever replaced). The        |
+     | warnings and hints (a different state or city, an unknown zip) are       |
+     | worked out by refresh each time, so they follow City and State too.      |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing                                                      |
+     +--------------------------------------------------------------------------+
+     */
+    private void zipChanged()
+    {
+        if (updating)
+        {
+            return;
+        }
+        ZipCodes.Check check = zipCodes().check(zipField.getText(), cityField.getText(), stateField.getText());
+        if (check.verdict() == ZipCodes.Verdict.FILL)
+        {
+            cityField.setText(check.place().city());
+            stateField.setText(check.place().state());
+        }
     }
 
     // ------------------------------------------------------------ small helpers
