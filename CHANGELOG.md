@@ -49,3 +49,5 @@ that nothing about how it was built is lost. The wording is the help text's own,
 - v4.00 (before release): The Analyzer's figures are now worked out hole by hole, ready for its screen, which is still to come.
 
 - v4.00 (before release): Added the Analyzer screen: every hole of a course as counts, percentages or averages, with your three hardest holes in red and your three best in gold.
+
+- v4.00 (before release): The Analyzer now calls your best holes your easiest holes, to match the hardest holes, and lists both in hole order.

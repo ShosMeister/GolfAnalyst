@@ -323,7 +323,7 @@ Not built either: deleting a tee, merging two courses.
   percentages in `CATEGORIES` (Dbl Eagle <= -3, Eagle, Birdie, Par, Bogey, Dbl Bogey, Other >= +3), average score and
   over par, best, worst, average putts, fairway % (par 4/5; NaN on par 3), GIR %, sand saves % (NaN without sand);
   Out/In (18-hole rows only) and All totals (the same figures per round over those holes); a Summary;
-  `hardestHoles(n)`/`bestHoles(n)` by average over par, ties by hole number (over par is worked out as strokes over
+  `hardestHoles(n)`/`easiestHoles(n)` by average over par, ties by hole number (over par is worked out as strokes over
   par / count, not average minus par, so equal averages tie exactly in floating point).
 - **Analyzer screen** (built, v4.00 before release): `AnalyzerPage` (card `ANALYZER`, `Shell.analyzer()`, Home's
   Analyzer button; background `analyzer.jpg`; help `analyzer-*`). Bar like Best Round's: Course / tee pulldown
@@ -332,12 +332,13 @@ Not built either: deleting a tee, merging two courses.
   (white JLabel cells 36 x 24, 13 pt, bold heading row, hairlines under and right; Out/In (18-hole rows only)/All in
   (236,236,236)). Width 130 + 10 + (21 x 36 + 22 = 778) = 918 of the 921 px inside the page's 12 px edges. Under
   both, a teak `WoodFrame` summary (Rounds, Avg score, Best score / Putts / round, Fairways, Greens / Sand saves,
-  Hardest holes on (255,214,208), Best holes on (255,236,150)) with Close 112 x 32 (goes Home). Counts and Percent
+  Hardest holes on (255,214,208), Easiest holes on (255,236,150), each list shown in hole-number order, `holeList`) with Close 112 x 32 (goes Home). Counts and Percent
   rows: Hole, Hole par, Rounds and the seven results (Percent rounded to whole numbers; totals are of holes played);
   Averages rows: Avg score, Avg vs par (signed one decimal, whole number in totals), Best, Worst, Avg putts, Fairway
   %, Greens %, Sand saves %. Zero counts/percentages and NaN show a faint "-" (170,165,155); in Averages a 0 is
-  shown. Tints only with 2+ rounds: red `hardestHoles(3)`, gold the first three of `bestHoles` not red, on the hole
-  numbers and (Averages) the Avg vs par row. Footer "6 rounds on X." + the tint sentence when tinted +
+  shown. Tints only with 2+ rounds: red `hardestHoles(3)`, gold the first three of `easiestHoles` not red, on the hole
+  numbers and (Averages) the Avg vs par row. Footer "6 rounds on X." + `TINT_NOTE` (" Red marks your hardest holes, where you lose the most strokes; gold marks
+  your easiest.") when tinted (always hardest / easiest, never best: best is a score) +
   `StatsPage.HISTORICAL_LEFT_OUT` when historical rounds are left out; no rounds: "There are no rounds yet.",
   controls off, an 18-hole grid of dashes. Tab order (`BarTraversal`): pulldown, Counts, Percent, Averages, Close.
 - `Incoming/` holds the user's design pictures for reference while a feature is built; they are not committed and

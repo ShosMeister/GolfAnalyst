@@ -392,6 +392,28 @@ public final class GuiSelfTest
     }
 
     /*
+     * woodTagTexts(root): the words on every WoodTag anywhere under root, top of the tree first.
+     * Passed in:  root - where to look
+     * Passed out: the words, one per tag
+     */
+    private static List<String> woodTagTexts(Container root)
+    {
+        List<String> texts = new ArrayList<>();
+        for (Component part : root.getComponents())
+        {
+            if (part instanceof WoodTag)
+            {
+                texts.add(((WoodTag) part).text());
+            }
+            if (part instanceof Container)
+            {
+                texts.addAll(woodTagTexts((Container) part));
+            }
+        }
+        return texts;
+    }
+
+    /*
      * search(root, text, byTip): walks the screen's parts looking for a button by its words or its tip.
      * Passed in:  root - where to look, text - what to match, byTip - true to match the tip
      * Passed out: the button, or null
@@ -2405,7 +2427,9 @@ public final class GuiSelfTest
      | calling the window; Home's button; the default row (the back nine,       |
      | holes 10-18, one round, no tint); another row (18 holes with Out, In     |
      | and All in grey); the three views and their numbers; the tints match     |
-     | hardestHoles and bestHoles; Include historical rounds on and off; the    |
+     | hardestHoles and easiestHoles, the summary lists in hole-number order    |
+     | (holes 7 and 8 tie with 3 and 6 but lose on hole number); Include        |
+     | historical rounds on and off; the                                        |
      | Tab order; Close; no rounds; and the layout (widths, no overlaps).       |
      |                                                                          |
      | Passed in:  nothing                                                      |
@@ -2500,7 +2524,7 @@ public final class GuiSelfTest
             noTint = noTint && page.cell(0, col).getBackground().equals(Color.WHITE);
         }
         check("analyzer: a row with a single round is not tinted", noTint && page.hardestValue.getText().equals("-")
-                && page.bestHolesValue.getText().equals("-") && page.roundsValue.getText().equals("1")
+                && page.easiestValue.getText().equals("-") && page.roundsValue.getText().equals("1")
                 && panel.footer().status().equals("1 round on Analysis Links:White (Back 9)."));
         check("analyzer: Counts shows the pars made, and a zero as a faint dash", page.cell(6, 0).getText().equals("1")
                 && page.cell(3, 0).getText().equals("-") && page.cell(3, 0).getForeground().equals(AnalyzerPage.FAINT)
@@ -2517,27 +2541,45 @@ public final class GuiSelfTest
                 && page.cell(4, 3).getText().equals("1") && page.cell(5, 1).getText().equals("1") && page.cell(8, 2).getText().equals("1")
                 && page.cell(9, 4).getText().equals("1") && page.cell(6, 20).getText().equals("31") && page.cell(7, 20).getText().equals("18"));
         List<Integer> hard = shown.hardestHoles(3);
-        List<Integer> best = new ArrayList<>();
-        for (int hole : shown.bestHoles(18))
+        List<Integer> easy = new ArrayList<>();
+        for (int hole : shown.easiestHoles(18))
         {
-            if (best.size() < 3 && !hard.contains(hole))
+            if (easy.size() < 3 && !hard.contains(hole))
             {
-                best.add(hole);
+                easy.add(hole);
             }
         }
-        boolean tintsMatch = hard.equals(List.of(5, 3, 6)) && best.equals(List.of(1, 4, 2));
+        boolean tintsMatch = hard.equals(List.of(5, 3, 6)) && easy.equals(List.of(1, 4, 2));
         for (int col = 0; col < 18; col = col + 1)
         {
             int hole = col + 1;
-            Color wanted = (hard.contains(hole) ? AnalyzerPage.HARD_TINT : (best.contains(hole) ? AnalyzerPage.BEST_TINT : Color.WHITE));
+            Color wanted = Color.WHITE;
+            if (hard.contains(hole))
+            {
+                wanted = AnalyzerPage.HARD_TINT;
+            }
+            else if (easy.contains(hole))
+            {
+                wanted = AnalyzerPage.EASY_TINT;
+            }
             tintsMatch = tintsMatch && page.cell(0, col).getBackground().equals(wanted) && page.cell(5, col).getBackground().equals(Color.WHITE);
         }
-        check("analyzer: the three hardest holes are red and the three best gold, as hardestHoles and bestHoles say", tintsMatch
-                && page.hardestValue.getText().equals("5, 3, 6") && page.bestHolesValue.getText().equals("1, 4, 2")
+        check("analyzer: the three hardest holes are red and the three easiest gold, as hardestHoles and easiestHoles say", tintsMatch
                 && page.hardestValue.getBackground().equals(AnalyzerPage.HARD_TINT)
-                && page.bestHolesValue.getBackground().equals(AnalyzerPage.BEST_TINT));
+                && page.easiestValue.getBackground().equals(AnalyzerPage.EASY_TINT));
+        check("analyzer: the summary lists them in hole-number order (chosen 5, 3, 6 and 1, 4, 2)",
+                page.hardestValue.getText().equals("3, 5, 6") && page.easiestValue.getText().equals("1, 2, 4"));
+        check("analyzer: ties are still broken by hole number: 7 and 8 tie with 3 and 6 but are not chosen",
+                shown.hardestHoles(5).equals(List.of(5, 3, 6, 7, 8)) && !page.hardestValue.getText().contains("7")
+                && !page.hardestValue.getText().contains("8") && page.cell(0, 6).getBackground().equals(Color.WHITE)
+                && page.cell(0, 7).getBackground().equals(Color.WHITE));
+        check("analyzer: the summary labels say hardest and easiest", woodTagTexts(page.summaryFrame).containsAll(List.of("Hardest holes", "Easiest holes"))
+                && !woodTagTexts(page.summaryFrame).contains("Best holes"));
+        check("analyzer: a hole list is sorted, keeps fewer than three, and is a dash when empty",
+                AnalyzerPage.holeList(List.of(11, 5)).equals("5, 11") && AnalyzerPage.holeList(List.of(9, 13, 8)).equals("8, 9, 13")
+                && AnalyzerPage.holeList(List.of()).equals("-"));
         check("analyzer: the footer counts the rounds and explains the tints", panel.footer().status()
-                .equals("3 rounds on Analysis Links:White." + AnalyzerPage.TINT_NOTE));
+                .equals("3 rounds on Analysis Links:White. Red marks your hardest holes, where you lose the most strokes; gold marks your easiest."));
         check("analyzer: the summary", page.avgScoreValue.getText().equals("78.0") && page.bestScoreValue.getText().equals("72")
                 && page.puttsValue.getText().equals("34.7") && page.fairwaysValue.getText().equals("33%")
                 && page.sandValue.getText().equals("50%"));
@@ -2559,7 +2601,7 @@ public final class GuiSelfTest
                 && page.cell(8, 0).getText().equals("33") && page.cell(9, 2).getText().equals("33") && page.cell(10, 5).getText().equals("50")
                 && page.cell(10, 6).getText().equals("-"));
         check("analyzer: in Averages the Avg vs par cells of the tinted holes are tinted too", page.cell(4, 4).getBackground()
-                .equals(AnalyzerPage.HARD_TINT) && page.cell(4, 0).getBackground().equals(AnalyzerPage.BEST_TINT)
+                .equals(AnalyzerPage.HARD_TINT) && page.cell(4, 0).getBackground().equals(AnalyzerPage.EASY_TINT)
                 && page.cell(4, 5).getBackground().equals(AnalyzerPage.HARD_TINT) && page.cell(4, 7).getBackground().equals(Color.WHITE)
                 && page.cell(3, 4).getBackground().equals(Color.WHITE));
 
@@ -2595,7 +2637,7 @@ public final class GuiSelfTest
         check("analyzer: without historical rounds they are left out, and the footer says so", page.analysis().rounds().size() == 2
                 && page.cell(2, 20).getText().equals("2") && page.cell(6, 0).getText().equals("-")
                 && panel.footer().status().equals("2 rounds on Analysis Links:White." + AnalyzerPage.TINT_NOTE + StatsPage.HISTORICAL_LEFT_OUT)
-                && page.hardestValue.getText().equals("5, 3, 6") && page.bestHolesValue.getText().equals("1, 4, 2"));
+                && page.hardestValue.getText().equals("3, 5, 6") && page.easiestValue.getText().equals("1, 2, 4"));
 
         Path empty = Files.createTempDirectory("golfanalyst-analyzer-empty").resolve(DataStore.DATA_FOLDER);
         Files.createDirectories(empty);

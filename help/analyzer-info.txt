@@ -54,7 +54,7 @@ Fairway %, Greens % and Sand saves %: The same as on the Home screen, for that o
 
 # Red and gold
 
-Red marks your three hardest holes, the ones where you lose the most strokes to par on average. Gold marks your three best holes, where you lose the fewest. The hole numbers are tinted, and in Averages so is the Avg vs par row. If two holes are level, the lower hole number comes first. A hole is never both. With only one round there is nothing to compare, so nothing is tinted.
+Red marks your three hardest holes, the ones where you lose the most strokes to par on average. Gold marks your three easiest holes, where you lose the fewest. The hole numbers are tinted, and in Averages so is the Avg vs par row. If two holes are level, the lower hole number is chosen. A hole is never both. With only one round there is nothing to compare, so nothing is tinted.
 
 # The frame underneath
 
@@ -62,7 +62,7 @@ Rounds, Avg score and Best score: How many rounds, your average total and your l
 
 Putts / round, Fairways, Greens and Sand saves: The same figures as the Home screen, for this course and set of tees only.
 
-Hardest holes and Best holes: The red and gold holes, hardest or best first.
+Hardest holes and Easiest holes: The red and gold holes, listed in hole order.
 
 Close: Goes back to the Home screen.
 

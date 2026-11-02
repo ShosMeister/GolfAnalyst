@@ -15,6 +15,7 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -41,8 +42,9 @@ import javax.swing.SwingConstants;
  | column per hole of the row (1-18, 1-9 or 10-18), then Out and In (18-    |
  | hole rows only) and All in light grey. Under both, a wood frame with the |
  | teak showing inside holds the summary (Rounds, Avg score, Best score;    |
- | Putts / round, Fairways, Greens; Sand saves, Hardest holes in red, Best  |
- | holes in gold) and Close at its right end, which goes Home.              |
+ | Putts / round, Fairways, Greens; Sand saves, Hardest holes in red,       |
+ | Easiest holes in gold, each list in hole-number order) and Close at its  |
+ | right end, which goes Home.                                              |
  |                                                                          |
  | Width: caption frame 9 + 2 + 108 + 2 + 9 = 130, gap 10, grid frame       |
  | 9 + 2 + 21 x 36 + 2 + 9 = 778: 918 of the 921 px inside the page's 12 px |
@@ -54,7 +56,7 @@ import javax.swing.SwingConstants;
  | Avg putts, Fairway %, Greens % and Sand saves %. A zero count or         |
  | percentage, or a figure with nothing to show, is a faint grey "-".       |
  | With 2 rounds or more the three hardest holes (most strokes over par)    |
- | have red hole numbers and the three best gold ones (never both); in      |
+ | have red hole numbers and the three easiest gold ones (never both); in   |
  | Averages their Avg vs par cells are tinted too.                          |
  |                                                                          |
  | Nothing here asks the window for anything while the page is built: the   |
@@ -71,9 +73,9 @@ public final class AnalyzerPage extends Page
 
     static final String TITLE = "Analyzer";
     static final String NO_ROUNDS_YET = "There are no rounds yet.";
-    static final String TINT_NOTE = " Red marks the holes where you lose the most strokes, gold your best holes.";
+    static final String TINT_NOTE = " Red marks your hardest holes, where you lose the most strokes; gold marks your easiest.";
     static final Color HARD_TINT = new Color(255, 214, 208);
-    static final Color BEST_TINT = new Color(255, 236, 150);
+    static final Color EASY_TINT = new Color(255, 236, 150);
     static final Color TOTAL_FACE = new Color(236, 236, 236);
     static final Color FAINT = new Color(170, 165, 155);
     static final String DASH = "-";
@@ -106,7 +108,7 @@ public final class AnalyzerPage extends Page
     final JLabel greensValue = valueLabel(70);
     final JLabel sandValue = valueLabel(70);
     final JLabel hardestValue = valueLabel(110);
-    final JLabel bestHolesValue = valueLabel(110);
+    final JLabel easiestValue = valueLabel(110);
     final WoodFrame captionFrame = new WoodFrame();
     final WoodFrame gridFrame = new WoodFrame();
     final WoodFrame summaryFrame = new WoodFrame();
@@ -116,7 +118,7 @@ public final class AnalyzerPage extends Page
     private final List<List<JLabel>> cells = new ArrayList<>();
     private transient CourseAnalysis.Analysis analysis = null;
     private final List<Integer> hardHoles = new ArrayList<>();
-    private final List<Integer> bestHoles = new ArrayList<>();
+    private final List<Integer> easyHoles = new ArrayList<>();
     private String title = TITLE;
     private boolean updating = false;
 
@@ -225,7 +227,8 @@ public final class AnalyzerPage extends Page
      | Purpose:                                                                 |
      | The summary frame under the grid, teak showing inside: three columns of  |
      | caption and value (Rounds, Avg score, Best score; Putts / round,         |
-     | Fairways, Greens; Sand saves, Hardest holes on red, Best holes on gold)  |
+     | Fairways, Greens; Sand saves, Hardest holes on red, Easiest holes on     |
+     | gold)                                                                    |
      | and Close (112 x 32) at its right end.                                   |
      |                                                                          |
      | Passed in:  nothing                                                      |
@@ -238,9 +241,9 @@ public final class AnalyzerPage extends Page
         form.setOpaque(false);
         form.setBorder(BorderFactory.createEmptyBorder(6, 8, 6, 8));
         String[][] names = {{"Rounds", "Putts / round", "Sand saves"}, {"Avg score", "Fairways", "Hardest holes"},
-            {"Best score", "Greens", "Best holes"}};
+            {"Best score", "Greens", "Easiest holes"}};
         JLabel[][] values = {{roundsValue, puttsValue, sandValue}, {avgScoreValue, fairwaysValue, hardestValue},
-            {bestScoreValue, greensValue, bestHolesValue}};
+            {bestScoreValue, greensValue, easiestValue}};
         for (int col = 0; col < names.length; col = col + 1)
         {
             for (int row = 0; row < names[col].length; row = row + 1)
@@ -256,9 +259,9 @@ public final class AnalyzerPage extends Page
             }
         }
         hardestValue.setBackground(HARD_TINT);
-        bestHolesValue.setBackground(BEST_TINT);
-        hardestValue.setToolTipText("The holes where you lose the most strokes to par");
-        bestHolesValue.setToolTipText("The holes where you lose the fewest strokes to par");
+        easiestValue.setBackground(EASY_TINT);
+        hardestValue.setToolTipText("Your hardest holes: where you lose the most strokes to par");
+        easiestValue.setToolTipText("Your easiest holes: where you lose the fewest strokes to par");
         GridBagConstraints space = new GridBagConstraints();
         space.gridx = 6;
         space.gridy = 0;
@@ -371,7 +374,7 @@ public final class AnalyzerPage extends Page
         averagesButton.setEnabled(any);
         String leftOut = (store.includeHistorical() ? "" : StatsPage.HISTORICAL_LEFT_OUT);
         hardHoles.clear();
-        bestHoles.clear();
+        easyHoles.clear();
         if (!any)
         {
             analysis = null;
@@ -386,11 +389,11 @@ public final class AnalyzerPage extends Page
         if (rounds >= MIN_ROUNDS_TO_TINT)
         {
             hardHoles.addAll(analysis.hardestHoles(TINTED));
-            for (int hole : analysis.bestHoles(analysis.holes().size()))
+            for (int hole : analysis.easiestHoles(analysis.holes().size()))
             {
-                if (bestHoles.size() < TINTED && !hardHoles.contains(hole))
+                if (easyHoles.size() < TINTED && !hardHoles.contains(hole))
                 {
-                    bestHoles.add(hole);
+                    easyHoles.add(hole);
                 }
             }
         }
@@ -408,7 +411,7 @@ public final class AnalyzerPage extends Page
      | Purpose:                                                                 |
      | Builds the captions and the grid for the view that is ticked, from the   |
      | figures worked out (or an 18-hole grid of dashes with none), tints the   |
-     | hardest and best holes, and fills the summary.                           |
+     | hardest and easiest holes, and fills the summary.                        |
      |                                                                          |
      | Passed in:  nothing                                                      |
      | Passed out: nothing                                                      |
@@ -493,9 +496,9 @@ public final class AnalyzerPage extends Page
                     {
                         cell.setBackground(HARD_TINT);
                     }
-                    else if (bestHoles.contains(hole))
+                    else if (easyHoles.contains(hole))
                     {
-                        cell.setBackground(BEST_TINT);
+                        cell.setBackground(EASY_TINT);
                     }
                 }
                 GridBagConstraints at = new GridBagConstraints();
@@ -728,7 +731,7 @@ public final class AnalyzerPage extends Page
         greensValue.setText((any ? withPercent(summary.girPct()) : DASH));
         sandValue.setText((any ? withPercent(summary.sandPct()) : DASH));
         hardestValue.setText(holeList(hardHoles));
-        bestHolesValue.setText(holeList(bestHoles));
+        easiestValue.setText(holeList(easyHoles));
     }
 
     /*
@@ -740,16 +743,30 @@ public final class AnalyzerPage extends Page
     }
 
     /*
-     * holeList(holes): "2, 15, 12", or "-" for none.
+     +--------------------------------------------------------------------------+
+     | holeList(holes)                                                          |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | The hole numbers for a summary box in hole-number order, whatever order  |
+     | they were chosen in: "5, 6, 11". The list passed in is not changed.      |
+     |                                                                          |
+     | Passed in:  holes - the hole numbers, in ranking order                   |
+     | Passed out: the text, or "-" for none                                    |
+     +--------------------------------------------------------------------------+
      */
-    private static String holeList(List<Integer> holes)
+    static String holeList(List<Integer> holes)
     {
         if (holes.isEmpty())
         {
             return DASH;
         }
+        List<Integer> inHoleOrder = new ArrayList<>(holes);
+        Collections.sort(inHoleOrder);
         List<String> numbers = new ArrayList<>();
-        holes.forEach(hole -> numbers.add(Integer.toString(hole)));
+        for (int hole : inHoleOrder)
+        {
+            numbers.add(Integer.toString(hole));
+        }
         return String.join(", ", numbers);
     }
 

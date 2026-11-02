@@ -38,7 +38,7 @@ Press Best Round to see your lowest round on a course and set of tees. Click Com
 
 # Hole by hole
 
-Press Analyzer to see how you play every hole of a course and set of tees: how often you make each score, and your averages for score, putts, fairways, greens and sand saves. Red marks the holes where you lose the most strokes, gold your best holes. The ? button on that screen shows how to use it to find where your strokes go.
+Press Analyzer to see how you play every hole of a course and set of tees: how often you make each score, and your averages for score, putts, fairways, greens and sand saves. Red marks your hardest holes, where you lose the most strokes; gold marks your easiest. The ? button on that screen shows how to use it to find where your strokes go.
 
 # Using what the numbers tell you
 

@@ -708,15 +708,15 @@ public final class SelfTest
         check("analysis: the course summary", summary.rounds() == 2 && summary.puttsPerRound() == 34.0 && summary.fairwayPct() == 50.0
                 && Math.abs(summary.girPct() - 100.0 * 16 / 36) < 1e-9 && summary.sandPct() == 50.0 && summary.avgScore() == 81.0
                 && summary.bestScore() == 72);
-        check("analysis: hardest and best holes by strokes over par, ties by hole number",
+        check("analysis: hardest and easiest holes by strokes over par, ties by hole number",
                 full.hardestHoles(3).equals(List.of(5, 3, 6)) && full.hardestHoles(5).equals(List.of(5, 3, 6, 7, 8))
-                && full.bestHoles(3).equals(List.of(1, 4, 2)) && full.bestHoles(40).size() == Tee.HOLES);
+                && full.easiestHoles(3).equals(List.of(1, 4, 2)) && full.easiestHoles(40).size() == Tee.HOLES);
 
         CourseAnalysis.Analysis withOld = CourseAnalysis.analyse(rows.get(0), rounds, tees, true);
         check("analysis: historical rounds count only when the box is ticked", withOld.rounds().size() == 3
                 && withOld.holes().get(0).rounds() == 3 && withOld.holes().get(0).counts()[CourseAnalysis.PAR] == 1
                 && withOld.summary().avgScore() == 78.0 && withOld.hardestHoles(3).equals(List.of(5, 3, 6))
-                && withOld.bestHoles(3).equals(List.of(1, 4, 2)) && full.holes().get(0).counts()[CourseAnalysis.PAR] == 0);
+                && withOld.easiestHoles(3).equals(List.of(1, 4, 2)) && full.holes().get(0).counts()[CourseAnalysis.PAR] == 0);
 
         CourseAnalysis.Analysis backNine = CourseAnalysis.analyse(latest, rounds, tees, false);
         check("analysis: a back nine is holes 10-18 with no Out or In", backNine.holes().size() == Tee.NINE

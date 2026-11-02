@@ -32,8 +32,8 @@ import java.util.Map;
  | round (average, best and worst totals, putts per round, percentages over |
  | the holes). A summary: rounds, putts per round, fairway, greens and sand |
  | saves % over every hole, average score and best score. hardestHoles(n)   |
- | and bestHoles(n) rank the holes by average strokes over par (ties go to  |
- | the lower hole number).                                                  |
+ | and easiestHoles(n) rank the holes by average strokes over par (ties go  |
+ | to the lower hole number).                                               |
  |                                                                          |
  | There is no Swing code here, so all of it can be tested on its own.      |
  | Nothing is stored: everything is worked out from score, putts, par and   |
@@ -130,7 +130,8 @@ public final class CourseAnalysis
      | and the summary.                                                         |
      |                                                                          |
      | Public Methods:                                                          |
-     | hardestHoles(n), bestHoles(n) - hole numbers ranked by average over par  |
+     | hardestHoles(n), easiestHoles(n) - hole numbers ranked by average over   |
+     | par                                                                      |
      +--------------------------------------------------------------------------+
      */
     public record Analysis(BestRound.Choice row, List<Round> rounds, List<HoleStats> holes, Totals out, Totals in, Totals all,
@@ -145,9 +146,9 @@ public final class CourseAnalysis
         }
 
         /*
-         * bestHoles(n): up to n hole numbers with the fewest strokes over par on average (ties: the lower hole number first).
+         * easiestHoles(n): up to n hole numbers with the fewest strokes over par on average (ties: the lower hole number first).
          */
-        public List<Integer> bestHoles(int count)
+        public List<Integer> easiestHoles(int count)
         {
             return ranked(count, false);
         }
@@ -157,11 +158,11 @@ public final class CourseAnalysis
          | ranked(count, hardestFirst)                                              |
          +--------------------------------------------------------------------------+
          | Purpose:                                                                 |
-         | Ranks the holes that have a score by average strokes over par, worst     |
-         | or best first; a tie goes to the lower hole number.                      |
+         | Ranks the holes that have a score by average strokes over par, hardest   |
+         | or easiest first; a tie goes to the lower hole number.                   |
          |                                                                          |
          | Passed in:  count        - how many to give at most                      |
-         |             hardestFirst - true for the hardest, false for the best      |
+         |             hardestFirst - true for the hardest, false for the easiest   |
          | Passed out: the hole numbers                                             |
          +--------------------------------------------------------------------------+
          */
