@@ -60,6 +60,14 @@ final class ReportSelfTest
         checkStatsBoard();
         checkMyScorecard();
         checkCourseNotes();
+        try
+        {
+            checkSpreadsheets();
+        }
+        catch (java.io.IOException failure)
+        {
+            check("spreadsheet: a temporary file could be written (" + failure.getMessage() + ")", false);
+        }
     }
 
     // ------------------------------------------------------------ made-up rounds
@@ -734,5 +742,113 @@ final class ReportSelfTest
         CourseNotesReport one = new CourseNotesReport(data(List.of(rounds.get(0))), row);
         check("course notes: one round is not tinted", one.hardest().isEmpty() && one.figures().get(7)[1].equals("-")
                 && one.figures().get(8)[1].equals("-"));
+    }
+
+    // ------------------------------------------------------------ part 4
+
+    /*
+     +--------------------------------------------------------------------------+
+     | checkSpreadsheets()                                                      |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | The spreadsheet files: a field with a comma, a quote or a line break is  |
+     | quoted with its quotes doubled; the file has a byte order mark and       |
+     | Windows line breaks; the offered names; and each report's columns and    |
+     | rows, on a course named Bud's "Best", Links so the quoting is used:      |
+     | the Round Log (per-hole scores and putts, empty for holes not played),   |
+     | the Handicap Report (Counts as the shading), the Stats Board (the        |
+     | screen's columns) and Course notes (one row per hole). The scorecards    |
+     | have none.                                                               |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing (throws IOException if the temporary file fails)     |
+     +--------------------------------------------------------------------------+
+     */
+    private static void checkSpreadsheets() throws java.io.IOException
+    {
+        check("spreadsheet: a field with a comma or a quote is quoted, quotes doubled", Csv.field("Bud's \"Best\", Links")
+                .equals("\"Bud's \"\"Best\"\", Links\"") && Csv.field("Plain").equals("Plain") && Csv.field("two\nlines").equals("\"two\nlines\"")
+                && Csv.number(13.94, 1).equals("13.9") && Csv.number(Double.NaN, 1).isEmpty());
+
+        Tee odd = new Tee(1, "Bud's \"Best\", Links", "Fort Mill", "SC", "29708", "White", Tee.HOLES, 72.0, 113, 6200, PARS, INDEXES, 36.0,
+                113, 36.0, 113);
+        Map<Integer, Tee> tees = new HashMap<>();
+        tees.put(1, odd);
+        List<Round> rounds = new ArrayList<>(logRounds());
+        rounds.sort((one, two) -> one.date().compareTo(two.date()));
+        ReportData data = new ReportData(rounds, tees, Handicap.compute(rounds, tees), "Pat", true, false, PrintSelfTest.TODAY, "4.00");
+        RoundLogReport log = new RoundLogReport(data, null, null, null, true);
+        List<List<String>> logRows = log.spreadsheet();
+        List<String> header = logRows.get(0);
+        check("spreadsheet, round log: the columns", header.size() == 15 + 36 && header.get(0).equals("Date") && header.get(1).equals("Course")
+                && header.get(2).equals("Tee") && header.get(13).equals("Differential") && header.get(14).equals("Historical")
+                && header.get(15).equals("Score 1") && header.get(32).equals("Score 18") && header.get(33).equals("Putts 1")
+                && header.get(50).equals("Putts 18") && logRows.size() == 5);
+        List<String> old = logRows.get(1);
+        List<String> second = logRows.get(3);
+        List<String> front = logRows.get(4);
+        check("spreadsheet, round log: a round's figures, oldest first, no summary rows", old.get(0).equals("2025-12-01")
+                && old.get(14).equals("Yes") && second.get(0).equals("2026-02-10") && second.get(1).equals(odd.courseName())
+                && second.get(3).equals("18") && second.get(4).equals("90") && second.get(5).equals("36") && second.get(6).equals("0")
+                && second.get(7).equals("14") && second.get(8).equals("0") && second.get(9).equals("18") && second.get(10).equals("18")
+                && second.get(11).equals("2") && second.get(12).equals("0") && second.get(13).equals("18.0") && second.get(14).equals("No")
+                && second.get(15).equals("5") && second.get(50).equals("2"));
+        check("spreadsheet, round log: a front nine leaves holes 10-18 empty and has no differential", front.get(3).equals("Front nine")
+                && front.get(13).isEmpty() && front.get(15).equals("4") && front.get(24).isEmpty() && front.get(41).equals("2")
+                && front.get(42).isEmpty());
+        String text = Csv.text(logRows);
+        check("spreadsheet, round log: the course name is quoted in the file", text.contains(",\"Bud's \"\"Best\"\", Links\",White,")
+                && text.contains("\r\n") && !text.replace("\r\n", "").contains("\n") && log.spreadsheetWords().equals("4 rounds"));
+
+        java.nio.file.Path folder = java.nio.file.Files.createTempDirectory("golfanalyst-csv");
+        java.nio.file.Path file = folder.resolve("log.csv");
+        Csv.write(file, logRows);
+        byte[] bytes = java.nio.file.Files.readAllBytes(file);
+        String back = new String(bytes, java.nio.charset.StandardCharsets.UTF_8);
+        boolean onlyIt = true;
+        try (java.util.stream.Stream<java.nio.file.Path> list = java.nio.file.Files.list(folder))
+        {
+            onlyIt = list.count() == 1;
+        }
+        check("spreadsheet: the file is UTF-8 with a byte order mark and nothing left behind", (bytes[0] & 0xFF) == 0xEF
+                && (bytes[1] & 0xFF) == 0xBB && (bytes[2] & 0xFF) == 0xBF && back.substring(1).equals(text) && onlyIt
+                && Csv.fileName(log, PrintSelfTest.TODAY).equals("RoundLog_2026-11-01.csv"));
+
+        HandicapReport handicap = new HandicapReport(data(steady(25)));
+        List<List<String>> handicapRows = handicap.spreadsheet();
+        int yes = 0;
+        for (int lp = 1; lp < handicapRows.size(); lp = lp + 1)
+        {
+            if (handicapRows.get(lp).get(7).equals("Yes"))
+            {
+                yes = yes + 1;
+            }
+        }
+        check("spreadsheet, handicap report: the columns, newest first, Counts as the shading", handicapRows.get(0).equals(List.of("Date",
+                "Course", "Tee", "Holes", "Score", "Adjusted", "Differential", "Counts")) && handicapRows.size() == 21 && yes == 8
+                && handicapRows.get(1).get(0).equals(handicap.entries().get(0).round().date().toString())
+                && handicapRows.get(1).get(1).equals("Test Links") && handicapRows.get(1).get(2).equals("White")
+                && Csv.fileName(handicap, PrintSelfTest.TODAY).equals("HandicapReport_2026-11-01.csv")
+                && handicap.spreadsheetWords().equals("20 rounds"));
+
+        List<Round> withNine = new ArrayList<>(logRounds());
+        withNine.add(round(5, NINE, "2026-04-01", 0, Tee.NINE, 0, 2, true, new int[0], false));
+        StatsBoardReport board = new StatsBoardReport(data(withNine), false);
+        List<List<String>> boardRows = board.spreadsheet();
+        check("spreadsheet, stats board: the screen's columns, the totals and every row", boardRows.get(0).size() == 10
+                && boardRows.get(0).get(0).equals("Course : Tee Box") && boardRows.get(0).get(9).equals("Sand %") && boardRows.size() == 1 + 2 + 1 + 2
+                && boardRows.get(1).get(0).equals("All 18-hole rounds") && boardRows.get(3).get(0).equals("Test Links:White")
+                && boardRows.get(4).get(0).equals("Little Nine:Red") && boardRows.get(4).get(9).isEmpty() && boardRows.get(3).get(9).equals("0")
+                && board.spreadsheetWords().equals("5 rows"));
+
+        golfanalyst.BestRound.Choice row = new golfanalyst.BestRound.Choice(1, golfanalyst.StatsBoard.Part.EIGHTEEN, "Odd");
+        CourseNotesReport notes = new CourseNotesReport(data, row);
+        List<List<String>> noteRows = notes.spreadsheet();
+        check("spreadsheet, course notes: one row per hole with the counts and averages", noteRows.size() == 19 && noteRows.get(0).size() == 18
+                && noteRows.get(0).get(4).equals("Dbl Eagle") && noteRows.get(0).get(10).equals("Other") && noteRows.get(0).get(17).equals("Greens %")
+                && noteRows.get(1).get(0).equals("1") && noteRows.get(1).get(2).equals("7") && noteRows.get(1).get(3).equals("3")
+                && noteRows.get(3).get(16).isEmpty() && noteRows.get(3).get(15).equals("2.0") && notes.spreadsheetWords().equals("18 holes"));
+        check("spreadsheet: the scorecards have none", ScorecardReport.forRound(data, rounds.get(0)).spreadsheet() == null
+                && new MyScorecardReport(data, odd).spreadsheet() == null);
     }
 }

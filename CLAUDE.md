@@ -26,13 +26,20 @@ Courses and rounds live in two plain tab-separated text files. Written for one u
   get data; also knows if it is the sample data), `Settings` (settings.txt), `DataLocation` (golfanalyst.location:
   which data folder to use), `Importer`, `Exporter`, `CourseDeleter`, `ZipCodes`, `StatsBoard` (the Stats Board's
   rows, totals, sorting and gold; no Swing), `BestRound` (Best Round's choices, best single round and composite; no
-  Swing), `CourseAnalysis` (the Analyzer's figures; no Swing), `Main` (text reports, `--selftest`), `SelfTest`.
+  Swing), `CourseAnalysis` (the Analyzer's figures; no Swing), `Period` (the Print window's periods with a given today),
+  `Main` (text reports, `--selftest`), `SelfTest`.
+- `src/golfanalyst/print/`: the printed reports, drawn by code with java.awt only (no Swing windows) in design units:
+  `Sheet` (drawing helpers, colours), `Table` (list tables), `Card` (scorecard-style tables and the figures box),
+  `Report` (the base: page furniture), `ReportData`, `RoundFigures`, the seven reports (`HandicapReport`,
+  `RoundLogReport`, `ScorecardReport` (also Best Round), `StatsBoardReport`, `MyScorecardReport`, `CourseNotesReport`),
+  `ReportPrintable` (PrinterJob), `Thumbnail` (the small picture), `Csv` (spreadsheet files), `Samples` (a tool that
+  draws the sample PNGs), `PrintSelfTest` and `ReportSelfTest` (run by the engine's self-test). build.bat compiles it.
 - `src/golfanalyst/gui/`: `App` (entry), `AppFrame` (thin JFrame), `AppPanel` (ALL the window logic: pages, header,
   footer, navigation, Help/Info, the sample-data question), `Shell` (what a page may ask of the window), `Page`,
   `HomePage`, `RoundPage`, `CoursePage`, `StatsPage`, `HeaderBar`, `FooterBar`, `HelpWindow` + `HelpFormatter` (styles the help
   text), `Theme` (colours, fonts, images, drawing helpers), custom controls
   (`WoodButton`, `IconButton`, `ValueBox`, `WoodPanel`, `WoodFrame`, `WoodTag`, `ImageCheckBox`, `BackdropPanel`,
-  `WoodScrollBarUI`), dialogs (`ConfirmForm`, `ImportForm`, `ExportForm`, `SettingsForm`),
+  `WoodScrollBarUI`), dialogs (`ConfirmForm`, `ImportForm`, `ExportForm`, `SettingsForm`, `PrintForm` + `PagePreview`),
   `GuiSelfTest`.
 - `images/` (wood buttons, textures, `backgrounds/<page>.jpg|gif`), `help/` (plain text Info and Help files),
   `sample-data/` (made up, plus the Edgewater course the user added, TeeIDs 5-8; its round 37 is the latest round, so
@@ -214,7 +221,7 @@ Courses and rounds live in two plain tab-separated text files. Written for one u
   left New Course, New Round, Edit Round, Import, Export, Clear; right Rounds, Stats Board, Analyzer, Best Round,
   Print, Settings (six a column; the grid fills row by row).
 - Help: the i button says WHAT is on the screen; the ? button says HOW to use it. Files in `help/`
-  (`home-*`, `round-new-*`, `round-view-*`, `round-edit-*`, `course-*`, `stats-*`, `best-*`, `analyzer-*`). Update them with every feature. Keep the user's friendly
+  (`home-*`, `round-new-*`, `round-view-*`, `round-edit-*`, `course-*`, `stats-*`, `best-*`, `analyzer-*`, `print-*`). Update them with every feature. Keep the user's friendly
   voice. The files stay plain text: the first line is the window title; a line starting with "# " is a section
   heading (put "# " in front of every new section heading); "Label: text" (colon within 45 characters, no period
   before it) shows the label in bold; "3. First sentence. More" shows the first sentence in bold
@@ -238,8 +245,7 @@ Stats Board (v4.40), Close back to the Stats Board and the close-box question (v
 Historical box on the round screens and Include historical rounds on Home (v4.60), the backups folder, Delete Round
 and Clear (v4.70), dialogs sized to their text (v4.71), Import, Correct... and the ZIP code check (v4.80); since
 then, still v4.00: every dialog in the wooden look, Delete course, backups as dated folders, Settings, Export, and the
-Analyzer's figures (`CourseAnalysis`) and the Analyzer screen.
-Not built (the button is in place and says "not built yet"): Print.
+Analyzer's figures (`CourseAnalysis`) and the Analyzer screen, and Print. Every Home button is built.
 Not built either: deleting a tee, merging two courses.
 - **Edit Course** (built, v4.20): no separate button. On New Course, typing a saved course's name and zip loads its
   tees (first four) into the frames; title "Edit Course"; empty frames take new tees. City/state editable (a change
@@ -341,8 +347,31 @@ Not built either: deleting a tee, merging two courses.
   your easiest.") when tinted (always hardest / easiest, never best: best is a score) +
   `StatsPage.HISTORICAL_LEFT_OUT` when historical rounds are left out; no rounds: "There are no rounds yet.",
   controls off, an 18-hole grid of dashes. Tab order (`BarTraversal`): pulldown, Counts, Percent, Averages, Close.
-- `Incoming/` holds the user's design pictures for reference while a feature is built; they are not committed and
-  are removed once it is done.
+- `docs/mockups/` holds the design pictures (committed) and the `print_actual_*.png` pictures drawn from the sample
+  data by `golfanalyst.print.Samples` (run `java -cp out golfanalyst.print.Samples docs\mockups` after build.bat) to
+  compare with them. `Incoming/` (git-ignored) is where the user drops new pictures; move them to docs/mockups.
+- **Print** (built, v4.00 before release): Home's Print -> `Shell.printReports()` -> `AppPanel.printReports` ->
+  `PrintForm` (shared dialog look, title "Print", about 760 x 517 plus the title bar). Left: seven radio choices with
+  grey hints (`PrintForm.Kind`). Right: a sunken panel (dark grey top/left, white bottom/right, face (251,247,238))
+  with the report's name, its options (one card each) and `PagePreview` (188 x 150: page 1 of the real report via
+  `Thumbnail`). "Send it to:" A printer or PDF / A spreadsheet file (.csv) (off with the tool tip "Only for the
+  reports that are tables" for the three scorecards), a grey note box sized to its words, Cancel and Print... (Save...).
+  Options: Round Log tees ("All courses" first, "Course:Tee" names), `Period` (All time ... Custom dates...; From/To
+  grey unless Custom, typed as on the round screen) and Include historical rounds; a round's scorecard: rounds newest
+  first; Best Round / Course notes: Best Round's / the Analyzer's rows; Stats Board: Include historical rounds only
+  (the screen has no Show choices); My scorecard: every set of tees and the index line. Printing goes through
+  `PrintForm.Tools` (`AppPanel.setPrintTools` in tests): `ReportPrintable.send` shows the system print dialog
+  (orientation set: Handicap Report upright, the rest on their side) and scales the design width to the printable
+  width, the printable height deciding the rows per page. Footer "Sent to the printer." / "Saved N rows to ....".
+  Reports: design units 0.01 inch, Letter 850 x 1100 or 1100 x 850, margins 60; furniture in `Report`; the sample
+  note only on the sample data. Handicap Report: the counting rounds are the engine's own lowest differentials on
+  record (ties to the older round), the Differential column the round's own differential; the first note names an
+  exceptional score reduction, a cap or the short-record adjustment when they change the index. Round Log: pages
+  repeat the header, "(continued)" from page 2, the summary only on the last page and never split. The All courses
+  Round Log uses the user's widths, 1016 wide: 36 units past the right margin. Spreadsheet files (`Csv`): UTF-8 with
+  a byte order mark, quoted fields, CRLF, written via a temporary file; the save window starts in LastExportFolder
+  (else Documents) and a file already there is replaced only after `askReplace`. The help files `print-*` cannot be
+  opened from the Print window (it is modal; the header's Help and Info are behind it).
 - **Correct...** (built, v4.80): in Edit Course `courseField`/`zipField` are locked; `CoursePage.correctButton`
   (90 x 24) sets `correcting` (no lookups while it is on). Save: `DataStore.correctCourse` ->
   `CourseWriter.correctCourse` rewrites only the Course, Zip, City and State cells of every tee (backup first);

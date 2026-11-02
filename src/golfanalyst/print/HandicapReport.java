@@ -351,6 +351,50 @@ public final class HandicapReport extends Report
     }
 
     /*
+     +--------------------------------------------------------------------------+
+     | spreadsheet()                                                            |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | The rounds listed, newest first, for a spreadsheet file: Date, Course,   |
+     | Tee, Holes (18, 9, Front 9 or Back 9), Score, Adjusted, Differential     |
+     | (one decimal, empty while a nine waits for the first index) and Counts   |
+     | (Yes for the rounds that make up the index).                             |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: the header row and one row per round                         |
+     +--------------------------------------------------------------------------+
+     */
+    @Override
+    public List<List<String>> spreadsheet()
+    {
+        List<List<String>> rows = new ArrayList<>();
+        rows.add(List.of("Date", "Course", "Tee", "Holes", "Score", "Adjusted", "Differential", "Counts"));
+        for (Handicap.Entry entry : entries)
+        {
+            Round round = entry.round();
+            Tee tee = entry.tee();
+            String counted = "No";
+            if (counts(entry))
+            {
+                counted = "Yes";
+            }
+            rows.add(List.of(round.date().toString(), tee.courseName(), tee.teeName(), holesShort(round, tee),
+                    Integer.toString(round.totalScore()), Integer.toString(entry.adjustedGross()), Csv.number(entry.differential(), 1),
+                    counted));
+        }
+        return rows;
+    }
+
+    /*
+     * spreadsheetWords(): "20 rounds" or "1 round".
+     */
+    @Override
+    public String spreadsheetWords()
+    {
+        return RoundLogReport.countWords(entries.size());
+    }
+
+    /*
      * countedWords(): "8 of 20": the rounds that count, of the rounds listed.
      */
     public String countedWords()

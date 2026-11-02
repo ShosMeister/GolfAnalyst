@@ -707,7 +707,7 @@ public final class GuiSelfTest
         // Wording: a score belongs to a hole; rounds are what the handicap counts
         for (String file : new String[] {"home-info.txt", "home-help.txt", "round-new-info.txt", "round-new-help.txt",
                 "round-view-info.txt", "round-view-help.txt", "round-edit-info.txt", "round-edit-help.txt", "course-info.txt", "course-help.txt",
-                "analyzer-info.txt", "analyzer-help.txt"})
+                "analyzer-info.txt", "analyzer-help.txt", "print-info.txt", "print-help.txt"})
         {
             String helpText = Files.readString(Path.of("help", file));
             check(file + " does not call a round a score", !helpText.contains("Scores Used") && !helpText.contains("20 scores")
@@ -783,7 +783,7 @@ public final class GuiSelfTest
         check("while entering, the round help files are the entry ones", page.helpKey().equals("round-new"));
         page.showLatest();
         check("while looking, the round help files are the viewing ones", page.helpKey().equals("round-view"));
-        for (String key : new String[] {"home", "round-new", "round-view", "round-edit", "course", "analyzer"})
+        for (String key : new String[] {"home", "round-new", "round-view", "round-edit", "course", "analyzer", "print"})
         {
             for (String kind : new String[] {"info", "help"})
             {
@@ -1310,7 +1310,7 @@ public final class GuiSelfTest
 
         for (String file : new String[] {"home-info.txt", "home-help.txt", "round-new-info.txt", "round-new-help.txt",
                 "round-view-info.txt", "round-view-help.txt", "round-edit-info.txt", "round-edit-help.txt", "course-info.txt", "course-help.txt",
-                "analyzer-info.txt", "analyzer-help.txt"})
+                "analyzer-info.txt", "analyzer-help.txt", "print-info.txt", "print-help.txt"})
         {
             String text = Files.readString(Path.of("help", file));
             List<HelpFormatter.Piece> filePieces = HelpFormatter.pieces(text);
@@ -2677,8 +2677,9 @@ public final class GuiSelfTest
      +--------------------------------------------------------------------------+
      | Purpose:                                                                 |
      | Stands in for the printer and the footer in the Print window's checks:   |
-     | it remembers what was sent and said, and answers as told (true for      |
-     | Print pressed in the system dialog, false for Cancel there).            |
+     | it remembers what was sent, saved and said, and answers as told (true    |
+     | for Print pressed in the system dialog; the file picked in the save      |
+     | window, or null for Cancel; whether to replace a file already there).    |
      +--------------------------------------------------------------------------+
      */
     private static final class FakePrinter implements PrintForm.Tools
@@ -2687,6 +2688,11 @@ public final class GuiSelfTest
         int printed = 0;
         golfanalyst.print.Report last = null;
         String said = "";
+        Path saveAs = null;
+        String offeredName = "";
+        Path offeredFolder = null;
+        boolean replace = false;
+        int replaceAsked = 0;
 
         /*
          * print(report): remembers the report and answers as told.
@@ -2697,6 +2703,27 @@ public final class GuiSelfTest
             printed = printed + 1;
             last = report;
             return answer;
+        }
+
+        /*
+         * chooseSaveFile(parent, folder, name): remembers where the save window would start and answers as told.
+         */
+        @Override
+        public Path chooseSaveFile(java.awt.Component parent, Path folder, String name)
+        {
+            offeredFolder = folder;
+            offeredName = name;
+            return saveAs;
+        }
+
+        /*
+         * askReplace(file): counts the question and answers as told.
+         */
+        @Override
+        public boolean askReplace(Path file)
+        {
+            replaceAsked = replaceAsked + 1;
+            return replace;
         }
 
         /*
@@ -2727,12 +2754,12 @@ public final class GuiSelfTest
      | checkPrintDialog()                                                       |
      +--------------------------------------------------------------------------+
      | Purpose:                                                                 |
-     | The Print window through code, on the sample data printed on November   |
+     | The Print window through code, on the sample data printed on November    |
      | 1, 2026: it is built with no display and no call to the program window;  |
-     | its size (about 760 wide, inside 90% of the program window) and that    |
+     | its size (about 760 wide, inside 90% of the program window) and that     |
      | nothing overlaps; each report's options and pulldowns; the Period dates  |
      | in the From and To boxes, open only for Custom dates..., and a bad date  |
-     | switching Print off; the small picture redrawn when a choice changes;   |
+     | switching Print off; the small picture redrawn when a choice changes;    |
      | the note; Print... sending to the printer and the footer saying so; the  |
      | system dialog cancelled; Cancel; nothing to print; Home's Print button.  |
      |                                                                          |
@@ -2746,7 +2773,8 @@ public final class GuiSelfTest
         golfanalyst.print.ReportData data = golfanalyst.print.ReportData.of(sampleStore, LocalDate.of(2026, 11, 1), Theme.VERSION);
         FakePrinter printer = new FakePrinter();
         TestShell shell = new TestShell(sampleStore);
-        PrintForm form = new PrintForm(data, printer);
+        Path saveFolder = Files.createTempDirectory("golfanalyst-print-save");
+        PrintForm form = new PrintForm(data, saveFolder, printer);
         check("print: the window is built with no display and asks nothing of the program window", shell.windowCalls == 0
                 && printer.said.isEmpty() && printer.printed == 0 && form.choices.get(PrintForm.Kind.HANDICAP).isSelected()
                 && form.printerChoice.isSelected());
@@ -2870,13 +2898,67 @@ public final class GuiSelfTest
         check("print: Print... sends the report and the footer says so", printer.printed == 2
                 && printer.last instanceof golfanalyst.print.HandicapReport && windowPanel.footer().status().equals(PrintForm.SENT));
 
+        PrintForm sheetForm = new PrintForm(data, saveFolder, printer);
+        sheetForm.choices.get(PrintForm.Kind.SCORECARD).doClick();
+        check("print: the spreadsheet choice is off for the scorecards, with a tool tip", !sheetForm.csvChoice.isEnabled()
+                && PrintForm.TABLES_ONLY.equals(sheetForm.csvChoice.getToolTipText()));
+        sheetForm.choices.get(PrintForm.Kind.ROUND_LOG).doClick();
+        sheetForm.csvChoice.doClick();
+        golfanalyst.print.RoundLogReport sheetLog = (golfanalyst.print.RoundLogReport) sheetForm.preview.report();
+        check("print: a spreadsheet file for the Round Log: Save... and its note", sheetForm.csvChoice.isEnabled()
+                && sheetForm.printButton.getText().equals("Save...") && sheetForm.noteArea().getText().equals("This will save "
+                + sheetLog.rounds().size() + " rounds" + PrintForm.SAVE_NOTE));
+        sheetForm.choices.get(PrintForm.Kind.BEST).doClick();
+        check("print: choosing a scorecard goes back to the printer", sheetForm.printerChoice.isSelected()
+                && sheetForm.printButton.getText().equals("Print..."));
+        sheetForm.choices.get(PrintForm.Kind.ROUND_LOG).doClick();
+        sheetForm.csvChoice.doClick();
+        printer.saveAs = null;
+        sheetForm.printPressed();
+        check("print: cancelling the save window saves nothing and the window stays", sheetForm.answer() == ConfirmForm.CANCELLED
+                && filesIn(saveFolder).isEmpty() && printer.offeredName.equals("RoundLog_2026-11-01.csv")
+                && printer.offeredFolder.equals(saveFolder));
+        printer.saveAs = saveFolder.resolve("my rounds");
+        sheetForm.printPressed();
+        Path saved = saveFolder.resolve("my rounds.csv");
+        byte[] bytes = Files.readAllBytes(saved);
+        check("print: Save... writes the file, adding .csv, with a byte order mark", sheetForm.answer() == ConfirmForm.GO
+                && bytes.length > 3 && (bytes[0] & 0xFF) == 0xEF && (bytes[1] & 0xFF) == 0xBB && (bytes[2] & 0xFF) == 0xBF
+                && Files.readString(saved, StandardCharsets.UTF_8).substring(1).startsWith("Date,Course,Tee,Holes,Score")
+                && sheetForm.doneMessage().equals("Saved " + sheetLog.rounds().size() + " rows to " + saved.toAbsolutePath().normalize() + "."));
+        String before1 = Files.readString(saved, StandardCharsets.UTF_8);
+        Files.writeString(saved, "keep me", StandardCharsets.UTF_8);
+        printer.saveAs = saved;
+        printer.replace = false;
+        PrintForm againForm = new PrintForm(data, saveFolder, printer);
+        againForm.choices.get(PrintForm.Kind.STATS).doClick();
+        againForm.csvChoice.doClick();
+        againForm.printPressed();
+        check("print: a file already there is replaced only when the golfer says so", printer.replaceAsked == 1
+                && Files.readString(saved, StandardCharsets.UTF_8).equals("keep me") && againForm.answer() == ConfirmForm.CANCELLED
+                && !before1.isEmpty());
+        printer.replace = true;
+        againForm.printPressed();
+        check("print: told to replace it, the file is written", printer.replaceAsked == 2 && againForm.answer() == ConfirmForm.GO
+                && Files.readString(saved, StandardCharsets.UTF_8).contains("Course : Tee Box"));
+        printer.saveAs = saveFolder.resolve("handicap.csv");
+        windowPanel.setPrintTools(printer, shown ->
+        {
+            shown.csvChoice.doClick();
+            shown.printPressed();
+            return shown.answer();
+        });
+        windowPanel.printReports();
+        check("print: after saving the footer says how many rows went where", windowPanel.footer().status().startsWith("Saved 20 rows to ")
+                && windowPanel.footer().status().endsWith("handicap.csv.") && Files.exists(saveFolder.resolve("handicap.csv")));
+
         Path empty = Files.createTempDirectory("golfanalyst-print-empty").resolve(DataStore.DATA_FOLDER);
         Files.createDirectories(empty);
         Files.writeString(empty.resolve(DataLoader.COURSES_FILE), golfanalyst.CourseWriter.STANDARD_HEADER + "\n", StandardCharsets.UTF_8);
         Files.writeString(empty.resolve(DataLoader.ROUNDS_FILE), golfanalyst.RoundWriter.STANDARD_HEADER + "\n", StandardCharsets.UTF_8);
         golfanalyst.print.ReportData nothing = golfanalyst.print.ReportData.of(new DataStore(empty), LocalDate.of(2026, 11, 1), Theme.VERSION);
         FakePrinter idle = new FakePrinter();
-        PrintForm emptyForm = new PrintForm(nothing, idle);
+        PrintForm emptyForm = new PrintForm(nothing, saveFolder, idle);
         boolean allOff = true;
         for (PrintForm.Kind kind : PrintForm.Kind.values())
         {

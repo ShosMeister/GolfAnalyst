@@ -84,6 +84,32 @@ public abstract class Report
     public abstract String describe();
 
     /*
+     * spreadsheet(): the report as spreadsheet rows (the header row first), or null for a report that is not a table (the scorecards).
+     */
+    public java.util.List<java.util.List<String>> spreadsheet()
+    {
+        return null;
+    }
+
+    /*
+     * spreadsheetWords(): what a spreadsheet file of the report holds, after "This will save ": "15 rounds", "12 rows".
+     */
+    public String spreadsheetWords()
+    {
+        java.util.List<java.util.List<String>> rows = spreadsheet();
+        if (rows == null)
+        {
+            return "nothing";
+        }
+        int count = rows.size() - 1;
+        if (count == 1)
+        {
+            return "1 row";
+        }
+        return count + " rows";
+    }
+
+    /*
      * heading(): the big title on the page, for example "Scorecard   -   Sample Links (Blue)".
      */
     protected abstract String heading();

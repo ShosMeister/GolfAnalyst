@@ -98,6 +98,8 @@ final class PrintForm extends JPanel
     static final String NOTHING_NOTE = "There is nothing to print for this choice yet.";
     static final String NOTHING_SAID = "There is nothing to print for that choice.";
     static final String SENT = "Sent to the printer.";
+    static final String SAVE_NOTE = " in a spreadsheet file. You choose where in the next window.";
+    static final String TABLES_ONLY = "Only for the reports that are tables";
     static final String HANDICAP_LINE = "Your last 20 rounds and how your index is worked out.";
     static final String HISTORICAL_TEXT = "Include historical rounds";
     static final String BAD_FROM = "Type the From date, for example 2026-10-07 or 10/7/2026.";
@@ -153,7 +155,9 @@ final class PrintForm extends JPanel
      +--------------------------------------------------------------------------+
      | Purpose:                                                                 |
      | What the window asks of the program: send a report to the printer (the   |
-     | system print dialog first) and put a message in the footer. The program  |
+     | system print dialog first), pick the spreadsheet file to save (the       |
+     | system's save window), ask before replacing a file that is already       |
+     | there, and put a message in the footer. The program                      |
      | window gives the real ones; the self-test gives its own.                 |
      +--------------------------------------------------------------------------+
      */
@@ -163,6 +167,16 @@ final class PrintForm extends JPanel
          * print(report): shows the system print dialog and prints; false if it was cancelled there.
          */
         boolean print(Report report) throws PrinterException;
+
+        /*
+         * chooseSaveFile(parent, folder, name): the system's save window, starting in folder with name filled in; null if cancelled.
+         */
+        java.nio.file.Path chooseSaveFile(Component parent, java.nio.file.Path folder, String name);
+
+        /*
+         * askReplace(file): asks whether to replace a file that is already there (No is the default); true to replace it.
+         */
+        boolean askReplace(java.nio.file.Path file);
 
         /*
          * say(text): puts a message in the program window's footer.
@@ -228,6 +242,7 @@ final class PrintForm extends JPanel
     private final JPanel buttonRow;
     private final transient ReportData data;
     private final transient Tools tools;
+    private final transient java.nio.file.Path startFolder;
     private transient Report report = null;
     private int answer = ConfirmForm.CANCELLED;
     private String doneMessage = "";
@@ -235,21 +250,24 @@ final class PrintForm extends JPanel
 
     /*
      +--------------------------------------------------------------------------+
-     | PrintForm(data, tools)                                                   |
+     | PrintForm(data, startFolder, tools)                                      |
      +--------------------------------------------------------------------------+
      | Purpose:                                                                 |
      | Lays out the window (see the class comment), fills the pulldowns from    |
      | the data, ticks the Handicap Report and A printer or PDF, and draws      |
      | the first small picture. Reads the data only.                            |
      |                                                                          |
-     | Passed in:  data  - what the reports are drawn from                      |
-     |             tools - the printer and the footer                           |
+     | Passed in:  data        - what the reports are drawn from                |
+     |             startFolder - where the save window starts (LastExportFolder |
+     |                           or the Documents folder)                       |
+     |             tools       - the printer, the save window and the footer    |
      | Passed out: the form                                                     |
      +--------------------------------------------------------------------------+
      */
-    PrintForm(ReportData data, Tools tools)
+    PrintForm(ReportData data, java.nio.file.Path startFolder, Tools tools)
     {
         this.data = data;
+        this.startFolder = startFolder;
         this.tools = tools;
         fillPulldowns();
 
@@ -708,7 +726,6 @@ final class PrintForm extends JPanel
         group.add(csvChoice);
         printerChoice.setFont(ConfirmForm.messageFont().deriveFont(Font.PLAIN, 14f));
         csvChoice.setFont(ConfirmForm.messageFont().deriveFont(Font.PLAIN, 14f));
-        csvChoice.setEnabled(false);
         printerChoice.addActionListener(event -> refresh());
         csvChoice.addActionListener(event -> refresh());
         return row;
@@ -958,6 +975,25 @@ final class PrintForm extends JPanel
         {
             cardIndexLine.setText("Handicap Index " + Handicap.format(handicap.currentIndex()) + " will be used.");
         }
+        boolean table = kind == Kind.HANDICAP || kind == Kind.ROUND_LOG || kind == Kind.STATS || kind == Kind.NOTES;
+        csvChoice.setEnabled(table);
+        if (table)
+        {
+            csvChoice.setToolTipText(null);
+        }
+        else
+        {
+            csvChoice.setToolTipText(TABLES_ONLY);
+            printerChoice.setSelected(true);
+        }
+        if (csvChoice.isSelected())
+        {
+            printButton.setText("Save...");
+        }
+        else
+        {
+            printButton.setText("Print...");
+        }
         report = report();
         preview.setReport(report);
         String note;
@@ -968,6 +1004,10 @@ final class PrintForm extends JPanel
         else if (report.isEmpty())
         {
             note = NOTHING_NOTE;
+        }
+        else if (csvChoice.isSelected())
+        {
+            note = "This will save " + report.spreadsheetWords() + SAVE_NOTE;
         }
         else
         {
@@ -1057,6 +1097,11 @@ final class PrintForm extends JPanel
             tools.say(NOTHING_SAID);
             return;
         }
+        if (csvChoice.isSelected())
+        {
+            save(chosenReport);
+            return;
+        }
         try
         {
             if (tools.print(chosenReport))
@@ -1069,6 +1114,51 @@ final class PrintForm extends JPanel
         {
             tools.say("Nothing was printed: " + failure.getMessage());
         }
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | save(chosenReport)                                                       |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Save...: the save window starts in the start folder with a name like     |
+     | RoundLog_2026-11-01.csv (".csv" is added if it was left off). A file     |
+     | that is already there is replaced only if the golfer says so. Once saved |
+     | the window closes and the footer will say "Saved 15 rows to ...". If     |
+     | the save window is cancelled, or replacing is refused, the Print window  |
+     | stays; if the file cannot be written the footer says why.                |
+     |                                                                          |
+     | Passed in:  chosenReport - the report to save                            |
+     | Passed out: nothing                                                      |
+     +--------------------------------------------------------------------------+
+     */
+    private void save(Report chosenReport)
+    {
+        java.nio.file.Path file = tools.chooseSaveFile(this, startFolder, golfanalyst.print.Csv.fileName(chosenReport, data.today()));
+        if (file == null)
+        {
+            return;
+        }
+        if (!file.getFileName().toString().toLowerCase(java.util.Locale.ROOT).endsWith(".csv"))
+        {
+            file = file.resolveSibling(file.getFileName() + ".csv");
+        }
+        if (java.nio.file.Files.exists(file) && !tools.askReplace(file))
+        {
+            return;
+        }
+        List<List<String>> rows = chosenReport.spreadsheet();
+        try
+        {
+            golfanalyst.print.Csv.write(file, rows);
+        }
+        catch (java.io.IOException failure)
+        {
+            tools.say("Nothing was saved: " + failure.getMessage());
+            return;
+        }
+        doneMessage = "Saved " + (rows.size() - 1) + " rows to " + file.toAbsolutePath().normalize() + ".";
+        finish(ConfirmForm.GO);
     }
 
     /*

@@ -553,6 +553,77 @@ public final class RoundLogReport extends Report
         return String.join("   ", parts);
     }
 
+    /*
+     +--------------------------------------------------------------------------+
+     | spreadsheet()                                                            |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | The rounds, oldest first, for a spreadsheet file (no summary rows):      |
+     | Date, Course, Tee, Holes, Score, Putts, Fairways hit, Fairway chances,   |
+     | Greens in regulation, Holes played, Two putts or fewer, Bunker holes,    |
+     | Sand saves, Differential (empty when the round has none), Historical     |
+     | (Yes or No), then Score 1 to Score 18 and Putts 1 to Putts 18 (empty     |
+     | for holes not played).                                                   |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: the header row and one row per round                         |
+     +--------------------------------------------------------------------------+
+     */
+    @Override
+    public List<List<String>> spreadsheet()
+    {
+        List<List<String>> rows = new ArrayList<>();
+        List<String> header = new ArrayList<>(List.of("Date", "Course", "Tee", "Holes", "Score", "Putts", "Fairways hit",
+                "Fairway chances", "Greens in regulation", "Holes played", "Two putts or fewer", "Bunker holes", "Sand saves",
+                "Differential", "Historical"));
+        for (int hole = 1; hole <= Tee.HOLES; hole = hole + 1)
+        {
+            header.add("Score " + hole);
+        }
+        for (int hole = 1; hole <= Tee.HOLES; hole = hole + 1)
+        {
+            header.add("Putts " + hole);
+        }
+        rows.add(header);
+        for (Round round : rounds)
+        {
+            Tee tee = data.tees().get(round.teeId());
+            RoundFigures figures = RoundFigures.of(round, tee);
+            String historical = "No";
+            if (round.historical())
+            {
+                historical = "Yes";
+            }
+            List<String> row = new ArrayList<>(List.of(round.date().toString(), tee.courseName(), tee.teeName(), holesLong(round, tee),
+                    Integer.toString(figures.score()), Integer.toString(figures.putts()), Integer.toString(figures.fairways()),
+                    Integer.toString(figures.fairwayChances()), Integer.toString(figures.greens()), Integer.toString(figures.holes()),
+                    Integer.toString(figures.twoPutts()), Integer.toString(figures.bunkers()), Integer.toString(figures.sandSaves()),
+                    Csv.number(differential(round), 1), historical));
+            String[] scores = new String[Tee.HOLES];
+            String[] putts = new String[Tee.HOLES];
+            java.util.Arrays.fill(scores, "");
+            java.util.Arrays.fill(putts, "");
+            for (int hole = 0; hole < round.holes(); hole = hole + 1)
+            {
+                scores[round.startHole() + hole] = Integer.toString(round.scores()[hole]);
+                putts[round.startHole() + hole] = Integer.toString(round.putts()[hole]);
+            }
+            row.addAll(List.of(scores));
+            row.addAll(List.of(putts));
+            rows.add(row);
+        }
+        return rows;
+    }
+
+    /*
+     * spreadsheetWords(): "15 rounds" or "1 round".
+     */
+    @Override
+    public String spreadsheetWords()
+    {
+        return countWords(rounds.size());
+    }
+
     // ------------------------------------------------------------ pages
 
     /*

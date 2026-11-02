@@ -1,0 +1,63 @@
+Print - Help
+
+Here is how to print a report, make a PDF of it, or save it as a spreadsheet file.
+
+# Getting here
+
+Press Print on the Home screen. The Print window opens over the program; nothing else can be used until you close it.
+
+# Choosing what to print
+
+1. Pick the report on the left. Its name and choices appear on the right, with a small picture of its first page.
+
+2. Set its choices. The pulldowns only list what you have: the courses you have played, the rounds you have saved. Watch the small picture change as you go.
+
+3. Check the gray box. It says what will be printed, for example "This will print 15 rounds.", or what still needs fixing.
+
+# The Round Log's Period
+
+All time: Every round you have.
+
+Last 30 days: The 30 days ending today.
+
+This month: From the 1st of this month to today.
+
+Last month: The whole of last month.
+
+Last 3 months, Last 6 months, Last 12 months: From the same date that many months ago up to today.
+
+This year: From January 1 to today.
+
+Last year: All of last year.
+
+Custom dates...: Type your own From and To dates, like 2026-10-07 or 10/7/2026. Both days are included. The boxes are gray for the other choices and show the dates that choice covers.
+
+# Printing
+
+Pick A printer or PDF and press Print.... In the next window, the one your computer always uses for printing, pick the printer and press Print there. The Handicap Report comes out upright and the others on their side, on Letter or A4 paper. When it has gone, the bar along the bottom says "Sent to the printer."
+
+# Making a PDF
+
+On Windows: In the printer window choose "Microsoft Print to PDF" as the printer and press Print. Windows then asks where to save the PDF file.
+
+On a Mac: In the printer window press the PDF button at the bottom left and choose Save as PDF.
+
+# Saving a spreadsheet file
+
+1. Pick A spreadsheet file (.csv). It works for the Handicap Report, the Round Log, the Stats Board and Course notes, and the button changes to Save....
+
+2. Press Save.... The next window starts in the folder you last exported to, with a name like RoundLog_2026-11-01.csv filled in. Change either if you like and press Save.
+
+3. If a file with that name is already there, you are asked before it is replaced. When it is saved, the bar along the bottom says how many rows went where.
+
+# Opening a .csv file
+
+Excel: Double-click the file, or use File, Open in Excel. Each column of the report lands in its own column.
+
+Numbers on a Mac: Drag the file onto Numbers, or use File, Open.
+
+LibreOffice or Google Sheets: Open or upload the file; if you are asked, the fields are separated by commas.
+
+# Leaving
+
+Press Cancel, or Esc, to close the window without printing anything.

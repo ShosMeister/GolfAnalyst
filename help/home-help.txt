@@ -40,6 +40,10 @@ Press Best Round to see your lowest round on a course and set of tees. Click Com
 
 Press Analyzer to see how you play every hole of a course and set of tees: how often you make each score, and your averages for score, putts, fairways, greens and sand saves. Red marks your hardest holes, where you lose the most strokes; gold marks your easiest. The ? button on that screen shows how to use it to find where your strokes go.
 
+# Printing
+
+Press Print and pick what you would like to print: your Handicap Report, a log of your rounds, a round's scorecard, your best round, the Stats Board, a scorecard to carry on a course with your strokes and pick-up numbers, or the Analyzer's notes on a course. The small picture shows the first page as it will come out. Press Print... and choose your printer in the next window; on Windows, choose "Microsoft Print to PDF" there to make a PDF file. For the reports that are tables you can pick A spreadsheet file (.csv) instead and press Save... to get a file Excel opens.
+
 # Using what the numbers tell you
 
 Look at your four percentages: Fairways Hit, Greens In Reg, Sand Saves and Two-Putt. See which one is low compared with the others. That is where to practice.

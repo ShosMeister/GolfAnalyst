@@ -839,9 +839,12 @@ public final class AppPanel extends JPanel implements Shell
      +--------------------------------------------------------------------------+
      | Purpose:                                                                 |
      | What Home's Print button does: shows the Print window, made from the     |
-     | data as it is now and today's date. The window itself sends the chosen  |
-     | report through the print tools (the system print dialog); once it has   |
-     | gone the footer says "Sent to the printer.". Cancel changes nothing.    |
+     | data as it is now and today's date. The window itself sends the chosen   |
+     | report through the print tools (the system print dialog) or saves it as  |
+     | a spreadsheet file (the save window starts in LastExportFolder, as       |
+     | Export's does, else the Documents folder); once it has gone the footer   |
+     | says "Sent to the printer." or "Saved 15 rows to ...". Cancel changes    |
+     | nothing.                                                                 |
      |                                                                          |
      | Passed in:  nothing                                                      |
      | Passed out: nothing                                                      |
@@ -851,7 +854,13 @@ public final class AppPanel extends JPanel implements Shell
     public void printReports()
     {
         golfanalyst.print.ReportData data = golfanalyst.print.ReportData.of(store, java.time.LocalDate.now(), Theme.VERSION);
-        PrintForm form = new PrintForm(data, printTools);
+        Path last = golfanalyst.Settings.load(store.dir()).lastExportFolder();
+        Path start = Path.of(System.getProperty("user.home"), "Documents");
+        if (last != null && Files.isDirectory(last))
+        {
+            start = last;
+        }
+        PrintForm form = new PrintForm(data, start, printTools);
         if (printAsker.ask(form) == ConfirmForm.GO)
         {
             setStatus(form.doneMessage());
@@ -872,8 +881,9 @@ public final class AppPanel extends JPanel implements Shell
      | ScreenPrintTools                                                         |
      +--------------------------------------------------------------------------+
      | Purpose:                                                                 |
-     | What the Print window gets from the real program window: the system's   |
-     | own print dialog and printing (ReportPrintable.send), and the footer.   |
+     | What the Print window gets from the real program window: the system's    |
+     | own print dialog and printing (ReportPrintable.send), the system's save  |
+     | window, the shared question before replacing a file, and the footer.     |
      +--------------------------------------------------------------------------+
      */
     private final class ScreenPrintTools implements PrintForm.Tools
@@ -885,6 +895,40 @@ public final class AppPanel extends JPanel implements Shell
         public boolean print(golfanalyst.print.Report report) throws java.awt.print.PrinterException
         {
             return golfanalyst.print.ReportPrintable.send(report);
+        }
+
+        /*
+         * chooseSaveFile(parent, folder, name): the system's save window for a .csv file, opening in folder with the name filled in.
+         */
+        @Override
+        public Path chooseSaveFile(java.awt.Component parent, Path folder, String name)
+        {
+            javax.swing.JFileChooser chooser = new javax.swing.JFileChooser();
+            if (folder != null && Files.isDirectory(folder))
+            {
+                chooser.setCurrentDirectory(folder.toFile());
+                chooser.setSelectedFile(folder.resolve(name).toFile());
+            }
+            else
+            {
+                chooser.setSelectedFile(new java.io.File(name));
+            }
+            chooser.setDialogTitle("Save the spreadsheet file");
+            chooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("Spreadsheet files (*.csv)", "csv"));
+            if (chooser.showSaveDialog(parent) != javax.swing.JFileChooser.APPROVE_OPTION)
+            {
+                return null;
+            }
+            return chooser.getSelectedFile().toPath();
+        }
+
+        /*
+         * askReplace(file): the shared Yes / No question (No is the default) before a file that is already there is replaced.
+         */
+        @Override
+        public boolean askReplace(Path file)
+        {
+            return askYesNo(file.getFileName() + " is already there. Replace it?");
         }
 
         /*

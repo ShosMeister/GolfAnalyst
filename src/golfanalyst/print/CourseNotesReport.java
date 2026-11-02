@@ -331,6 +331,60 @@ public final class CourseNotesReport extends Report
     }
 
     /*
+     +--------------------------------------------------------------------------+
+     | spreadsheet()                                                            |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | One row per hole for a spreadsheet file: Hole, Par, Hdcp, Rounds, the    |
+     | seven counts (Dbl Eagle to Other), Avg score, Avg vs par, Best, Worst,   |
+     | Avg putts (one decimal, empty for nothing to show), Fairway % and        |
+     | Greens % (one decimal).                                                  |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: the header row and one row per hole                          |
+     +--------------------------------------------------------------------------+
+     */
+    @Override
+    public List<List<String>> spreadsheet()
+    {
+        Tee tee = data.tees().get(row.teeId());
+        List<List<String>> rows = new ArrayList<>();
+        List<String> header = new ArrayList<>(List.of("Hole", "Par", "Hdcp", "Rounds"));
+        header.addAll(CourseAnalysis.CATEGORIES);
+        header.addAll(List.of("Avg score", "Avg vs par", "Best", "Worst", "Avg putts", "Fairway %", "Greens %"));
+        rows.add(header);
+        for (CourseAnalysis.HoleStats hole : analysis.holes())
+        {
+            List<String> cells = new ArrayList<>(List.of(Integer.toString(hole.hole()), Integer.toString(hole.par()),
+                    Integer.toString(tee.strokeIndex()[hole.hole() - 1]), Integer.toString(hole.rounds())));
+            for (int count : hole.counts())
+            {
+                cells.add(Integer.toString(count));
+            }
+            String best = "";
+            String worst = "";
+            if (hole.rounds() > 0)
+            {
+                best = Integer.toString(hole.best());
+                worst = Integer.toString(hole.worst());
+            }
+            cells.addAll(List.of(Csv.number(hole.avgScore(), 1), Csv.number(hole.avgOverPar(), 1), best, worst,
+                    Csv.number(hole.avgPutts(), 1), Csv.number(hole.fairwayPct(), 1), Csv.number(hole.girPct(), 1)));
+            rows.add(cells);
+        }
+        return rows;
+    }
+
+    /*
+     * spreadsheetWords(): "18 holes" or "9 holes".
+     */
+    @Override
+    public String spreadsheetWords()
+    {
+        return analysis.holes().size() + " holes";
+    }
+
+    /*
      * holeList(holes): "5, 6, 11", or "-" for none.
      */
     static String holeList(List<Integer> holes)

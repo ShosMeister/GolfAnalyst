@@ -1,0 +1,57 @@
+Print - Info
+
+This is the Print window. It puts your golf on paper, in a PDF, or in a spreadsheet file. Nothing here changes your rounds or courses: every report is worked out from your saved rounds when you print it.
+
+# The Print window
+
+What would you like to print?: The seven reports, each with a line saying what it is.
+
+The panel on the right: The name of the report you picked, its choices, and in the top right corner a small picture of its first page. The picture is the real page, drawn from your own rounds, and it changes as soon as you change a choice.
+
+Send it to: A printer or PDF, or A spreadsheet file (.csv). The spreadsheet file is only for the reports that are tables, so it is gray for the three scorecards.
+
+The gray box: Says what will be printed or saved, or what is missing.
+
+# Handicap Report
+
+Your Handicap Index on one upright page, with the rounds behind it. The box at the top shows your index, your Low Index for the last 365 days, how many of the listed rounds count, and the date of your latest round.
+
+The table: Your last 20 rounds that count for your handicap, most recent first. The shaded rows are the rounds that make up your index today, the lowest differentials of your last 20. Adj. is your score after limiting each hole to a net double bogey. A dagger marks a nine-hole round.
+
+The lines underneath: Which differentials make your index and what their average is, then what Adj., the dagger and a differential mean. Historical rounds are never in it.
+
+# Round Log
+
+A list of your rounds, oldest first, for one set of tees or all courses, for the period you choose. For each round: the holes played, score, putts, fairways hit of your par 4s and 5s, greens in regulation, holes with two putts or fewer, sand saves of the holes where you were in a bunker, and the differential. A dagger marks a nine-hole round and an H a historical round.
+
+The summary: For each kind of round (18 holes, front nine, back nine, nine-hole course) an Average row and a Best row. The percentages count every hole you played, not an average of each round's percentage.
+
+Why the summary is only on the last page: It sums up every round in the log, so it comes after the last one. If it does not fit under the last rounds it gets a page of its own, so it is never split in two.
+
+# A round's scorecard
+
+One saved round, hole by hole, the way you would keep it on a card: par, handicap number, score, putts, fairways and sand, with Out, In and Total. A circle is a birdie or better, a square a bogey, a double square a double bogey or worse. The box underneath has the round's figures, its differential and your index after it.
+
+# Best Round
+
+Your best round on a course and set of tees on the same scorecard: the lowest round, or the composite of your best score on every hole, just as the Best Round screen shows them.
+
+# Stats Board
+
+The Stats Board screen on paper: your statistics for every course and set of tees, the nine-hole rounds in their own section. The shaded figures are the best in each column, where the screen shows gold.
+
+# My scorecard for a course
+
+A card to take with you on the course. Under the par and handicap number of every hole it shows the strokes you get there and your pick-up number, with empty rows to write in your score, putts, fairways and sand.
+
+Strokes: Your course handicap shared out over the holes, hardest first. A plus handicap gives a stroke back on the easiest holes, shown as -1.
+
+Pick-up number: The most a hole can count towards your handicap: a net double bogey, par plus two plus your strokes on that hole. Once you reach it you can pick up. With no Handicap Index yet it is par plus five.
+
+# Course notes
+
+The Analyzer's figures for a course and set of tees on one page: each hole's par, handicap number, average score, average over par, best, worst, putts, fairways and greens, with your three hardest holes in red and your three easiest in gold.
+
+# Spreadsheet files
+
+The Handicap Report, the Round Log, the Stats Board and Course notes can be saved as a .csv file instead of printed. It holds the same table, without the summary rows, and the Round Log's file adds your score and putts on every hole.

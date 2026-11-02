@@ -179,6 +179,51 @@ public final class StatsBoardReport extends Report
     }
 
     /*
+     +--------------------------------------------------------------------------+
+     | spreadsheet()                                                            |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | The board for a spreadsheet file in the screen's columns: the two total  |
+     | rows, the 18-hole rows and the nine-hole rows (no band row), each cell   |
+     | as the screen shows it, with "-" left empty.                             |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: the header row and one row per board row                     |
+     +--------------------------------------------------------------------------+
+     */
+    @Override
+    public List<List<String>> spreadsheet()
+    {
+        List<List<String>> rows = new ArrayList<>();
+        List<String> header = new ArrayList<>();
+        for (StatsBoard.Column column : StatsBoard.Column.values())
+        {
+            header.add(column.heading());
+        }
+        rows.add(header);
+        List<StatsBoard.Row> boardRows = new ArrayList<>();
+        boardRows.add(board.allEighteen());
+        boardRows.add(board.allNine());
+        boardRows.addAll(board.eighteen());
+        boardRows.addAll(board.nine());
+        for (StatsBoard.Row boardRow : boardRows)
+        {
+            List<String> cells = new ArrayList<>();
+            for (StatsBoard.Column column : StatsBoard.Column.values())
+            {
+                String words = boardRow.text(column);
+                if (words.equals("-"))
+                {
+                    words = "";
+                }
+                cells.add(words);
+            }
+            rows.add(cells);
+        }
+        return rows;
+    }
+
+    /*
      * rowsPerPage(height): how many rows fit on a page this high under the header row (at least 1).
      */
     public int rowsPerPage(double height)
