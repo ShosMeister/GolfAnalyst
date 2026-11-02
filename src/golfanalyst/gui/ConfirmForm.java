@@ -405,7 +405,7 @@ final class ConfirmForm extends JPanel
     static Font messageFont()
     {
         Font font = UIManager.getFont("OptionPane.messageFont");
-        return (font != null ? font : UIManager.getFont("Label.font")).deriveFont(Font.PLAIN, 14f);
+        return (font != null ? font : UIManager.getFont("Label.font")).deriveFont(Font.PLAIN, 14f * Theme.fontScale());
     }
 
     /*

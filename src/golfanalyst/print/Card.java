@@ -33,6 +33,7 @@ final class Card
     static final double HOLE_WIDTH = 42;
     static final double HEADER_HEIGHT = 34;
     static final double FIGURE_STEP = 340;
+    static final double CHECK_SIZE = 14;
 
     /*
      * Marker: draws something more on a body cell (the score marks).
@@ -60,7 +61,7 @@ final class Card
     /*
      +--------------------------------------------------------------------------+
      | paint(sheet, top, labels, headings, totals, rows, rowHeight, bigRow,     |
-     |       headingFaces, marker)                                              |
+     |       headingFaces, tintRow, marker)                                     |
      +--------------------------------------------------------------------------+
      | Purpose:                                                                 |
      | Draws the card (see the class comment) at the left margin.               |
@@ -76,12 +77,14 @@ final class Card
      |                            or -1                                         |
      |             headingFaces - heading columns tinted, by column (may be     |
      |                            empty)                                        |
+     |             tintRow      - a body row whose cells under tinted headings  |
+     |                            take the same tint (Avg vs par), or -1        |
      |             marker       - draws on body cells, or null                  |
      | Passed out: the y under the last row                                     |
      +--------------------------------------------------------------------------+
      */
     static double paint(Sheet sheet, double top, List<String> labels, List<String> headings, List<Boolean> totals,
-            List<List<String>> rows, double rowHeight, int bigRow, Map<Integer, Color> headingFaces, Marker marker)
+            List<List<String>> rows, double rowHeight, int bigRow, Map<Integer, Color> headingFaces, int tintRow, Marker marker)
     {
         double x = Sheet.MARGIN;
         double cardWidth = width(headings.size());
@@ -118,6 +121,10 @@ final class Card
                 {
                     sheet.fill(left, rowTop, HOLE_WIDTH, rowHeight, Sheet.BOX);
                 }
+                if (row == tintRow && headingFaces.containsKey(col))
+                {
+                    sheet.fill(left, rowTop, HOLE_WIDTH, rowHeight, headingFaces.get(col));
+                }
                 double size = 13;
                 int style = Font.PLAIN;
                 if (row == bigRow)
@@ -151,11 +158,16 @@ final class Card
     }
 
     /*
-     * cellWords(sheet, words, left, top, rowHeight, font): the words centred in a hole cell; a check mark the font cannot draw is drawn as a tick.
+     * cellWords(sheet, words, left, top, rowHeight, font): the words centred in a hole cell; a check mark is bold 14 (drawn as a tick if the font has none).
      */
     private static void cellWords(Sheet sheet, String words, double left, double top, double rowHeight, Font font)
     {
-        if (words.equals(Sheet.CHECK) && font.canDisplayUpTo(words) != -1)
+        if (words.equals(Sheet.CHECK) && Sheet.sans(Font.BOLD, CHECK_SIZE).canDisplayUpTo(words) == -1)
+        {
+            sheet.textIn(words, left, top, HOLE_WIDTH, rowHeight, Sheet.sans(Font.BOLD, CHECK_SIZE), Sheet.INK, Table.Align.CENTRE, 0);
+            return;
+        }
+        if (words.equals(Sheet.CHECK))
         {
             double centreX = left + HOLE_WIDTH / 2;
             double centreY = top + rowHeight / 2;

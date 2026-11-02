@@ -18,8 +18,10 @@ import java.util.List;
  | (the Handicap Report's counting rounds, the Stats Board's best figures   |
  | use single shaded cells), a GROUP row is (240,236,228) and bold (the     |
  | Round Log's "18 holes (13 rounds)"). Text that does not fit its column   |
- | is cut short with "...". A report that breaks a table over pages draws   |
- | the header row again on every page.                                      |
+ | is cut short with "...". The dagger (a nine-hole round) and the H (a     |
+ | historical round, in the untitled mark column) are bold 15 so they are   |
+ | as easy to see as the numbers. A report that breaks a table over pages   |
+ | draws the header row again on every page.                                |
  |                                                                          |
  | Nested types:                                                            |
  | Align  - LEFT, CENTRE or RIGHT                                           |
@@ -43,6 +45,7 @@ public final class Table
     public static final double END_RULE = 2;
     public static final double HEADER_SIZE = 12;
     public static final double BODY_SIZE = 13;
+    public static final double SYMBOL_SIZE = 15;
     public static final Color GROUP_FACE = Sheet.BOX;
 
     /*
@@ -225,7 +228,12 @@ public final class Table
                 {
                     words = row.cells().get(col);
                 }
-                sheet.textIn(words, left, top, column.width(), rowHeight, font, Sheet.INK, column.align(), PAD);
+                Font cellFont = font;
+                if (words.equals(Sheet.DAGGER) || (words.equals("H") && column.title().isEmpty()))
+                {
+                    cellFont = Sheet.sans(Font.BOLD, SYMBOL_SIZE);
+                }
+                sheet.textIn(words, left, top, column.width(), rowHeight, cellFont, Sheet.INK, column.align(), PAD);
                 left = left + column.width();
             }
             top = top + rowHeight;

@@ -19,7 +19,9 @@ import javax.imageio.ImageIO;
  | A tool, not part of the program: draws each report from the sample data  |
  | with the reports' own drawing code into PNG pictures (one pixel per      |
  | design unit, Letter paper), so they can be put beside the design         |
- | pictures in docs\mockups. Run from the project folder after build.bat:   |
+ | pictures in docs\mockups. The sample data has no golfer's name, so the   |
+ | test name "Angelo" is used, in memory only: no settings file is written. |
+ | Run from the project folder after build.bat:                             |
  |   java -cp out golfanalyst.print.Samples docs\mockups                    |
  |                                                                          |
  | Public Methods:                                                          |
@@ -28,6 +30,8 @@ import javax.imageio.ImageIO;
  */
 public final class Samples
 {
+
+    static final String TEST_NAME = "Angelo";
 
     private Samples()
     {
@@ -44,7 +48,9 @@ public final class Samples
             folder = Path.of(args[0]);
         }
         Files.createDirectories(folder);
-        ReportData data = ReportData.of(new DataStore(Path.of(DataStore.SAMPLE_FOLDER)), LocalDate.now(), "4.00");
+        ReportData read = ReportData.of(new DataStore(Path.of(DataStore.SAMPLE_FOLDER)), LocalDate.now(), "4.00");
+        ReportData data = new ReportData(read.rounds(), read.tees(), read.handicap(), TEST_NAME, read.includeHistorical(), read.sample(),
+                read.today(), read.version());
         write(new HandicapReport(data), 0, folder.resolve("print_actual_handicap_report.png"));
 
         Round newest = data.rounds().get(data.rounds().size() - 1);

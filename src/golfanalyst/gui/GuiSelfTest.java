@@ -980,6 +980,7 @@ public final class GuiSelfTest
         checkExportScreen();
         checkAnalyzerScreen();
         checkPrintDialog();
+        checkPrintDialogSizes();
         checkDeleteRound();
         checkClearData();
         checkFooterHand();
@@ -2993,6 +2994,139 @@ public final class GuiSelfTest
         HomePage home = new HomePage(homeShell);
         ((WoodButton) findByText(home, "Print")).doClick();
         check("print: Home's Print button asks for the Print window", homeShell.lastPage.equals("print"));
+    }
+
+    /*
+     * labelWithText(root, text): the JLabel showing these words anywhere under root, or null.
+     */
+    private static JLabel labelWithText(Container root, String text)
+    {
+        for (Component part : root.getComponents())
+        {
+            if (part instanceof JLabel && text.equals(((JLabel) part).getText()))
+            {
+                return (JLabel) part;
+            }
+            if (part instanceof Container)
+            {
+                JLabel found = labelWithText((Container) part, text);
+                if (found != null)
+                {
+                    return found;
+                }
+            }
+        }
+        return null;
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | clippedText(root)                                                        |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Finds words that do not fit: every showing label, button or text box     |
+     | (inside containers that are showing) must be at least as wide and as     |
+     | tall as its words need.                                                  |
+     |                                                                          |
+     | Passed in:  root - the laid-out window content                           |
+     | Passed out: what is cut off ("" when nothing is)                         |
+     +--------------------------------------------------------------------------+
+     */
+    private static String clippedText(Container root)
+    {
+        String found = "";
+        for (Component part : root.getComponents())
+        {
+            if (!part.isVisible())
+            {
+                continue;
+            }
+            boolean words = part instanceof JLabel || part instanceof AbstractButton || part instanceof javax.swing.JTextArea;
+            java.awt.Dimension wanted = part.getPreferredSize();
+            if (words && (part.getWidth() < wanted.width || part.getHeight() < wanted.height))
+            {
+                String name = part.getClass().getSimpleName();
+                if (part instanceof JLabel)
+                {
+                    name = ((JLabel) part).getText();
+                }
+                else if (part instanceof AbstractButton)
+                {
+                    name = ((AbstractButton) part).getText();
+                }
+                found = found + " [" + name + " " + part.getWidth() + "x" + part.getHeight() + " needs " + wanted.width + "x" + wanted.height
+                        + "]";
+            }
+            if (part instanceof Container && !(part instanceof javax.swing.JComboBox) && !(part instanceof AbstractButton))
+            {
+                found = found + clippedText((Container) part);
+            }
+        }
+        return found;
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | checkPrintDialogSizes()                                                  |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | The Print window sized from its contents: at the normal size the last    |
+     | hint ("Hole-by-hole, from the Analyzer") has 8 px to spare under it and  |
+     | 10 px or more lie between the lists and the "Send it to:" row; then the  |
+     | window built with every font 20% larger (Theme's font scale) shows       |
+     | every report's choices with no words cut off and nothing overlapping,    |
+     | and still fits inside 90% of the program window.                         |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing (throws IOException if the sample cannot be read)    |
+     +--------------------------------------------------------------------------+
+     */
+    private static void checkPrintDialogSizes() throws IOException
+    {
+        DataStore sampleStore = new DataStore(Path.of("sample-data"));
+        golfanalyst.print.ReportData data = golfanalyst.print.ReportData.of(sampleStore, LocalDate.of(2026, 11, 1), Theme.VERSION);
+        java.awt.Dimension window = new AppPanel(sampleStore, Path.of("help"), "").getPreferredSize();
+        PrintForm form = new PrintForm(data, null, new FakePrinter());
+        form.setSize(form.getPreferredSize());
+        layoutAll(form);
+        JLabel lastHint = labelWithText(form, PrintForm.Kind.NOTES.hint);
+        java.awt.Rectangle hint = javax.swing.SwingUtilities.convertRectangle(lastHint.getParent(), lastHint.getBounds(), form);
+        java.awt.Rectangle column = javax.swing.SwingUtilities.convertRectangle(lastHint.getParent().getParent(), lastHint.getParent().getBounds(), form);
+        JLabel send = labelWithText(form, PrintForm.SEND_TO);
+        java.awt.Rectangle sendRow = javax.swing.SwingUtilities.convertRectangle(send.getParent().getParent(), send.getParent().getBounds(), form);
+        check("print sizes: 8 px spare under the last hint and 10 px or more before Send it to", hint.y + hint.height + PrintForm.SPARE_UNDER_LIST
+                <= column.y + column.height && sendRow.y - (column.y + column.height) >= 10 && clippedText(form).isEmpty());
+
+        Theme.setFontScale(1.2f);
+        try
+        {
+            PrintForm big = new PrintForm(data, null, new FakePrinter());
+            big.setSize(big.getPreferredSize());
+            layoutAll(big);
+            String clipped = "";
+            boolean fits = true;
+            for (PrintForm.Kind kind : PrintForm.Kind.values())
+            {
+                big.choices.get(kind).doClick();
+                big.setSize(big.getPreferredSize());
+                layoutAll(big);
+                clipped = clipped + clippedText(big);
+                fits = fits && fitsInside(big) && noOverlaps(big.buttonRow());
+            }
+            big.csvChoice.doClick();
+            big.choices.get(PrintForm.Kind.ROUND_LOG).doClick();
+            big.setSize(big.getPreferredSize());
+            layoutAll(big);
+            clipped = clipped + clippedText(big);
+            check("print sizes: with every font 20% larger no words are cut off" + clipped, clipped.isEmpty()
+                    && big.getFont() != null && labelWithText(big, PrintForm.QUESTION).getFont().getSize2D() > 17.9f);
+            check("print sizes: with every font 20% larger nothing overlaps and it fits in 90% of the window", fits
+                    && big.getWidth() <= window.width * 0.9 && big.getHeight() <= window.height * 0.9);
+        }
+        finally
+        {
+            Theme.setFontScale(1f);
+        }
     }
 
     /*

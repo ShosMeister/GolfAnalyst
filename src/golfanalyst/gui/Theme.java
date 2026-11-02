@@ -80,6 +80,7 @@ public final class Theme
     private static final Map<String, BufferedImage> IMAGES = new HashMap<>();
     private static final String[] BACKDROP_EXTENSIONS = {"jpg", "jpeg", "png", "gif"};
     private static Path imagesDir = Path.of("images");
+    private static float fontScale = 1f;
 
     private Theme()
     {
@@ -156,7 +157,23 @@ public final class Theme
      */
     public static Font font(int style, float size)
     {
-        return new Font(Font.SANS_SERIF, style, 12).deriveFont(size);
+        return new Font(Font.SANS_SERIF, style, 12).deriveFont(size * fontScale);
+    }
+
+    /*
+     * fontScale(): how much larger than designed the dialogs' fonts are (1 normally; the self-test tries 1.2 to stand in for bigger fonts).
+     */
+    public static float fontScale()
+    {
+        return fontScale;
+    }
+
+    /*
+     * setFontScale(scale): makes the fonts made from now on that much larger (for the self-test's layout check; 1 to put it back).
+     */
+    static void setFontScale(float scale)
+    {
+        fontScale = scale;
     }
 
     /*

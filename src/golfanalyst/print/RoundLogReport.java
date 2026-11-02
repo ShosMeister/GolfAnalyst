@@ -41,7 +41,10 @@ import java.util.Map;
  | had a bunker). It comes 6 units under the rounds after a dark brown      |
  | rule, then a grey note explains the marks used.                          |
  |                                                                          |
- | Pages: as many rounds as fit on each page, the header row on every page, |
+ | Pages: as many rounds as fit on each page with room kept for the note,   |
+ | the header row on every page, the note under every page's table with     |
+ | only the parts that apply to that page (the dagger, H; the percentages   |
+ | part only where the summary is),                                         |
  | " (continued)" in the subtitle from page 2; the summary only on the last |
  | page and never split: if it does not fit under the last rounds it has a  |
  | page of its own.                                                         |
@@ -529,13 +532,32 @@ public final class RoundLogReport extends Report
     }
 
     /*
-     * note(): the grey note under the summary, with only the parts that apply (the dagger, H, and how percentages are worked out).
+     * note(): the note for the whole log: the dagger and H parts that apply to any of its rounds, and how percentages are worked out.
      */
     public String note()
     {
+        return note(rounds, true);
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | note(pageRounds, withSummary)                                            |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | The grey note at the foot of a page's table, with only the parts that    |
+     | apply to it: the dagger if a nine-hole round is on it, H if a historical |
+     | round is, and how percentages are worked out if the summary is on it.    |
+     |                                                                          |
+     | Passed in:  pageRounds  - the rounds on the page                         |
+     |             withSummary - true for the page with the summary             |
+     | Passed out: the note, or "" when nothing applies                         |
+     +--------------------------------------------------------------------------+
+     */
+    static String note(List<Round> pageRounds, boolean withSummary)
+    {
         boolean nine = false;
         boolean historical = false;
-        for (Round round : rounds)
+        for (Round round : pageRounds)
         {
             historical = historical || round.historical();
             nine = nine || (round.isNineHole() && !round.historical());
@@ -549,8 +571,30 @@ public final class RoundLogReport extends Report
         {
             parts.add(HISTORICAL_PART);
         }
-        parts.add(PERCENT_PART);
+        if (withSummary)
+        {
+            parts.add(PERCENT_PART);
+        }
         return String.join("   ", parts);
+    }
+
+    /*
+     * noteOn(page, height): the note printed on one page ("" for none).
+     */
+    public String noteOn(int page, double height)
+    {
+        int perPage = rowsPerPage(height);
+        int first = Math.min(rounds.size(), page * perPage);
+        int last = Math.min(rounds.size(), first + perPage);
+        return note(rounds.subList(first, last), page == pageCount(height) - 1);
+    }
+
+    /*
+     * noteRoom(): the height a page keeps under its table for the note.
+     */
+    static double noteRoom()
+    {
+        return NOTE_GAP + Sheet.lineHeight(Sheet.sans(Font.PLAIN, NOTE_SIZE));
     }
 
     /*
@@ -631,7 +675,7 @@ public final class RoundLogReport extends Report
      */
     public int rowsPerPage(double height)
     {
-        int fit = new Table(columns(), ROW_HEIGHT).rowsThatFit(bodyBottom(height) - TABLE_TOP);
+        int fit = new Table(columns(), ROW_HEIGHT).rowsThatFit(bodyBottom(height) - TABLE_TOP - noteRoom());
         return Math.max(1, fit);
     }
 
@@ -713,8 +757,16 @@ public final class RoundLogReport extends Report
             below = table.drawRows(sheet, Sheet.MARGIN, below, first, last);
             below = table.drawEndRule(sheet, Sheet.MARGIN, below);
         }
-        if (page != pages - 1)
+        Font noteFont = Sheet.sans(Font.PLAIN, NOTE_SIZE);
+        double across = sheet.width() - Sheet.MARGIN - Sheet.MARGIN;
+        boolean withSummary = page == pages - 1;
+        String note = note(rounds.subList(first, last), withSummary);
+        if (!withSummary)
         {
+            if (!note.isEmpty())
+            {
+                sheet.text(Sheet.fit(note, noteFont, across), Sheet.MARGIN, below + NOTE_GAP, noteFont, Sheet.GREY);
+            }
             return;
         }
         Table summary = summary();
@@ -726,8 +778,6 @@ public final class RoundLogReport extends Report
         }
         below = summary.drawRows(sheet, Sheet.MARGIN, below, 0, summary.rows().size());
         below = summary.drawEndRule(sheet, Sheet.MARGIN, below);
-        Font noteFont = Sheet.sans(Font.PLAIN, NOTE_SIZE);
-        sheet.text(Sheet.fit(note(), noteFont, sheet.width() - Sheet.MARGIN - Sheet.MARGIN), Sheet.MARGIN, below + NOTE_GAP, noteFont,
-                Sheet.GREY);
+        sheet.text(Sheet.fit(note, noteFont, across), Sheet.MARGIN, below + NOTE_GAP, noteFont, Sheet.GREY);
     }
 }

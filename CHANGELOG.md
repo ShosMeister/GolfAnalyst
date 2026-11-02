@@ -55,3 +55,5 @@ that nothing about how it was built is lost. The wording is the help text's own,
 - v4.00 (before release): Added Print: the Handicap Report, Round Log, a round's scorecard, Best Round, Stats Board, My scorecard for a course and Course notes, on paper, as a PDF, or (for the tables) as a spreadsheet file.
 
 - v4.00 (before release): The Print window has its own i and ? buttons for its Info and Help.
+
+- v4.00 (before release): Printing polished: bigger daggers and check marks, the Round Log's note on every page that needs it, a cleaner My Scorecard, a full-width Stats Board, tinted Avg vs par in Course notes, and a Print window that sizes itself to its words.

@@ -351,7 +351,9 @@ Not built either: deleting a tee, merging two courses.
   data by `golfanalyst.print.Samples` (run `java -cp out golfanalyst.print.Samples docs\mockups` after build.bat) to
   compare with them. `Incoming/` (git-ignored) is where the user drops new pictures; move them to docs/mockups.
 - **Print** (built, v4.00 before release): Home's Print -> `Shell.printReports()` -> `AppPanel.printReports` ->
-  `PrintForm` (shared dialog look, title "Print", about 760 x 517 plus the title bar). Left: seven radio choices with
+  `PrintForm` (shared dialog look, title "Print"; no fixed heights: every part is sized from its contents, 8 px spare under the last hint, 760 x 538
+  here; `GuiSelfTest.checkPrintDialogSizes` builds it with every font 20% larger via `Theme.setFontScale` and checks
+  nothing is cut off). Left: seven radio choices with
   grey hints (`PrintForm.Kind`). Right: a sunken panel (dark grey top/left, white bottom/right, face (251,247,238))
   with the report's name, its options (one card each) and `PagePreview` (188 x 150: page 1 of the real report via
   `Thumbnail`). "Send it to:" A printer or PDF / A spreadsheet file (.csv) (off with the tool tip "Only for the
@@ -367,7 +369,12 @@ Not built either: deleting a tee, merging two courses.
   note only on the sample data. Handicap Report: the counting rounds are the engine's own lowest differentials on
   record (ties to the older round), the Differential column the round's own differential; the first note names an
   exceptional score reduction, a cap or the short-record adjustment when they change the index. Round Log: pages
-  repeat the header, "(continued)" from page 2, the summary only on the last page and never split. The All courses
+  repeat the header, "(continued)" from page 2, the note under every page's table with only that page's parts
+  (room kept for it: 22 rounds a Letter page), the summary only on the last page and never split. Tables draw the
+  dagger and H bold 15, cards their check marks bold 14. My Scorecard: Strokes blank where a hole gives none (totals
+  kept), no Pick-up totals. The Stats Board's widths are the screen's scaled to fill the 980 units; its shading is
+  `StatsBoard.best`, the screen's own rule (Best column included). Course notes tints the Avg vs par cells as the
+  hole numbers. `Samples` draws with the test name "Angelo" in memory (the sample data has no name). The All courses
   Round Log uses the user's widths, 1016 wide: 36 units past the right margin. Spreadsheet files (`Csv`): UTF-8 with
   a byte order mark, quoted fields, CRLF, written via a temporary file; the save window starts in LastExportFolder
   (else Documents) and a file already there is replaced only after `askReplace`. The Print window is modal, so the header's Help

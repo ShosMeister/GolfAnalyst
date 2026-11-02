@@ -616,7 +616,7 @@ public final class ScorecardReport extends Report
         }
         int[] pars = parsPlayed();
         List<Integer> slots = slots();
-        Card.paint(sheet, CARD_TOP, LABELS, headings(), totals, rowTexts(), ROW_HEIGHT, SCORE_ROW, java.util.Map.of(),
+        Card.paint(sheet, CARD_TOP, LABELS, headings(), totals, rowTexts(), ROW_HEIGHT, SCORE_ROW, java.util.Map.of(), -1,
                 (onSheet, row, col, centreX, centreY) ->
                 {
                     int hole = slots.get(col);

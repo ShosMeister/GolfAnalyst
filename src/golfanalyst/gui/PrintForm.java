@@ -111,9 +111,8 @@ final class PrintForm extends JPanel
     static final Color EDGE_DARK = new Color(110, 110, 110);
     static final Color REPORT_TITLE = new Color(92, 45, 8);
     static final Color HINT_TEXT = new Color(120, 112, 100);
-    static final int LEFT_WIDTH = 236;
     static final int RIGHT_WIDTH = 474;
-    static final int TOP_HEIGHT = 296;
+    static final int SPARE_UNDER_LIST = 8;
     static final int NOTE_WIDTH = 700;
     static final int COMBO_WIDTH = 224;
     static final int DATE_WIDTH = 84;
@@ -265,7 +264,10 @@ final class PrintForm extends JPanel
      | Purpose:                                                                 |
      | Lays out the window (see the class comment), fills the pulldowns from    |
      | the data, ticks the Handicap Report and A printer or PDF, and draws      |
-     | the first small picture. Reads the data only.                            |
+     | the first small picture. Reads the data only. Nothing has a fixed        |
+     | height: the choices, the panel and the window are as tall as their       |
+     | words need with the fonts this computer has, with 8 px spare under the   |
+     | last hint.                                                               |
      |                                                                          |
      | Passed in:  data        - what the reports are drawn from                |
      |             startFolder - where the save window starts (LastExportFolder |
@@ -286,6 +288,7 @@ final class PrintForm extends JPanel
         at.gridx = 0;
         at.gridy = 0;
         at.anchor = GridBagConstraints.NORTHWEST;
+        at.fill = GridBagConstraints.VERTICAL;
         content.add(choiceColumn(), at);
         at.gridx = 1;
         at.insets = new Insets(0, ConfirmForm.GAP, 0, 0);
@@ -444,11 +447,8 @@ final class PrintForm extends JPanel
     private JPanel choiceColumn()
     {
         JPanel column = ConfirmForm.clear(new JPanel(new GridBagLayout()));
-        Dimension size = new Dimension(LEFT_WIDTH, TOP_HEIGHT);
-        column.setPreferredSize(size);
-        column.setMinimumSize(size);
         JLabel question = new JLabel(QUESTION);
-        question.setFont(ConfirmForm.messageFont().deriveFont(Font.BOLD, 15f));
+        question.setFont(messageFont(Font.BOLD, 15f));
         question.setForeground(ConfirmForm.MESSAGE_TEXT);
         GridBagConstraints at = new GridBagConstraints();
         at.gridx = 0;
@@ -461,7 +461,7 @@ final class PrintForm extends JPanel
         for (Kind kind : Kind.values())
         {
             JRadioButton choice = optionRadio(kind.label);
-            choice.setFont(ConfirmForm.messageFont().deriveFont(Font.BOLD, 14f));
+            choice.setFont(messageFont(Font.BOLD, 14f));
             choice.setBorder(BorderFactory.createEmptyBorder(1, 0, 0, 0));
             choice.setMargin(new Insets(0, 0, 0, 0));
             group.add(choice);
@@ -471,10 +471,14 @@ final class PrintForm extends JPanel
             at.insets = new Insets(0, 0, 0, 0);
             column.add(choice, at);
             JLabel hint = new JLabel(kind.hint);
-            hint.setFont(ConfirmForm.messageFont().deriveFont(Font.PLAIN, 12f));
+            hint.setFont(messageFont(Font.PLAIN, 12f));
             hint.setForeground(HINT_TEXT);
             at.gridy = row + 1;
             at.insets = new Insets(0, 22, 3, 0);
+            if (kind == Kind.NOTES)
+            {
+                at.insets = new Insets(0, 22, 3 + SPARE_UNDER_LIST, 0);
+            }
             column.add(hint, at);
             row = row + 2;
         }
@@ -504,13 +508,10 @@ final class PrintForm extends JPanel
         panel.setOpaque(true);
         panel.setBorder(BorderFactory.createCompoundBorder(sunkenEdge(), BorderFactory.createEmptyBorder(PANEL_PAD, PANEL_PAD,
                 PANEL_PAD, PANEL_PAD)));
-        Dimension size = new Dimension(RIGHT_WIDTH, TOP_HEIGHT);
-        panel.setPreferredSize(size);
-        panel.setMinimumSize(size);
         reportTitle.setFont(Theme.font(Font.BOLD, 15f));
         reportTitle.setForeground(REPORT_TITLE);
 
-        optionPanels.put(Kind.HANDICAP, column(greyLine(HANDICAP_LINE)));
+        optionPanels.put(Kind.HANDICAP, column(greyWords(HANDICAP_LINE)));
         optionPanels.put(Kind.ROUND_LOG, logOptions());
         optionPanels.put(Kind.SCORECARD, column(caption("Round"), sized(roundList)));
         optionPanels.put(Kind.BEST, bestOptions());
@@ -539,6 +540,11 @@ final class PrintForm extends JPanel
         at.anchor = GridBagConstraints.NORTHEAST;
         at.insets = new Insets(0, 10, 0, 0);
         panel.add(preview, at);
+        GridBagConstraints width = new GridBagConstraints();
+        width.gridx = 0;
+        width.gridy = 1;
+        width.gridwidth = 2;
+        panel.add(javax.swing.Box.createHorizontalStrut(RIGHT_WIDTH - PANEL_PAD - PANEL_PAD - 2), width);
 
         ButtonGroup kinds = new ButtonGroup();
         kinds.add(singleButton);
@@ -636,12 +642,20 @@ final class PrintForm extends JPanel
     }
 
     /*
+     * messageFont(style, size): the system's message font at a size (made larger with the self-test's font scale).
+     */
+    private static Font messageFont(int style, float size)
+    {
+        return ConfirmForm.messageFont().deriveFont(style, size * Theme.fontScale());
+    }
+
+    /*
      * caption(text): the bold dark words over a pulldown ("Course and tees").
      */
     private static JLabel caption(String text)
     {
         JLabel label = new JLabel(text);
-        label.setFont(ConfirmForm.messageFont().deriveFont(Font.BOLD, 14f));
+        label.setFont(messageFont(Font.BOLD, 14f));
         label.setForeground(ConfirmForm.MESSAGE_TEXT);
         return label;
     }
@@ -652,9 +666,30 @@ final class PrintForm extends JPanel
     private static JLabel smallWords(String text)
     {
         JLabel label = new JLabel(text);
-        label.setFont(ConfirmForm.messageFont().deriveFont(Font.PLAIN, 13f));
+        label.setFont(messageFont(Font.PLAIN, 13f));
         label.setForeground(ConfirmForm.MESSAGE_TEXT);
         return label;
+    }
+
+    /*
+     * greyWords(text): grey words wrapped to the pulldowns' width, exactly as tall as their lines (the Handicap Report's line).
+     */
+    private static JTextArea greyWords(String text)
+    {
+        JTextArea area = new JTextArea(text);
+        area.setLineWrap(true);
+        area.setWrapStyleWord(true);
+        area.setEditable(false);
+        area.setFocusable(false);
+        area.setOpaque(false);
+        area.setForeground(HINT_TEXT);
+        area.setBorder(BorderFactory.createEmptyBorder());
+        area.setFont(messageFont(Font.PLAIN, 13f));
+        area.setSize(COMBO_WIDTH, Short.MAX_VALUE);
+        Dimension wrapped = new Dimension(COMBO_WIDTH, area.getPreferredSize().height);
+        area.setPreferredSize(wrapped);
+        area.setMinimumSize(wrapped);
+        return area;
     }
 
     /*
@@ -663,7 +698,7 @@ final class PrintForm extends JPanel
     private static JLabel greyLine(String text)
     {
         JLabel label = new JLabel(text);
-        label.setFont(ConfirmForm.messageFont().deriveFont(Font.PLAIN, 13f));
+        label.setFont(messageFont(Font.PLAIN, 13f));
         label.setForeground(HINT_TEXT);
         return label;
     }
@@ -675,7 +710,7 @@ final class PrintForm extends JPanel
     {
         JRadioButton button = new JRadioButton(text);
         button.setOpaque(false);
-        button.setFont(ConfirmForm.messageFont().deriveFont(Font.PLAIN, 13f));
+        button.setFont(messageFont(Font.PLAIN, 13f));
         button.setForeground(ConfirmForm.MESSAGE_TEXT);
         return button;
     }
@@ -742,8 +777,8 @@ final class PrintForm extends JPanel
         ButtonGroup group = new ButtonGroup();
         group.add(printerChoice);
         group.add(csvChoice);
-        printerChoice.setFont(ConfirmForm.messageFont().deriveFont(Font.PLAIN, 14f));
-        csvChoice.setFont(ConfirmForm.messageFont().deriveFont(Font.PLAIN, 14f));
+        printerChoice.setFont(messageFont(Font.PLAIN, 14f));
+        csvChoice.setFont(messageFont(Font.PLAIN, 14f));
         printerChoice.addActionListener(event -> refresh());
         csvChoice.addActionListener(event -> refresh());
         return row;

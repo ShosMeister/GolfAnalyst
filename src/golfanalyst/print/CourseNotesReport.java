@@ -22,7 +22,8 @@ import java.util.Map;
  | in the scorecard style (label column 96, holes 42, Out, In and All;      |
  | rows 28 high so everything fits on A4 too): Hole (the three hardest      |
  | holes' numbers on (255,214,208), the three easiest on (255,236,150),     |
- | only with 2 or more rounds, never both, as on the Analyzer), Par, Hdcp,  |
+ | only with 2 or more rounds, never both, as on the Analyzer, and their    |
+ | Avg vs par cells in the same tints), Par, Hdcp,                          |
  | Avg score, Avg vs par (a sign and one decimal; a whole number in the     |
  | totals, as on the Analyzer), Best, Worst, Avg putts, Fairway % and       |
  | Greens % ("-" for nothing to show). Under it a box like the Analyzer's   |
@@ -43,6 +44,7 @@ public final class CourseNotesReport extends Report
             "Fairway %", "Greens %");
     public static final String LEGEND = "Red = your hardest holes, where you lose the most strokes. Gold = your easiest.";
     static final int TINTED = 3;
+    static final int AVG_VS_PAR_ROW = 3;
     static final int MIN_ROUNDS_TO_TINT = 2;
     static final double CARD_TOP = 172;
     static final double ROW_HEIGHT = 28;
@@ -471,7 +473,7 @@ public final class CourseNotesReport extends Report
                 }
             }
         }
-        double below = Card.paint(sheet, CARD_TOP, LABELS, headings, totals, rowTexts(), ROW_HEIGHT, -1, faces, null);
+        double below = Card.paint(sheet, CARD_TOP, LABELS, headings, totals, rowTexts(), ROW_HEIGHT, -1, faces, AVG_VS_PAR_ROW, null);
         List<Color> tints = new ArrayList<>();
         for (int lp = 0; lp < 7; lp = lp + 1)
         {

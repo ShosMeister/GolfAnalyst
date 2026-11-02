@@ -14,11 +14,15 @@ import java.util.Set;
  | The Stats Board on paper (on its side): the screen's columns (Course :   |
  | Tee Box 266, Rating\Slope 96, then Rnds, Avg, Best, Fwy %, GIR %,        |
  | 2-Putt %, Putts/Rnd and Sand % at 62 each), its rows and its rounding    |
- | (StatsBoard's own text for every cell). First the two tan total rows,    |
+ | (StatsBoard's own text for every cell), the widths scaled up in          |
+ | proportion so the table fills the 980 units between the margins. First   |
+ | the two tan total rows,                                                  |
  | "All 18-hole rounds" and "All nine-hole rounds", then a row per tee for  |
  | 18-hole rounds, then a "Nine-hole rounds" band and the nine-hole rows.   |
- | The best figure of a column among rows with 2 or more rounds is shaded   |
- | (255,240,190) where the screen shows gold, each section on its own.      |
+ | The cells the screen shows gold are shaded (255,240,190): the very same  |
+ | StatsBoard.best, each section on its own (Avg, Best and Putts/Rnd lowest,|
+ | the four percentages highest, among rows with 2 or more rounds when 2 or |
+ | more such rows exist; ties as shown all count; "-" never).               |
  | Rows are 24 high from y 170; every page repeats the header row.          |
  |                                                                          |
  | Public Methods:                                                          |
@@ -33,6 +37,8 @@ public final class StatsBoardReport extends Report
     static final double TABLE_TOP = 170;
     static final double ROW_HEIGHT = 24;
     private static final double[] WIDTHS = {266, 96, 62, 62, 62, 62, 62, 62, 62, 62};
+    static final double SCREEN_WIDTH = 858;
+    static final double ACROSS = Sheet.LETTER_LONG - Sheet.MARGIN - Sheet.MARGIN;
     private final boolean includeHistorical;
     private final StatsBoard.Board board;
 
@@ -159,7 +165,7 @@ public final class StatsBoardReport extends Report
             {
                 align = Table.Align.LEFT;
             }
-            columns.add(new Table.Column(boardColumns[col].heading(), WIDTHS[col], align));
+            columns.add(new Table.Column(boardColumns[col].heading(), WIDTHS[col] * ACROSS / SCREEN_WIDTH, align));
         }
         Table table = new Table(columns, ROW_HEIGHT);
         table.add(row(board.allEighteen(), Table.Kind.TOTAL, Map.of()));

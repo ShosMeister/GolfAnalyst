@@ -295,9 +295,9 @@ public final class MyScorecardReport extends Report
      | rowTexts()                                                               |
      +--------------------------------------------------------------------------+
      | Purpose:                                                                 |
-     | The words of the eight body rows: Par (with totals), Hdcp, Strokes (with |
-     | totals; empty with no index), Pick-up (with totals), then the four       |
-     | empty rows to write in.                                                  |
+     | The words of the eight body rows: Par (with totals), Hdcp, Strokes (the  |
+     | strokes a hole gives, blank for none, with totals; empty with no index), |
+     | Pick-up (no totals), then the four empty rows to write in.               |
      |                                                                          |
      | Passed in:  nothing                                                      |
      | Passed out: the rows, top to bottom                                      |
@@ -322,11 +322,11 @@ public final class MyScorecardReport extends Report
                 {
                     words = Integer.toString(tee.strokeIndex()[slot]);
                 }
-                else if (row == 2 && strokes != null)
+                else if (row == 2 && strokes != null && (slot < 0 || strokes[slot] != 0))
                 {
                     words = numberOrTotal(strokes, slot);
                 }
-                else if (row == 3)
+                else if (row == 3 && slot >= 0)
                 {
                     words = numberOrTotal(pickUps, slot);
                 }
@@ -408,7 +408,7 @@ public final class MyScorecardReport extends Report
         {
             totals.add(slot < 0);
         }
-        double below = Card.paint(sheet, CARD_TOP, LABELS, headings(), totals, rowTexts(), ROW_HEIGHT, -1, Map.of(), null);
+        double below = Card.paint(sheet, CARD_TOP, LABELS, headings(), totals, rowTexts(), ROW_HEIGHT, -1, Map.of(), -1, null);
         Font noteFont = Sheet.sans(Font.PLAIN, 11);
         double across = sheet.width() - Sheet.MARGIN - Sheet.MARGIN;
         double noteTop = below + NOTE_GAP;

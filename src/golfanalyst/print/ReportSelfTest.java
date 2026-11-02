@@ -60,6 +60,15 @@ final class ReportSelfTest
         checkStatsBoard();
         checkMyScorecard();
         checkCourseNotes();
+        checkPageNotes();
+        try
+        {
+            checkNames();
+        }
+        catch (java.io.IOException failure)
+        {
+            check("names: the sample data could be read (" + failure.getMessage() + ")", false);
+        }
         try
         {
             checkSpreadsheets();
@@ -391,9 +400,9 @@ final class ReportSelfTest
      | checkRoundLogPages()                                                     |
      +--------------------------------------------------------------------------+
      | Purpose:                                                                 |
-     | Page breaks on Letter (850 high on its side: 23 rounds a page) and A4    |
+     | Page breaks on Letter (850 high on its side: 22 rounds a page) and A4    |
      | (778 high: fewer): one page; 50 rounds on three pages with the summary   |
-     | under the last four; 46 rounds filling two pages so the summary goes on  |
+     | under the last six; 44 rounds filling two pages so the summary goes on   |
      | a third page alone; "(continued)" from page 2; and the summary drawn     |
      | only on the last page.                                                   |
      |                                                                          |
@@ -407,17 +416,17 @@ final class ReportSelfTest
         double a4 = 1100.0 * 210.0 / 297.0;
         RoundLogReport small = new RoundLogReport(data(steady(10)), LINKS.id(), null, null, false);
         check("round log pages: 10 rounds and the summary fit on one page", small.pageCount(letter) == 1 && !small.summaryAlone(letter)
-                && small.rowsPerPage(letter) == 23 && small.rowsPerPage(a4) < 23 && small.subtitle(0).endsWith("all 10 rounds"));
+                && small.rowsPerPage(letter) == 22 && small.rowsPerPage(a4) < 22 && small.subtitle(0).endsWith("all 10 rounds"));
         RoundLogReport fifty = new RoundLogReport(data(steady(50)), LINKS.id(), null, null, false);
         check("round log pages: 50 rounds take three pages with the summary under the last rounds", fifty.pageCount(letter) == 3
                 && !fifty.summaryAlone(letter) && fifty.subtitle(1).endsWith("all 50 rounds (continued)")
                 && !fifty.subtitle(0).endsWith("(continued)"));
-        RoundLogReport full = new RoundLogReport(data(steady(46)), LINKS.id(), null, null, false);
+        RoundLogReport full = new RoundLogReport(data(steady(44)), LINKS.id(), null, null, false);
         check("round log pages: when the summary does not fit it gets a page of its own", full.pageCount(letter) == 3
                 && full.summaryAlone(letter));
         BufferedImage first = PrintSelfTest.picture(fifty, 0, letter);
         BufferedImage last = PrintSelfTest.picture(fifty, 2, letter);
-        int groupTop = (int) (RoundLogReport.TABLE_TOP + Table.HEADER_HEIGHT + 4 * RoundLogReport.ROW_HEIGHT + Table.END_RULE
+        int groupTop = (int) (RoundLogReport.TABLE_TOP + Table.HEADER_HEIGHT + 6 * RoundLogReport.ROW_HEIGHT + Table.END_RULE
                 + RoundLogReport.SUMMARY_GAP + RoundLogReport.SUMMARY_RULE + 4);
         check("round log pages: the summary is drawn only on the last page", PrintSelfTest.count(last, 70, groupTop, 1000, groupTop + 10,
                 Sheet.BOX) > 1000 && PrintSelfTest.count(first, 70, 170, 1000, 780, Sheet.BOX) == 0);
@@ -594,8 +603,10 @@ final class ReportSelfTest
                 && rows.get(1).cells().get(0).equals("All nine-hole rounds") && rows.get(2).cells().get(0).equals("Test Links:White")
                 && rows.get(3).kind() == Table.Kind.GROUP && rows.get(3).cells().get(0).equals(StatsBoardReport.NINE_BAND)
                 && rows.get(4).cells().get(0).equals("Little Nine:Red") && rows.get(5).cells().get(0).equals("Test Links:White (Front 9)"));
-        check("stats board: the screen's columns and words", table.columns().size() == 10 && table.columns().get(0).width() == 266
-                && table.columns().get(1).width() == 96 && table.columns().get(9).title().equals("Sand %") && table.width() == 858
+        check("stats board: the screen's columns and words, widened to fill the page", table.columns().size() == 10
+                && Math.abs(table.columns().get(0).width() - 266 * 980.0 / 858) < 1e-9
+                && Math.abs(table.columns().get(1).width() - 96 * 980.0 / 858) < 1e-9 && table.columns().get(9).title().equals("Sand %")
+                && Math.abs(table.width() - 980) < 1e-9
                 && rows.get(2).cells().get(2).equals("2") && rows.get(2).cells().get(3).equals("81")
                 && rows.get(2).cells().get(1).equals("72.0 / 113") && board.subtitle(0).equals("Pat   -   historical rounds not included")
                 && new StatsBoardReport(data, true).subtitle(0).endsWith("historical rounds included"));
@@ -656,13 +667,16 @@ final class ReportSelfTest
                 && strokes[2] == 1 && strokes[1] == 1 && strokes[5] == 0 && strokes[14] == 0 && pickUps[2] == 3 + 3 && pickUps[5] == 4 + 2
                 && fifteen.subtitle(0).equals("Pat   -   Handicap Index 15.3") && fifteen.heading().equals("My Scorecard   -   Test Links (White)"));
         List<List<String>> rows = fifteen.rowTexts();
-        check("my scorecard: the rows and their totals, and four empty rows to write in", fifteen.headings().size() == 21
-                && rows.get(2).get(20).equals("15") && rows.get(0).get(20).equals("72") && rows.get(3).get(20).equals(Integer.toString(72 + 36 + 15))
+        check("my scorecard: strokes blank where a hole gives none, totals for strokes but not pick-up, four empty rows", fifteen.headings().size() == 21
+                && rows.get(2).get(20).equals("15") && rows.get(0).get(20).equals("72") && rows.get(3).get(20).isEmpty() && rows.get(3).get(9).isEmpty()
+                && rows.get(3).get(19).isEmpty() && rows.get(3).get(0).equals("7") && rows.get(2).get(0).equals("1") && rows.get(2).get(5).isEmpty()
+                && rows.get(2).get(9).equals("8")
                 && rows.get(1).get(9).isEmpty() && rows.get(4).get(0).isEmpty() && rows.get(7).get(20).isEmpty()
                 && fifteen.figures().get(0)[1].equals("15") && fifteen.figures().get(1)[1].equals("72.0 / 113")
                 && fifteen.figures().get(2)[1].equals("6200") && fifteen.figures().get(3)[1].equals("72"));
         MyScorecardReport twenty = new MyScorecardReport(withIndex(data, 20.0), LINKS);
         check("my scorecard: index 20.0 gives two strokes on the two hardest holes", twenty.courseHandicap() == 20 && twenty.strokes()[2] == 2
+                && twenty.rowTexts().get(2).get(2).equals("2") && twenty.rowTexts().get(2).get(0).equals("1")
                 && twenty.strokes()[11] == 2 && twenty.strokes()[0] == 1 && twenty.pickUps()[2] == 3 + 4);
         MyScorecardReport zero = new MyScorecardReport(withIndex(data, 0.0), LINKS);
         boolean allZero = true;
@@ -739,6 +753,12 @@ final class ReportSelfTest
         check("course notes: the hole numbers are tinted red and gold on the page", PrintSelfTest.count(page, left + 4 * 42 + 3, top, left + 4 * 42 + 8,
                 top + 5, Sheet.HARD) > 10 && PrintSelfTest.count(page, left + 12 * 42 + 3, top, left + 12 * 42 + 8, top + 5, Sheet.EASY) > 10
                 && PrintSelfTest.count(page, left + 3, top, left + 8, top + 5, Sheet.BROWN) > 10);
+        int vsPar = (int) (CourseNotesReport.CARD_TOP + Card.HEADER_HEIGHT + CourseNotesReport.AVG_VS_PAR_ROW * CourseNotesReport.ROW_HEIGHT) + 3;
+        int score = (int) (CourseNotesReport.CARD_TOP + Card.HEADER_HEIGHT + 2 * CourseNotesReport.ROW_HEIGHT) + 3;
+        check("course notes: the Avg vs par cells of the hardest and easiest holes take the same tints", PrintSelfTest.count(page,
+                left + 4 * 42 + 3, vsPar, left + 4 * 42 + 8, vsPar + 5, Sheet.HARD) > 10 && PrintSelfTest.count(page, left + 12 * 42 + 3, vsPar,
+                left + 12 * 42 + 8, vsPar + 5, Sheet.EASY) > 10 && PrintSelfTest.count(page, left + 4 * 42 + 3, score, left + 4 * 42 + 8,
+                score + 5, Sheet.HARD) == 0 && PrintSelfTest.count(page, left + 3, vsPar, left + 8, vsPar + 5, Sheet.HARD) == 0);
         CourseNotesReport one = new CourseNotesReport(data(List.of(rounds.get(0))), row);
         check("course notes: one round is not tinted", one.hardest().isEmpty() && one.figures().get(7)[1].equals("-")
                 && one.figures().get(8)[1].equals("-"));
@@ -850,5 +870,97 @@ final class ReportSelfTest
                 && noteRows.get(3).get(16).isEmpty() && noteRows.get(3).get(15).equals("2.0") && notes.spreadsheetWords().equals("18 holes"));
         check("spreadsheet: the scorecards have none", ScorecardReport.forRound(data, rounds.get(0)).spreadsheet() == null
                 && new MyScorecardReport(data, odd).spreadsheet() == null);
+    }
+
+    // ------------------------------------------------------------ second look
+
+    /*
+     +--------------------------------------------------------------------------+
+     | checkNames()                                                             |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Every report's subtitle starts with the golfer's name and "   -   " when |
+     | a name is set (the sample data with the test name Angelo), and leaves    |
+     | both out when the name is blank.                                         |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing (throws IOException if the sample cannot be read)    |
+     +--------------------------------------------------------------------------+
+     */
+    private static void checkNames() throws java.io.IOException
+    {
+        ReportData read = PrintSelfTest.sample();
+        String[] names = {"Angelo", ""};
+        for (String name : names)
+        {
+            ReportData data = new ReportData(read.rounds(), read.tees(), read.handicap(), name, true, true, read.today(), read.version());
+            Round newest = data.rounds().get(data.rounds().size() - 1);
+            golfanalyst.BestRound.Choice latest = golfanalyst.BestRound.latestChoice(data.rounds(), data.tees(), true);
+            List<Report> reports = List.of(new HandicapReport(data), new RoundLogReport(data, null, null, null, true),
+                    ScorecardReport.forRound(data, newest), ScorecardReport.forBest(data, latest, false),
+                    ScorecardReport.forBest(data, latest, true), new StatsBoardReport(data, true),
+                    new MyScorecardReport(data, data.tees().get(newest.teeId())), new CourseNotesReport(data, latest));
+            boolean right = true;
+            for (Report report : reports)
+            {
+                String line = report.subtitle(0);
+                if (name.isEmpty())
+                {
+                    right = right && !line.startsWith(" ") && !line.startsWith("-") && !line.startsWith(Report.SEPARATOR.trim());
+                }
+                else
+                {
+                    right = right && line.startsWith("Angelo" + Report.SEPARATOR) && !line.equals("Angelo" + Report.SEPARATOR);
+                }
+            }
+            String what = "a blank name leaves out the name and its dash";
+            if (!name.isEmpty())
+            {
+                what = "every report's subtitle starts with the name and its dash";
+            }
+            check("names: " + what, right && reports.size() == 8);
+        }
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | checkPageNotes()                                                         |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | The Round Log's note on every page with only that page's parts: 50       |
+     | rounds (22 a page on Letter) with a historical round on page 1 and a     |
+     | front nine on page 2: page 1 says only H, page 2 only the dagger, page   |
+     | 3 (with the summary) only how percentages are worked out; the notes are  |
+     | drawn on pages 1 and 2 under their tables.                               |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing                                                      |
+     +--------------------------------------------------------------------------+
+     */
+    private static void checkPageNotes()
+    {
+        List<Round> rounds = steady(50);
+        Round third = rounds.get(3);
+        rounds.set(3, new Round(third.id(), third.teeId(), third.date(), 0, 0, Tee.HOLES, third.scores(), third.putts(), third.fairway(),
+                third.sand(), true));
+        Round later = rounds.get(30);
+        rounds.set(30, round(later.id(), LINKS, later.date().toString(), 0, Tee.NINE, 1, 2, true, new int[0], false));
+        RoundLogReport log = new RoundLogReport(data(rounds), LINKS.id(), null, null, true);
+        double letter = Sheet.LETTER_SHORT;
+        check("page notes: 22 rounds a page with room for the note, three pages", log.rowsPerPage(letter) == 22
+                && log.pageCount(letter) == 3 && !log.summaryAlone(letter));
+        check("page notes: each page's note has only the parts for that page", log.noteOn(0, letter).equals(RoundLogReport.HISTORICAL_PART)
+                && log.noteOn(1, letter).equals(RoundLogReport.DAGGER_PART) && log.noteOn(2, letter).equals(RoundLogReport.PERCENT_PART));
+        int noteTop = (int) (RoundLogReport.TABLE_TOP + Table.HEADER_HEIGHT + 22 * RoundLogReport.ROW_HEIGHT + Table.END_RULE
+                + RoundLogReport.NOTE_GAP);
+        BufferedImage first = PrintSelfTest.picture(log, 0, letter);
+        BufferedImage second = PrintSelfTest.picture(log, 1, letter);
+        check("page notes: the note is drawn under the table on pages 1 and 2, above the foot rule", PrintSelfTest.near(first, 60, noteTop,
+                400, noteTop + 14, Sheet.GREY) > 20 && PrintSelfTest.near(second, 60, noteTop, 400, noteTop + 14, Sheet.GREY) > 20
+                && noteTop + 14 < letter - Report.FOOT_RULE_UP);
+        RoundLogReport plain = new RoundLogReport(data(steady(50)), LINKS.id(), null, null, true);
+        BufferedImage none = PrintSelfTest.picture(plain, 0, letter);
+        check("page notes: a page with no dagger or H has no note", plain.noteOn(0, letter).isEmpty()
+                && PrintSelfTest.near(none, 60, noteTop, 400, noteTop + 14, Sheet.GREY) == 0);
     }
 }
