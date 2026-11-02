@@ -530,25 +530,58 @@ public final class AnalyzerPage extends Page
      */
     private String holeText(CourseAnalysis.HoleStats hole, int row, boolean averages)
     {
-        if (row == 1)
+        int category = row - 3;
+
+        switch (row)
         {
-            return Integer.toString(hole.par());
+            case 1:
+                return Integer.toString(hole.par());
+            case 2:
+                return count(hole.rounds());
+            default:
+                if (averages)
+                {
+                    return holeAverageText(hole, row);
+                }
+                else if (percentButton.isSelected())
+                {
+                    return percent(hole.percents()[category], true);
+                }
+                else
+                {
+                    return count(hole.counts()[category]);
+                }
         }
-        if (row == 2)
-        {
-            return count(hole.rounds());
-        }
-        if (!averages)
-        {
-            int category = row - 3;
-            return (percentButton.isSelected() ? percent(hole.percents()[category], true) : count(hole.counts()[category]));
-        }
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | holeAverageText(hole, row)                                               |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | The words in one hole's cell for a row of the Averages view (rows 3 to   |
+     | 10: Avg score down to Sand saves %).                                     |
+     |                                                                          |
+     | Passed in:  hole - the hole's figures                                    |
+     |             row  - the grid row                                          |
+     | Passed out: the text                                                     |
+     +--------------------------------------------------------------------------+
+     */
+    private String holeAverageText(CourseAnalysis.HoleStats hole, int row)
+    {
         switch (row)
         {
             case 3:
                 return decimal(hole.avgScore());
             case 4:
-                return (Double.isNaN(hole.avgOverPar()) ? DASH : String.format("%+.1f", hole.avgOverPar()));
+                if (Double.isNaN(hole.avgOverPar()))
+                {
+                    return DASH;
+                }
+                else
+                {
+                    return String.format("%+.1f", hole.avgOverPar());
+                }
             case 5:
                 return count(hole.best());
             case 6:
@@ -569,25 +602,48 @@ public final class AnalyzerPage extends Page
      */
     private String totalText(CourseAnalysis.Totals total, int row, boolean averages)
     {
-        if (row == 1)
+        int category = row - 3;
+
+        switch (row)
         {
-            return Integer.toString(total.par());
+            case 1:
+                return Integer.toString(total.par());
+            case 2:
+                return count(total.rounds());
+            default:
+                if (averages)
+                {
+                    return totalAverageText(total, row);
+                }
+                else if (percentButton.isSelected())
+                {
+                    return percent(total.percents()[category], true);
+                }
+                else
+                {
+                    return count(total.counts()[category]);
+                }
         }
-        if (row == 2)
-        {
-            return count(total.rounds());
-        }
-        if (!averages)
-        {
-            int category = row - 3;
-            return (percentButton.isSelected() ? percent(total.percents()[category], true) : count(total.counts()[category]));
-        }
+    }
+
+    /*
+     * totalAverageText(total, row): the words in an Out, In or All cell for a row of the Averages view, like holeAverageText but with vs par as a whole number with a sign.
+     */
+    private String totalAverageText(CourseAnalysis.Totals total, int row)
+    {
         switch (row)
         {
             case 3:
                 return decimal(total.avgScore());
             case 4:
-                return (Double.isNaN(total.avgOverPar()) ? DASH : String.format("%+d", Math.round(total.avgOverPar())));
+                if (Double.isNaN(total.avgOverPar()))
+                {
+                    return DASH;
+                }
+                else
+                {
+                    return String.format("%+d", Math.round(total.avgOverPar()));
+                }
             case 5:
                 return count(total.best());
             case 6:
