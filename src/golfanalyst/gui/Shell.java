@@ -67,9 +67,10 @@ public interface Shell
     void browseRounds();
 
     /*
-     * browseRoundsOn(teeId): opens the round screen on the newest round played on those tees, with the Show box set to them.
+     * browseRoundsOn(teeId, part): opens the round screen on the newest round of one Stats Board row (tees and kind of round, part
+     * null for every kind), with the Show box set to it.
      */
-    void browseRoundsOn(int teeId);
+    void browseRoundsOn(int teeId, golfanalyst.StatsBoard.Part part);
 
     /*
      * statsBoard(): opens the Stats Board.

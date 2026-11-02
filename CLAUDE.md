@@ -185,8 +185,12 @@ Courses and rounds live in two plain tab-separated text files. Written for one u
   Width 858 + 17 + 18 = 893; height 99 + 25 x rows (band always 81), 12 to 19 rows in a 626 px page (frame 399 to 574). Heading click sorts (again reverses), each section on its own, "-" always
   last, kept for the session. Gold (255,236,150, bold) = best per column per section among rows with 2+ rounds when
   2+ such rows exist, ties all gold. Click highlights a row (cream + 2 px gold outline), Up/Down move it over the band,
-  Enter or double-click calls `Shell.browseRoundsOn(teeId)` (Rounds on the tee's newest round, Show set to the tee,
-  so the arrows include that tee's 18-hole and nine-hole rounds). Close on that round goes back to the Stats Board
+  Enter or double-click calls `Shell.browseRoundsOn(teeId, part)` (Rounds on the row's newest round, Show set to
+  exactly that row, so the count is the row's Rnds; historical rounds are always on the Rounds screen, so with Include
+  historical rounds unchecked the footer adds `RoundPage.HISTORICAL_SHOWN`). The summary rows and the band cannot be
+  opened. Show box (`RoundPage.rebuildFilter`): All rounds, each course's "all tees" line (2+ tees), each tee's line,
+  and under tees with 2+ kinds one line per kind ("Sample Links (White), 18 holes / front nine / back nine", see
+  `kindWords`); rows and order from `BestRound.choices(rounds, tees, true)`, the same as Best Round and the Analyzer. Close on that round goes back to the Stats Board
   (v4.41; `RoundPage.backToStats`, set by `showLatestOn`, cleared by `showLatest`/`showNew`; tool tip says where it
   goes); the Home button always goes Home.
 - Best Round (v4.50): a second `RoundPage` made with `bestRound` true (card BEST in `AppPanel`), so it reuses every

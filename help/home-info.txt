@@ -109,7 +109,7 @@ Golf Analyst v4.00: Updated November 2026 to rewrite the program in Java, so tha
 
 Handicap and statistics: The Handicap Index now follows the current USGA rules (the World Handicap System). Nine-hole rounds are supported, which is handy for leagues like Spark Golf. Greens In Regulation and Sand Saves are now calculated instead of entered. The Last 5 and Partial Rounds are gone, since a nine-hole round is now a round of its own.
 
-Rounds: Type in a round with the cursor moving by itself down the scores and then the putts, with F and S keys for fairways and sand. Saved rounds can be edited or deleted. Old rounds can be kept as historical rounds, which you can count in your statistics or leave out.
+Rounds: Type in a round with the cursor moving by itself down the scores and then the putts, with F and S keys for fairways and sand. Saved rounds can be edited or deleted. Old rounds can be kept as historical rounds, which you can count in your statistics or leave out. The Show box on the Rounds screen can pick the 18-hole rounds, the front nines or the back nines on a set of tees, and a double-click on a Stats Board row shows exactly the rounds in that row.
 
 Courses: Courses and their sets of tees are typed in on the New Course screen, with the city and state checked against the ZIP code, and can be corrected or deleted there.
 

@@ -9,7 +9,7 @@ Press Rounds on the Home screen. It opens at your most recent round.
 Use the four arrow buttons at the bottom. The two outer arrows jump to the oldest and the newest round. The two inner ones step back and forward one round at a time. The bar along the bottom tells you where you are, for example Round 3 of 12.
 
 # Looking at just one course
-Open the Show box at the top and pick a course, or one set of tees on a course. The arrows then step through only those rounds. Pick All rounds to go back to everything. If the list has only one choice, it is because you have only played one set of tees.
+Open the Show box at the top and pick a course, or one set of tees on a course. Where you have played more than one kind of round on a set of tees, the 18-hole rounds, the front nines and the back nines each have a line of their own under it, such as Sample Links (White), front nine. A nine-hole course has just its own line. The arrows then step through only those rounds. Pick All rounds to go back to everything. If the list has only one choice, it is because you have only played one set of tees.
 
 # Watching your handicap change
 Start at the oldest round, press Next again and again, and watch Index After. It shows your index right after each round was added.
@@ -21,4 +21,4 @@ Step to the round and press Edit, at the right end of the frame under the tables
 Press Close, or the Home button, to go back to the Home screen and then press New Round.
 
 # Leaving this screen
-Press Close to go back where you came from. If you double-clicked a course on the Stats Board to get here, Close takes you back to the Stats Board, just as you left it; otherwise it goes to the Home screen. The Home button always goes Home.
+Press Close to go back where you came from. If you double-clicked a row on the Stats Board to get here, Close takes you back to the Stats Board, just as you left it; otherwise it goes to the Home screen. The Home button always goes Home.

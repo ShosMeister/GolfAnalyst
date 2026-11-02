@@ -356,12 +356,12 @@ public final class AppPanel extends JPanel implements Shell
     }
 
     /*
-     * browseRoundsOn(teeId): opens the round screen on the newest round on those tees, with Show set to them.
+     * browseRoundsOn(teeId, part): opens the round screen on the newest round of one Stats Board row, with Show set to it.
      */
     @Override
-    public void browseRoundsOn(int teeId)
+    public void browseRoundsOn(int teeId, golfanalyst.StatsBoard.Part part)
     {
-        roundPage.showLatestOn(teeId);
+        roundPage.showLatestOn(teeId, part);
         navigate(ROUND);
     }
 

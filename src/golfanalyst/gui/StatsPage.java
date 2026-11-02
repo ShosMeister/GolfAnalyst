@@ -714,11 +714,11 @@ public final class StatsPage extends Page
     }
 
     /*
-     * open(row): opens the Rounds screen on the newest round of the row's course and tees, with the Show box set to them.
+     * open(row): opens the Rounds screen on the newest round of the row, with the Show box set to exactly its rounds (tees and kind).
      */
     private void open(Row row)
     {
-        shell.browseRoundsOn(row.teeId());
+        shell.browseRoundsOn(row.teeId(), row.part());
     }
 
     /*

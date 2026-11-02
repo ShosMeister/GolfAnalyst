@@ -158,13 +158,13 @@ public final class GuiSelfTest
         }
 
         /*
-         * browseRoundsOn(teeId): remembers which tees the rounds were asked for.
+         * browseRoundsOn(teeId, part): remembers which tees and kind of round the rounds were asked for.
          */
         @Override
-        public void browseRoundsOn(int teeId)
+        public void browseRoundsOn(int teeId, golfanalyst.StatsBoard.Part part)
         {
             windowCalls = windowCalls + 1;
-            lastPage = "browse " + teeId;
+            lastPage = "browse " + teeId + " " + part;
         }
 
         /*
@@ -988,6 +988,8 @@ public final class GuiSelfTest
         checkHistoricalBox();
         checkIncludeHistoricalScreens();
         checkStatsPage();
+        checkShowKinds();
+        checkShowHistorical();
         checkBestRoundPage();
         checkSampleSafeguard();
 
@@ -4443,11 +4445,11 @@ public final class GuiSelfTest
                         && "open".equals(page.getInputMap(javax.swing.JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).get(javax.swing.KeyStroke.getKeyStroke("ENTER"))));
         int firstTee = page.rowPanels.get(0).row.teeId();
         page.getActionMap().get("open").actionPerformed(null);
-        check("Enter opens the highlighted row's rounds", shell.lastPage.equals("browse " + firstTee));
+        check("Enter opens the highlighted row's rounds", shell.lastPage.equals("browse " + firstTee + " " + page.rowPanels.get(0).row.part()));
         StatsPage.RowPanel nineRow = page.rowPanels.get(lastEighteen + 1);
         nineRow.dispatchEvent(new java.awt.event.MouseEvent(nineRow, java.awt.event.MouseEvent.MOUSE_CLICKED, System.currentTimeMillis(),
                 0, 20, 10, 2, false, java.awt.event.MouseEvent.BUTTON1));
-        check("a double-click opens that row's rounds", shell.lastPage.equals("browse " + nineRow.row.teeId()));
+        check("a double-click opens that row's rounds", shell.lastPage.equals("browse " + nineRow.row.teeId() + " " + nineRow.row.part()));
 
         check("the sample data has nine-hole rows, so there is no nine-hole watermark", page.watermarks.isEmpty());
 
@@ -4892,5 +4894,314 @@ public final class GuiSelfTest
         check("saving a round on the sample data asks too", roundPage.saveButton.isEnabled() && asked.size() == askedBefore + 1);
         check("Cancel saves no round", Files.readString(sample.resolve(DataLoader.ROUNDS_FILE)).equals(roundsBefore));
         deleteFolder(base);
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | checkShowKinds()                                                         |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | The Show box's kinds of round on the sample data: every row of the Best  |
+     | Round pulldown is an entry, in the same order, named like the tees'      |
+     | line plus ", 18 holes", ", front nine" or ", back nine" (tees with only  |
+     | one kind are their own line), with that row's count; choosing a kind     |
+     | keeps the arrows and the footer's count inside it; tees with only        |
+     | 18-hole rounds get no kind entries; the longest entry fits the box; and  |
+     | a double-click on EVERY Stats Board row opens exactly its Rnds rounds,   |
+     | with the Show box on that row.                                           |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing                                                      |
+     +--------------------------------------------------------------------------+
+     */
+    private static void checkShowKinds() throws IOException
+    {
+        DataStore store = new DataStore(Path.of("sample-data"));
+        AppPanel panel = new AppPanel(store, Path.of("help"), "");
+        RoundPage page = panel.roundPage();
+        panel.browseRounds();
+        java.util.Map<Integer, golfanalyst.Tee> tees = store.teeMap();
+        List<golfanalyst.BestRound.Choice> rows = golfanalyst.BestRound.choices(store.roundsByDate(), tees, true);
+        java.util.Map<Integer, Integer> kindsOf = new java.util.HashMap<>();
+        for (golfanalyst.BestRound.Choice row : rows)
+        {
+            kindsOf.merge(row.teeId(), 1, Integer::sum);
+        }
+        int place = -1;
+        boolean inOrder = true;
+        boolean named = true;
+        String missing = "";
+        for (golfanalyst.BestRound.Choice row : rows)
+        {
+            golfanalyst.Tee tee = tees.get(row.teeId());
+            String name = tee.label();
+            if (kindsOf.get(row.teeId()) > 1)
+            {
+                name = tee.label() + RoundPage.kindWords(row.part());
+            }
+            int count = golfanalyst.BestRound.roundsOf(row, store.roundsByDate(), tees, true).size();
+            int found = -1;
+            for (int lp = 0; lp < page.filterCombo.getItemCount(); lp = lp + 1)
+            {
+                if (page.filterCombo.getItemAt(lp).label().equals(name + "  -  " + count))
+                {
+                    found = lp;
+                }
+            }
+            if (found < 0)
+            {
+                missing = missing + " [" + name + "  -  " + count + "]";
+                named = false;
+            }
+            inOrder = inOrder && found > place;
+            place = Math.max(place, found);
+        }
+        check("show kinds: every Best Round row is an entry with its count, in the same order" + missing, named && inOrder
+                && rows.size() == 6);
+        check("show kinds: the entries as they were, with the White tees' kinds under them",
+                labelsOf(page.filterCombo).equals(List.of("All rounds  -  37", "Edgewater (Senior)  -  1", "Parkside Nine (White)  -  8",
+                        "Riverbend GC (Gold)  -  5", "Sample Links, all tees  -  23", "Sample Links (Blue)  -  8", "Sample Links (White)  -  15",
+                        "Sample Links (White), 18 holes  -  13", "Sample Links (White), front nine  -  2")));
+
+        int riverbendEntries = 0;
+        for (int lp = 0; lp < page.filterCombo.getItemCount(); lp = lp + 1)
+        {
+            if (page.filterCombo.getItemAt(lp).label().startsWith("Riverbend GC"))
+            {
+                riverbendEntries = riverbendEntries + 1;
+            }
+        }
+        check("show kinds: tees with only 18-hole rounds get no kind entries", riverbendEntries == 1);
+
+        boolean kindsKept = true;
+        String kindFault = "";
+        for (int lp = 0; lp < page.filterCombo.getItemCount(); lp = lp + 1)
+        {
+            RoundPage.FilterItem item = page.filterCombo.getItemAt(lp);
+            if (item.part() == null)
+            {
+                continue;
+            }
+            page.filterCombo.setSelectedItem(item);
+            int wanted = Integer.parseInt(item.label().substring(item.label().lastIndexOf(' ') + 1));
+            String place1 = "  (" + item.label().substring(0, item.label().indexOf("  -  ")) + ")";
+            boolean footerRight = panel.footer().status().equals("Round " + wanted + " of " + wanted + place1);
+            page.firstButton.doClick();
+            int steps = 1;
+            boolean inside = viewedIs(page, store, item);
+            while (page.nextButton.isEnabled())
+            {
+                page.nextButton.doClick();
+                steps = steps + 1;
+                inside = inside && viewedIs(page, store, item);
+            }
+            boolean firstFooter = panel.footer().status().startsWith("Round " + wanted + " of " + wanted);
+            page.previousButton.doClick();
+            if (wanted > 1)
+            {
+                firstFooter = firstFooter && panel.footer().status().equals("Round " + (wanted - 1) + " of " + wanted + place1);
+            }
+            if (!(footerRight && inside && steps == wanted && firstFooter))
+            {
+                kindsKept = false;
+                kindFault = kindFault + " [" + item.label() + ": " + steps + " steps, footer " + panel.footer().status() + "]";
+            }
+        }
+        check("show kinds: each kind keeps the arrows and the count to its own rounds, newest first shown" + kindFault, kindsKept);
+
+        page.filterCombo.setSize(page.filterCombo.getPreferredSize());
+        page.filterCombo.doLayout();
+        int arrow = 0;
+        for (java.awt.Component part : page.filterCombo.getComponents())
+        {
+            if (part instanceof javax.swing.AbstractButton)
+            {
+                arrow = part.getWidth();
+            }
+        }
+        java.awt.Insets edge = page.filterCombo.getInsets();
+        int room = page.filterCombo.getWidth() - edge.left - edge.right - arrow;
+        int widest = 0;
+        String longest = "";
+        for (int lp = 0; lp < page.filterCombo.getItemCount(); lp = lp + 1)
+        {
+            java.awt.Component shown = page.filterCombo.getRenderer().getListCellRendererComponent(new javax.swing.JList<>(),
+                    page.filterCombo.getItemAt(lp), -1, false, false);
+            if (shown.getPreferredSize().width > widest)
+            {
+                widest = shown.getPreferredSize().width;
+                longest = page.filterCombo.getItemAt(lp).label();
+            }
+        }
+        check("show kinds: the longest entry (" + longest + ", " + widest + " px) fits the box (" + room + " px)", arrow > 0
+                && widest <= room);
+
+        StatsPage stats = panel.statsPage();
+        panel.statsBoard();
+        String rowFault = "";
+        int opened = 0;
+        for (StatsPage.RowPanel rowPanel : new ArrayList<>(stats.rowPanels))
+        {
+            golfanalyst.StatsBoard.Row row = rowPanel.row;
+            rowPanel.dispatchEvent(new java.awt.event.MouseEvent(rowPanel, java.awt.event.MouseEvent.MOUSE_CLICKED, System.currentTimeMillis(), 0,
+                    20, 10, 2, false, java.awt.event.MouseEvent.BUTTON1));
+            RoundPage.FilterItem chosen = (RoundPage.FilterItem) page.filterCombo.getSelectedItem();
+            boolean right = panel.footer().status().startsWith("Round " + row.rounds() + " of " + row.rounds() + "  (")
+                    && chosen.teeId() == row.teeId() && chosen.label().endsWith("  -  " + row.rounds());
+            if (!right)
+            {
+                rowFault = rowFault + " [" + row.label() + " Rnds " + row.rounds() + ": " + panel.footer().status() + "]";
+            }
+            opened = opened + 1;
+            ((WoodButton) findByText(panel, "Close")).doClick();
+        }
+        check("show kinds: a double-click on every Stats Board row opens exactly its Rnds rounds" + rowFault, rowFault.isEmpty()
+                && opened == 6 && store.includeHistorical());
+    }
+
+    /*
+     * labelsOf(combo): the words of every entry of the Show box, top to bottom.
+     */
+    private static List<String> labelsOf(javax.swing.JComboBox<RoundPage.FilterItem> combo)
+    {
+        List<String> labels = new ArrayList<>();
+        for (int lp = 0; lp < combo.getItemCount(); lp = lp + 1)
+        {
+            labels.add(combo.getItemAt(lp).label());
+        }
+        return labels;
+    }
+
+    /*
+     * viewedIs(page, store, item): whether the round on the screen is on the entry's tees and of its kind.
+     */
+    private static boolean viewedIs(RoundPage page, DataStore store, RoundPage.FilterItem item)
+    {
+        Round round = null;
+        for (Round saved : store.roundsByDate())
+        {
+            if (page.title().startsWith(String.format("%05d:", saved.id())))
+            {
+                round = saved;
+            }
+        }
+        if (round == null || round.teeId() != item.teeId())
+        {
+            return false;
+        }
+        return golfanalyst.StatsBoard.partOf(round, store.teeMap().get(round.teeId())) == item.part();
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | checkShowHistorical()                                                    |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | With Include historical rounds unchecked (a copy of the sample data, an  |
+     | 18-hole and a front-nine White round marked historical), the Stats       |
+     | Board's Rnds leaves them out but the Rounds screen still steps through   |
+     | them, as before; the footer then says how many of the rounds shown are   |
+     | historical, so the two numbers differ only by those rounds. Checked, the |
+     | footer has no such sentence.                                             |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing (throws IOException if the copy cannot be made)      |
+     +--------------------------------------------------------------------------+
+     */
+    private static void checkShowHistorical() throws IOException
+    {
+        Path data = Files.createTempDirectory("golfanalyst-show-historical").resolve(DataStore.DATA_FOLDER);
+        copyFolder(Path.of("sample-data"), data);
+        DataStore sample = new DataStore(Path.of("sample-data"));
+        java.util.Set<Integer> marked = new java.util.HashSet<>();
+        int front = 0;
+        int eighteen = 0;
+        int whiteId = -1;
+        for (Round round : sample.roundsByDate())
+        {
+            golfanalyst.Tee tee = sample.teeMap().get(round.teeId());
+            if (!tee.label().equals("Sample Links (White)"))
+            {
+                continue;
+            }
+            whiteId = tee.id();
+            golfanalyst.StatsBoard.Part part = golfanalyst.StatsBoard.partOf(round, tee);
+            if (part == golfanalyst.StatsBoard.Part.FRONT && front == 0)
+            {
+                marked.add(round.id());
+                front = front + 1;
+            }
+            if (part == golfanalyst.StatsBoard.Part.EIGHTEEN && eighteen == 0)
+            {
+                marked.add(round.id());
+                eighteen = eighteen + 1;
+            }
+        }
+        Path roundsFile = data.resolve(DataLoader.ROUNDS_FILE);
+        StringBuilder text = new StringBuilder();
+        boolean header = true;
+        for (String line : Files.readString(roundsFile, StandardCharsets.UTF_8).split("\n", -1))
+        {
+            String body = line;
+            String end = "";
+            if (body.endsWith("\r"))
+            {
+                body = body.substring(0, body.length() - 1);
+                end = "\r";
+            }
+            if (body.isEmpty() || body.startsWith("#"))
+            {
+                text.append(line).append("\n");
+                continue;
+            }
+            if (header)
+            {
+                text.append(body).append("\tHistorical").append(end).append("\n");
+                header = false;
+                continue;
+            }
+            String mark = "";
+            if (marked.contains(Integer.parseInt(body.split("\t")[0].trim())))
+            {
+                mark = "Y";
+            }
+            text.append(body).append("\t").append(mark).append(end).append("\n");
+        }
+        Files.writeString(roundsFile, text.substring(0, text.length() - 1), StandardCharsets.UTF_8);
+        DataStore store = new DataStore(data);
+        store.setIncludeHistorical(false);
+        AppPanel panel = new AppPanel(store, Path.of("help"), "");
+        golfanalyst.StatsBoard.Board board = golfanalyst.StatsBoard.build(store.roundsByDate(), store.teeMap(), false);
+        int frontRnds = -1;
+        int eighteenRnds = -1;
+        for (golfanalyst.StatsBoard.Row row : board.nine())
+        {
+            if (row.teeId() == whiteId)
+            {
+                frontRnds = row.rounds();
+            }
+        }
+        for (golfanalyst.StatsBoard.Row row : board.eighteen())
+        {
+            if (row.teeId() == whiteId)
+            {
+                eighteenRnds = row.rounds();
+            }
+        }
+        panel.browseRoundsOn(whiteId, golfanalyst.StatsBoard.Part.FRONT);
+        String frontFooter = panel.footer().status();
+        panel.browseRoundsOn(whiteId, golfanalyst.StatsBoard.Part.EIGHTEEN);
+        String eighteenFooter = panel.footer().status();
+        check("show historical: unchecked, the Rnds leave the historical rounds out and the Rounds screen still shows them, saying so",
+                marked.size() == 2 && frontRnds == 1 && eighteenRnds == 12
+                        && frontFooter.equals("Round 2 of 2  (Sample Links (White), front nine)." + RoundPage.HISTORICAL_ONE_SHOWN)
+                        && eighteenFooter.equals("Round 13 of 13  (Sample Links (White), 18 holes)." + RoundPage.HISTORICAL_ONE_SHOWN));
+        panel.browseRoundsOn(whiteId, null);
+        check("show historical: two historical rounds on the tees' own line", panel.footer().status()
+                .equals("Round 15 of 15  (Sample Links (White)). 2" + RoundPage.HISTORICAL_SHOWN));
+        store.setIncludeHistorical(true);
+        panel.browseRoundsOn(whiteId, golfanalyst.StatsBoard.Part.FRONT);
+        check("show historical: checked, the footer has no historical sentence", panel.footer().status()
+                .equals("Round 2 of 2  (Sample Links (White), front nine)"));
     }
 }

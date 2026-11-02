@@ -6,7 +6,7 @@ This screen shows one saved round at a time, exactly as it was saved. Nothing on
 
 The title across the top is the round's ID number, the course and the tees, for example 00031:Sample Links:White.
 
-Show: Which rounds the arrow buttons step through: all of them, all the rounds on one course, or all the rounds on one set of tees. Only courses and tees you have played are listed, and the number after each one is how many rounds it has.
+Show: Which rounds the arrow buttons step through: all of them, all the rounds on one course, all the rounds on one set of tees, or one kind of round on those tees: 18 holes, front nine or back nine. The kinds are listed under a set of tees only when you have played more than one kind there; a nine-hole course has just its own line. Only courses and tees you have played are listed, and the number after each one is how many rounds it has. Historical rounds are always shown here, even when Include historical rounds is unchecked on the Home screen; the bar at the bottom then says how many of the rounds shown are historical.
 
 Course / tee: The course and tees of this round, with the ID number of that set of tees in front.
 

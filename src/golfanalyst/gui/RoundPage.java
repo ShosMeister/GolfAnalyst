@@ -7,6 +7,7 @@ import golfanalyst.DataStore;
 import golfanalyst.Handicap;
 import golfanalyst.Round;
 import golfanalyst.Stats;
+import golfanalyst.StatsBoard;
 import golfanalyst.Tee;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -25,11 +26,12 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import javax.swing.BorderFactory;
@@ -168,9 +170,10 @@ public final class RoundPage extends Page
 
     /**
      * One entry of the Show drop-down: which saved rounds the arrows step through. course is null for
-     * all rounds; teeId is -1 for all the tees of that course.
+     * all rounds; teeId is -1 for all the tees of that course; part is null for every kind of round on
+     * the tees, or one kind (18 holes, front nine, back nine).
      */
-    record FilterItem(String label, String course, int teeId)
+    record FilterItem(String label, String course, int teeId, StatsBoard.Part part)
     {
         @Override
         public String toString()
@@ -252,12 +255,15 @@ public final class RoundPage extends Page
     private final List<Integer> shown = new ArrayList<>();
     private String filterCourse = null;
     private int filterTeeId = -1;
+    private StatsBoard.Part filterPart = null;
     private int viewedRoundId = -1;
     private boolean viewedHistorical = false;
     private boolean backToStats = false;
     static final String BACK_TO_STATS = "Back to the Stats Board";
     static final String BACK_HOME = "Back to the Home screen";
     static final String HISTORICAL_NOTE = " Historical: kept to look back at, not in your handicap or statistics.";
+    static final String HISTORICAL_ONE_SHOWN = " 1 of these is a historical round, which the Stats Board leaves out.";
+    static final String HISTORICAL_SHOWN = " of these are historical rounds, which the Stats Board leaves out.";
     static final String HISTORICAL_TIP = "Tick for an old round kept only to look back at: it is left out of your handicap and statistics";
     private boolean updating = false;
     private int playedStart = 0;
@@ -893,6 +899,7 @@ public final class RoundPage extends Page
             {
                 filterCourse = item.course();
                 filterTeeId = item.teeId();
+                filterPart = item.part();
                 rebuildShown();
                 goTo(shown.size() - 1);
             }
@@ -1407,6 +1414,7 @@ public final class RoundPage extends Page
         {
             filterCourse = null;
             filterTeeId = -1;
+            filterPart = null;
             rebuildFilter();
         }
         Round round = shell.store().roundsByDate().get(index);
@@ -1414,8 +1422,17 @@ public final class RoundPage extends Page
         fillRound(round);
         updateNav();
         recalc();
-        shell.setStatus("Round " + (positionShown() + 1) + " of " + shown.size() + filterDescription()
-                + (viewedHistorical ? "." + HISTORICAL_NOTE : ""));
+        String status = "Round " + (positionShown() + 1) + " of " + shown.size() + filterDescription();
+        String historicalShown = historicalShownNote();
+        if (viewedHistorical || !historicalShown.isEmpty())
+        {
+            status = status + "." + historicalShown;
+        }
+        if (viewedHistorical)
+        {
+            status = status + HISTORICAL_NOTE;
+        }
+        shell.setStatus(status);
         shell.refreshTitle();
     }
 
@@ -1467,24 +1484,33 @@ public final class RoundPage extends Page
 
     /*
      +--------------------------------------------------------------------------+
-     | showLatestOn(teeId)                                                      |
+     | showLatestOn(teeId, part)                                                |
      +--------------------------------------------------------------------------+
      | Purpose:                                                                 |
-     | Shows the newest saved round played on one set of tees, with the Show    |
-     | box set to those tees, so the arrows step through every round on them    |
-     | (18 holes, front nine and back nine alike). With no rounds on those      |
-     | tees it shows the newest round of all. It is how the Stats Board opens   |
-     | a course, so Close then goes back to the Stats Board.                    |
+     | Shows the newest saved round of one Stats Board row, with the Show box   |
+     | set to it: one set of tees and one kind of round (18 holes, front nine,  |
+     | back nine), or the tees' own entry when they have only one kind, so the  |
+     | arrows step through exactly the rounds of that row. With no such rounds  |
+     | it shows the newest round of all. It is how the Stats Board opens a      |
+     | row, so Close then goes back to the Stats Board.                         |
      |                                                                          |
      | Passed in:  teeId - the tees                                             |
+     |             part  - the kind of round, or null for every kind            |
      | Passed out: nothing                                                      |
      +--------------------------------------------------------------------------+
      */
-    public void showLatestOn(int teeId)
+    public void showLatestOn(int teeId, StatsBoard.Part part)
     {
         Tee tee = shell.store().teeMap().get(teeId);
-        filterCourse = (tee == null ? null : tee.courseName());
-        filterTeeId = (tee == null ? -1 : teeId);
+        filterCourse = null;
+        filterTeeId = -1;
+        filterPart = null;
+        if (tee != null)
+        {
+            filterCourse = tee.courseName();
+            filterTeeId = teeId;
+            filterPart = part;
+        }
         rebuildFilter();
         if (shown.isEmpty())
         {
@@ -1677,10 +1703,14 @@ public final class RoundPage extends Page
      | Fills the Show drop-down from the saved rounds: all rounds, then         |
      | each course that has rounds (with an "all tees" line when it has         |
      | rounds on more than one set of tees), then each course/tee that has      |
-     | rounds, each with its count. Only courses and tees with rounds are       |
-     | offered. The choice made before is kept if it is still there,            |
-     | otherwise all rounds is chosen. The list of rounds the arrows step       |
-     | through is rebuilt to match.                                             |
+     | rounds, and under tees with more than one kind of round a line for each  |
+     | kind ("Sample Links (White), front nine"), each with its count. The      |
+     | rows and their order are Best Round's and the Analyzer's                 |
+     | (BestRound.choices, every round counted, as this screen shows them       |
+     | all), so the three never differ. The choice made before is kept if it    |
+     | is still there (a kind asked for on tees with one kind is the tees'      |
+     | own line), otherwise all rounds is chosen. The list of rounds the        |
+     | arrows step through is rebuilt to match.                                 |
      |                                                                          |
      | Passed in:  nothing                                                      |
      | Passed out: nothing                                                      |
@@ -1689,50 +1719,93 @@ public final class RoundPage extends Page
     private void rebuildFilter()
     {
         List<Round> rounds = shell.store().roundsByDate();
-        Map<String, Map<Integer, Integer>> counts = new TreeMap<>();
+        Map<Integer, Tee> tees = shell.store().teeMap();
+        Map<String, Integer> counts = new HashMap<>();
         for (Round round : rounds)
         {
-            Tee tee = shell.store().teeMap().get(round.teeId());
-            counts.computeIfAbsent(tee.courseName(), key -> new TreeMap<>()).merge(round.teeId(), 1, Integer::sum);
+            Tee tee = tees.get(round.teeId());
+            counts.merge("course " + tee.courseName(), 1, Integer::sum);
+            counts.merge("tee " + tee.id(), 1, Integer::sum);
+            counts.merge("kind " + tee.id() + " " + StatsBoard.partOf(round, tee), 1, Integer::sum);
+        }
+        // course name -> its tees in Best Round's order -> their kinds of round in Best Round's order
+        Map<String, Map<Integer, List<StatsBoard.Part>>> layout = new LinkedHashMap<>();
+        for (BestRound.Choice row : BestRound.choices(rounds, tees, true))
+        {
+            Tee tee = tees.get(row.teeId());
+            layout.computeIfAbsent(tee.courseName(), key -> new LinkedHashMap<>()).computeIfAbsent(tee.id(), key -> new ArrayList<>())
+                    .add(row.part());
         }
         boolean wasUpdating = updating;
         updating = true;
         filterCombo.removeAllItems();
-        FilterItem all = new FilterItem("All rounds  -  " + rounds.size(), null, -1);
+        FilterItem all = new FilterItem("All rounds  -  " + rounds.size(), null, -1, null);
         filterCombo.addItem(all);
         FilterItem chosen = all;
-        for (Map.Entry<String, Map<Integer, Integer>> course : counts.entrySet())
+        for (Map.Entry<String, Map<Integer, List<StatsBoard.Part>>> course : layout.entrySet())
         {
-            int courseTotal = 0;
-            for (int count : course.getValue().values())
-            {
-                courseTotal = courseTotal + count;
-            }
             if (course.getValue().size() > 1)
             {
-                FilterItem courseItem = new FilterItem(course.getKey() + ", all tees  -  " + courseTotal, course.getKey(), -1);
+                FilterItem courseItem = new FilterItem(course.getKey() + ", all tees  -  " + counts.get("course " + course.getKey()),
+                        course.getKey(), -1, null);
                 filterCombo.addItem(courseItem);
                 if (course.getKey().equals(filterCourse) && filterTeeId < 0)
                 {
                     chosen = courseItem;
                 }
             }
-            for (Map.Entry<Integer, Integer> teeEntry : course.getValue().entrySet())
+            for (Map.Entry<Integer, List<StatsBoard.Part>> teeEntry : course.getValue().entrySet())
             {
-                Tee tee = shell.store().teeMap().get(teeEntry.getKey());
-                FilterItem teeItem = new FilterItem(tee.label() + "  -  " + teeEntry.getValue(), tee.courseName(), tee.id());
+                Tee tee = tees.get(teeEntry.getKey());
+                List<StatsBoard.Part> kinds = teeEntry.getValue();
+                FilterItem teeItem = new FilterItem(tee.label() + "  -  " + counts.get("tee " + tee.id()), tee.courseName(), tee.id(), null);
                 filterCombo.addItem(teeItem);
-                if (tee.id() == filterTeeId)
+                if (tee.id() == filterTeeId && (filterPart == null || kinds.size() == 1))
                 {
                     chosen = teeItem;
+                }
+                if (kinds.size() == 1)
+                {
+                    continue;
+                }
+                for (StatsBoard.Part part : kinds)
+                {
+                    FilterItem kindItem = new FilterItem(tee.label() + kindWords(part) + "  -  " + counts.get("kind " + tee.id() + " " + part),
+                            tee.courseName(), tee.id(), part);
+                    filterCombo.addItem(kindItem);
+                    if (tee.id() == filterTeeId && part == filterPart)
+                    {
+                        chosen = kindItem;
+                    }
                 }
             }
         }
         filterCombo.setSelectedItem(chosen);
         filterCourse = chosen.course();
         filterTeeId = chosen.teeId();
+        filterPart = chosen.part();
         updating = wasUpdating;
         rebuildShown();
+    }
+
+    /*
+     * kindWords(part): the words after the tees for one kind of round: ", 18 holes", ", front nine", ", back nine" ("" for others).
+     */
+    static String kindWords(StatsBoard.Part part)
+    {
+        if (part == StatsBoard.Part.EIGHTEEN)
+        {
+            return ", 18 holes";
+        }
+        if (part == StatsBoard.Part.FRONT)
+        {
+            return ", front nine";
+        }
+        if (part == StatsBoard.Part.BACK)
+        {
+            return ", back nine";
+        }
+        return "";
     }
 
     /*
@@ -1741,8 +1814,8 @@ public final class RoundPage extends Page
      +--------------------------------------------------------------------------+
      | Purpose:                                                                 |
      | Makes the list of saved rounds (as positions in the date-ordered         |
-     | list of all rounds) that match the Show choice. The arrow buttons        |
-     | step through this list.                                                  |
+     | list of all rounds) that match the Show choice, kind of round included.  |
+     | The arrow buttons step through this list.                                |
      |                                                                          |
      | Passed in:  nothing                                                      |
      | Passed out: nothing                                                      |
@@ -1758,6 +1831,10 @@ public final class RoundPage extends Page
             Tee tee = shell.store().teeMap().get(round.teeId());
             boolean matches = filterCourse == null
                     || (filterTeeId >= 0 ? round.teeId() == filterTeeId : tee.courseName().equals(filterCourse));
+            if (filterPart != null && StatsBoard.partOf(round, tee) != filterPart)
+            {
+                matches = false;
+            }
             if (matches)
             {
                 shown.add(lp);
@@ -1789,7 +1866,7 @@ public final class RoundPage extends Page
     /*
      * filterDescription(): words for the footer when the Show choice is not "all rounds".
      * Passed in:  nothing
-     * Passed out: "", or text like "  (Sample Links (White))"
+     * Passed out: "", or text like "  (Sample Links (White))" or "  (Sample Links (White), front nine)"
      */
     private String filterDescription()
     {
@@ -1799,9 +1876,49 @@ public final class RoundPage extends Page
         }
         if (filterTeeId >= 0)
         {
-            return "  (" + shell.store().teeMap().get(filterTeeId).label() + ")";
+            return "  (" + shell.store().teeMap().get(filterTeeId).label() + kindWords(filterPart) + ")";
         }
         return "  (" + filterCourse + ", all tees)";
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | historicalShownNote()                                                    |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | This screen always steps through historical rounds too. When Include     |
+     | historical rounds is unchecked the Stats Board leaves them out, so the   |
+     | footer says how many of the rounds shown are historical.                 |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: "", or " 2 of these are historical rounds, which the Stats   |
+     |             Board leaves out."                                           |
+     +--------------------------------------------------------------------------+
+     */
+    private String historicalShownNote()
+    {
+        if (shell.store().includeHistorical())
+        {
+            return "";
+        }
+        List<Round> rounds = shell.store().roundsByDate();
+        int historical = 0;
+        for (int position : shown)
+        {
+            if (rounds.get(position).historical())
+            {
+                historical = historical + 1;
+            }
+        }
+        if (historical == 0)
+        {
+            return "";
+        }
+        if (historical == 1)
+        {
+            return HISTORICAL_ONE_SHOWN;
+        }
+        return " " + historical + HISTORICAL_SHOWN;
     }
 
     /*
@@ -2230,6 +2347,7 @@ public final class RoundPage extends Page
         }
         filterCourse = null;
         filterTeeId = -1;
+        filterPart = null;
         rebuildFilter();
         List<Round> rounds = shell.store().roundsByDate();
         for (int lp = 0; lp < rounds.size(); lp = lp + 1)
@@ -2364,6 +2482,7 @@ public final class RoundPage extends Page
                 Backups.FOLDER, java.io.File.separator, copy.getFileName());
         filterCourse = null;
         filterTeeId = -1;
+        filterPart = null;
         if (store.roundsByDate().isEmpty())
         {
             updating = true;

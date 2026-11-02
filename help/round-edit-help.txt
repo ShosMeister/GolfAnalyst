@@ -2,7 +2,7 @@ Editing a Round - Help
 
 Typed a 5 where you meant a 4? Here is how to put it right.
 
-1. Find the round. Press Edit Round on the Home screen (or Rounds) and use the arrows at the bottom to step to the round. The Show box at the top can narrow it down to one course or one set of tees.
+1. Find the round. Press Edit Round on the Home screen (or Rounds) and use the arrows at the bottom to step to the round. The Show box at the top can narrow it down to one course, one set of tees, or one kind of round on those tees (18 holes, front nine or back nine).
 
 2. Press Edit. The title at the top now starts with Edit, and the boxes you can change turn white. The course, the tees and the holes stay as they are.
 

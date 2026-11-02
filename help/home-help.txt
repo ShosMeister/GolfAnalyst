@@ -14,7 +14,7 @@ A tip for keeping up the pace of play: for handicap purposes, the program caps e
 
 To add the round, press New Round. Fill it in from your scorecard and press Save. You can even type the same F and S letters you marked on your card, right in the Putt box. The ? button on that screen walks you through it. When you come back to Home, your handicap and statistics already include the new round.
 
-To look back at your rounds, press Rounds. It opens at your most recent round and the arrows at the bottom step through the others. You can limit it to one course, or one set of tees, with the Show box.
+To look back at your rounds, press Rounds. It opens at your most recent round and the arrows at the bottom step through the others. You can limit it to one course, one set of tees, or one kind of round on those tees (18 holes, front nine or back nine), with the Show box.
 
 To fix a round you have saved, press Edit Round; the ? button on that screen walks you through it.
 
@@ -30,7 +30,7 @@ When you first open the program it shows sample data, so there is something to l
 
 # Looking course by course
 
-Press Stats Board to see your statistics for each course and set of tees, side by side. Click a heading to sort by it, and look at the gold: it marks the best figure in each column. Double-click a course to see the rounds you played there. The ? button on that screen tells you more.
+Press Stats Board to see your statistics for each course and set of tees, side by side. Click a heading to sort by it, and look at the gold: it marks the best figure in each column. Double-click a row to see the rounds in that row: a front-nine row shows only your front nines on those tees. The ? button on that screen tells you more.
 
 # Your best golf
 
