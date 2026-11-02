@@ -64,7 +64,9 @@ import javax.swing.event.DocumentListener;
  | report, redrawn whenever a choice changes). Under them "Send it to:"     |
  | with A printer or PDF and A spreadsheet file (.csv), a grey sunken box   |
  | with a note sized to show all of its words, then Cancel and Print...     |
- | (Save... for a spreadsheet).                                             |
+ | (Save... for a spreadsheet), with the header's i and ? buttons (32 px)   |
+ | at the left of that row, opening print-info.txt and print-help.txt over  |
+ | the window.                                                              |
  |                                                                          |
  | Options: Handicap Report none; Round Log course and tees ("All courses"  |
  | first), Period, From and To (open only for Custom dates...) and Include  |
@@ -115,6 +117,7 @@ final class PrintForm extends JPanel
     static final int NOTE_WIDTH = 700;
     static final int COMBO_WIDTH = 224;
     static final int DATE_WIDTH = 84;
+    static final int HELP_BUTTON_SIZE = 32;
     private static final int PANEL_PAD = 14;
 
     /*
@@ -179,6 +182,11 @@ final class PrintForm extends JPanel
         boolean askReplace(java.nio.file.Path file);
 
         /*
+         * showHelp(parent, fileKey): opens the help file ("print-info" or "print-help") over the Print window.
+         */
+        void showHelp(Component parent, String fileKey);
+
+        /*
          * say(text): puts a message in the program window's footer.
          */
         void say(String text);
@@ -234,6 +242,8 @@ final class PrintForm extends JPanel
     final JRadioButton csvChoice = optionRadio(CSV_TEXT);
     final WoodButton cancelButton = ConfirmForm.dialogButton("Cancel");
     final WoodButton printButton = ConfirmForm.dialogButton("Print...");
+    final IconButton infoButton = new IconButton("Info.png", "Information about the reports", HELP_BUTTON_SIZE);
+    final IconButton helpButton = new IconButton("Help.png", "Help with printing", HELP_BUTTON_SIZE);
     final Map<Kind, JPanel> optionPanels = new EnumMap<>(Kind.class);
     private final CardLayout optionCards = new CardLayout();
     private final JPanel optionDeck = ConfirmForm.clear(new JPanel(optionCards));
@@ -290,13 +300,21 @@ final class PrintForm extends JPanel
         at.insets = new Insets(8, 0, 0, 0);
         content.add(noteBox(), at);
 
-        buttonRow = ConfirmForm.clear(new JPanel(new FlowLayout(FlowLayout.RIGHT, ConfirmForm.BUTTON_GAP, 0)));
-        buttonRow.add(cancelButton);
-        buttonRow.add(printButton);
+        buttonRow = ConfirmForm.clear(new JPanel(new BorderLayout()));
+        JPanel helpButtons = ConfirmForm.clear(new JPanel(new FlowLayout(FlowLayout.LEFT, ConfirmForm.BUTTON_GAP, 0)));
+        helpButtons.add(infoButton);
+        helpButtons.add(helpButton);
+        JPanel mainButtons = ConfirmForm.clear(new JPanel(new FlowLayout(FlowLayout.RIGHT, ConfirmForm.BUTTON_GAP, 0)));
+        mainButtons.add(cancelButton);
+        mainButtons.add(printButton);
+        buttonRow.add(helpButtons, BorderLayout.WEST);
+        buttonRow.add(mainButtons, BorderLayout.EAST);
         printButton.setDefaultRing(true);
         ConfirmForm.dress(this, TITLE, content, buttonRow);
 
         cancelButton.addActionListener(event -> finish(ConfirmForm.CANCELLED));
+        infoButton.addActionListener(event -> tools.showHelp(this, "print-info"));
+        helpButton.addActionListener(event -> tools.showHelp(this, "print-help"));
         printButton.addActionListener(event -> printPressed());
         choices.get(Kind.HANDICAP).setSelected(true);
         printerChoice.setSelected(true);

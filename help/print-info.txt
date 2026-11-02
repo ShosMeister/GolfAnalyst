@@ -12,6 +12,8 @@ Send it to: A printer or PDF, or A spreadsheet file (.csv). The spreadsheet file
 
 The gray box: Says what will be printed or saved, or what is missing.
 
+The i and ? buttons: At the bottom left. The i shows this page, about what is on each report; the ? shows how to print, make a PDF and save a spreadsheet file.
+
 # Handicap Report
 
 Your Handicap Index on one upright page, with the rounds behind it. The box at the top shows your index, your Low Index for the last 365 days, how many of the listed rounds count, and the date of your latest round.

@@ -4,7 +4,7 @@ Here is how to print a report, make a PDF of it, or save it as a spreadsheet fil
 
 # Getting here
 
-Press Print on the Home screen. The Print window opens over the program; nothing else can be used until you close it.
+Press Print on the Home screen. The Print window opens over the program; nothing else can be used until you close it. Its own i and ? buttons, at the bottom left, open the Info and this Help.
 
 # Choosing what to print
 

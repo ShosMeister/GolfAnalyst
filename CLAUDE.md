@@ -370,8 +370,9 @@ Not built either: deleting a tee, merging two courses.
   repeat the header, "(continued)" from page 2, the summary only on the last page and never split. The All courses
   Round Log uses the user's widths, 1016 wide: 36 units past the right margin. Spreadsheet files (`Csv`): UTF-8 with
   a byte order mark, quoted fields, CRLF, written via a temporary file; the save window starts in LastExportFolder
-  (else Documents) and a file already there is replaced only after `askReplace`. The help files `print-*` cannot be
-  opened from the Print window (it is modal; the header's Help and Info are behind it).
+  (else Documents) and a file already there is replaced only after `askReplace`. The Print window is modal, so the header's Help
+  and Info are behind it: it has its own i and ? `IconButton`s (32 px, bottom left) that open `print-info` and
+  `print-help` through `PrintForm.Tools.showHelp`; `HelpWindow.show` takes any `Window` as owner for this.
 - **Correct...** (built, v4.80): in Edit Course `courseField`/`zipField` are locked; `CoursePage.correctButton`
   (90 x 24) sets `correcting` (no lookups while it is on). Save: `DataStore.correctCourse` ->
   `CourseWriter.correctCourse` rewrites only the Course, Zip, City and State cells of every tee (backup first);

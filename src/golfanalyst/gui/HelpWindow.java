@@ -5,7 +5,7 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
-import java.awt.Frame;
+import java.awt.Window;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.io.IOException;
@@ -74,15 +74,16 @@ public final class HelpWindow extends JDialog
      | Builds the modal window: the wood title band, the styled text in a       |
      | scrolling, read-only pane on parchment, and a Close button underneath.   |
      |                                                                          |
-     | Passed in:  owner  - the main window it opens over                       |
+     | Passed in:  owner  - the window it opens over (the program window, or    |
+     |                      the Print window, which is modal itself)            |
      |             title  - the words in the band and the title bar             |
      |             pieces - the styled text (see HelpFormatter)                 |
      | Passed out: the window (not yet visible)                                 |
      +--------------------------------------------------------------------------+
      */
-    private HelpWindow(Frame owner, String title, List<HelpFormatter.Piece> pieces)
+    private HelpWindow(Window owner, String title, List<HelpFormatter.Piece> pieces)
     {
-        super(owner, title, true);
+        super(owner, title, java.awt.Dialog.ModalityType.APPLICATION_MODAL);
         JTextPane text = new JTextPane();
         text.setEditable(false);
         text.setBackground(Theme.HELP_PAPER);
@@ -224,14 +225,14 @@ public final class HelpWindow extends JDialog
      | was looking for, instead of failing. The window is modal, so this only   |
      | returns once it has been closed.                                         |
      |                                                                          |
-     | Passed in:  owner         - the main window                              |
+     | Passed in:  owner         - the window it opens over                     |
      |             helpDir       - the folder holding the help files            |
      |             fileKey       - the file name without ".txt", "home-info"    |
      |             fallbackTitle - the window title to use if the file has none |
      | Passed out: nothing                                                      |
      +--------------------------------------------------------------------------+
      */
-    public static void show(Frame owner, Path helpDir, String fileKey, String fallbackTitle)
+    public static void show(Window owner, Path helpDir, String fileKey, String fallbackTitle)
     {
         Path file = helpDir.resolve(fileKey + ".txt");
         String title = fallbackTitle;

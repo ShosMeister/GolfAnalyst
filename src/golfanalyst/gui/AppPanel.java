@@ -883,7 +883,8 @@ public final class AppPanel extends JPanel implements Shell
      | Purpose:                                                                 |
      | What the Print window gets from the real program window: the system's    |
      | own print dialog and printing (ReportPrintable.send), the system's save  |
-     | window, the shared question before replacing a file, and the footer.     |
+     | window, the shared question before replacing a file, the help windows    |
+     | and the footer.                                                          |
      +--------------------------------------------------------------------------+
      */
     private final class ScreenPrintTools implements PrintForm.Tools
@@ -920,6 +921,21 @@ public final class AppPanel extends JPanel implements Shell
                 return null;
             }
             return chooser.getSelectedFile().toPath();
+        }
+
+        /*
+         * showHelp(parent, fileKey): the help window over the Print window (it is modal, so the header's buttons cannot be reached).
+         */
+        @Override
+        public void showHelp(java.awt.Component parent, String fileKey)
+        {
+            Window owner = SwingUtilities.getWindowAncestor(parent);
+            if (owner == null)
+            {
+                setStatus("The help window needs the program window.");
+                return;
+            }
+            HelpWindow.show(owner, helpDir, fileKey, "Print");
         }
 
         /*

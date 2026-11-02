@@ -2693,6 +2693,7 @@ public final class GuiSelfTest
         Path offeredFolder = null;
         boolean replace = false;
         int replaceAsked = 0;
+        String helpShown = "";
 
         /*
          * print(report): remembers the report and answers as told.
@@ -2714,6 +2715,15 @@ public final class GuiSelfTest
             offeredFolder = folder;
             offeredName = name;
             return saveAs;
+        }
+
+        /*
+         * showHelp(parent, fileKey): remembers which help file was asked for.
+         */
+        @Override
+        public void showHelp(java.awt.Component parent, String fileKey)
+        {
+            helpShown = fileKey;
         }
 
         /*
@@ -2793,6 +2803,14 @@ public final class GuiSelfTest
                 && form.noteArea().getHeight() >= form.noteArea().getPreferredSize().height
                 && form.noteArea().getText().equals("This will print one page: the Handicap Report for your last 20 rounds." + PrintForm.PRINTER_NOTE));
 
+        form.infoButton.doClick();
+        String infoShown = printer.helpShown;
+        form.helpButton.doClick();
+        java.awt.Rectangle helpBox = javax.swing.SwingUtilities.convertRectangle(form.helpButton.getParent(), form.helpButton.getBounds(), form);
+        java.awt.Rectangle cancelBox = javax.swing.SwingUtilities.convertRectangle(form.cancelButton.getParent(), form.cancelButton.getBounds(), form);
+        check("print: the i and ? buttons open the print help files and sit at the left of the buttons", infoShown.equals("print-info")
+                && printer.helpShown.equals("print-help") && form.infoButton.getWidth() == PrintForm.HELP_BUTTON_SIZE
+                && helpBox.x + helpBox.width < cancelBox.x && Files.exists(Path.of("help", "print-info.txt")) && printer.printed == 0);
         check("print: the Handicap Report's options are one grey line", onlyCardShowing(form, PrintForm.Kind.HANDICAP)
                 && form.preview.report() instanceof golfanalyst.print.HandicapReport && form.printButton.isEnabled()
                 && form.printButton.getText().equals("Print..."));
