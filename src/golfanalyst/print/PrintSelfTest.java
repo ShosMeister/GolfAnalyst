@@ -45,6 +45,7 @@ public final class PrintSelfTest
         checkTextFitting();
         checkFurniture();
         checkThumbnail();
+        ReportSelfTest.run();
     }
 
     /*

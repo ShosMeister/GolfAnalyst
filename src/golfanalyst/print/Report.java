@@ -216,4 +216,89 @@ public abstract class Report
     {
         return day.format(LONG_DATE);
     }
+
+    /*
+     * holesShort(round, tee): which holes, short: "18", "9" (a nine-hole course), "Front 9" or "Back 9".
+     */
+    public static String holesShort(golfanalyst.Round round, golfanalyst.Tee tee)
+    {
+        if (!round.isNineHole())
+        {
+            return "18";
+        }
+        if (tee.holes() == golfanalyst.Tee.NINE)
+        {
+            return "9";
+        }
+        if (round.startHole() == 0)
+        {
+            return "Front 9";
+        }
+        return "Back 9";
+    }
+
+    /*
+     * holesLong(round, tee): which holes, in words: "18", "9" (a nine-hole course), "Front nine" or "Back nine".
+     */
+    public static String holesLong(golfanalyst.Round round, golfanalyst.Tee tee)
+    {
+        String words = holesShort(round, tee);
+        if (words.equals("Front 9"))
+        {
+            return "Front nine";
+        }
+        if (words.equals("Back 9"))
+        {
+            return "Back nine";
+        }
+        return words;
+    }
+
+    /*
+     * oneDecimal(value): a number with one decimal ("13.9"), or "-" when there is none (NaN).
+     */
+    public static String oneDecimal(double value)
+    {
+        if (Double.isNaN(value))
+        {
+            return "-";
+        }
+        return String.format(Locale.ROOT, "%.1f", value);
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | paragraphs(sheet, texts, x, top, room, font, colour, gap)                |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Writes paragraphs one under another, each wrapped to the room, with a    |
+     | gap between them.                                                        |
+     |                                                                          |
+     | Passed in:  sheet       - the page                                       |
+     |             texts       - the paragraphs                                 |
+     |             x, top      - where the first line starts                    |
+     |             room        - the width to wrap to                           |
+     |             font, colour - how they look                                 |
+     |             gap         - the space between paragraphs                   |
+     | Passed out: the y under the last line                                    |
+     +--------------------------------------------------------------------------+
+     */
+    protected static double paragraphs(Sheet sheet, java.util.List<String> texts, double x, double top, double room, Font font,
+            java.awt.Color colour, double gap)
+    {
+        double y = top;
+        for (int lp = 0; lp < texts.size(); lp = lp + 1)
+        {
+            if (lp > 0)
+            {
+                y = y + gap;
+            }
+            for (String line : Sheet.wrap(texts.get(lp), font, room))
+            {
+                sheet.text(line, x, y, font, colour);
+                y = y + Sheet.lineHeight(font) + 2;
+            }
+        }
+        return y;
+    }
 }

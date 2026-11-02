@@ -1,9 +1,13 @@
 package golfanalyst.print;
 
 import golfanalyst.BestRound;
+import golfanalyst.Handicap;
 import golfanalyst.Round;
 import golfanalyst.Tee;
+import java.awt.Font;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 /*
  +--------------------------------------------------------------------------+
@@ -15,10 +19,24 @@ import java.util.List;
  | scorecard (a saved round) and Best Round (the best single round on a     |
  | course and tees, or the composite of the best score on every hole).      |
  |                                                                          |
+ | The card at (60,172): a label column 96 wide (Hole, Par, Hdcp, Score,    |
+ | Putts, Fairway, Sand in dark brown bold 13), then 42 wide columns for    |
+ | the holes played, "Out" after hole 9 and "In" and "Total" at the end     |
+ | (a nine has only "Total"). The header row is 34 high, the six body rows  |
+ | 38 high with the zebra colours and light cell outlines; Out, In and      |
+ | Total are shaded (240,236,228) and bold. Par and Putts have totals; the  |
+ | Score row is 15 bold with totals; Hdcp, Fairway and Sand have none.      |
+ | Score marks: a circle 30 across for a birdie or better, a square 28 for  |
+ | a bogey, a double square (28 and 22) for a double bogey or worse.        |
+ | Fairway: a check for a hit, "-" on a par 3. Sand: a                      |
+ | check where the ball was in a bunker. A grey legend under it; 40 units   |
+ | lower a rounded box 230 high with nine figures in three columns.         |
+ |                                                                          |
  | Public Methods:                                                          |
  | forRound(data, round)              - a saved round's scorecard           |
  | forBest(data, choice, composite)   - Best Round                          |
- | the Report methods; round(), best(), composite()                         |
+ | the Report methods; round(), best(), composite(), markOf(score, par),    |
+ | headings(), rowTexts(), figures()                                        |
  +--------------------------------------------------------------------------+
  */
 public final class ScorecardReport extends Report
@@ -26,10 +44,35 @@ public final class ScorecardReport extends Report
 
     public static final String ROUND_NAME = "Scorecard";
     public static final String BEST_NAME = "Best Round";
+    public static final String OUT = "Out";
+    public static final String IN = "In";
+    public static final String TOTAL = "Total";
+    public static final List<String> LABELS = List.of("Par", "Hdcp", "Score", "Putts", "Fairway", "Sand");
+    public static final String LEGEND = "Circle = birdie or better.   Square = bogey.   Double square = double bogey or worse.   "
+            + Sheet.CHECK + " in the Fairway row = fairway hit.   " + Sheet.CHECK + " in the Sand row = in a bunker.   - = par 3, no fairway.";
+    static final double CARD_TOP = 172;
+    static final double LABEL_WIDTH = 96;
+    static final double HOLE_WIDTH = 42;
+    static final double HEADER_HEIGHT = 34;
+    static final double ROW_HEIGHT = 38;
+    static final double LEGEND_GAP = 12;
+    static final double BOX_GAP = 40;
+    static final double BOX_HEIGHT = 230;
+    static final double FIGURE_STEP = 340;
+    static final java.awt.Color OUTLINE = Sheet.CELL_LINE;
+    private static final int SCORE_ROW = 2;
     private final Round round;
     private final BestRound.Choice best;
     private final boolean composite;
     private final List<Round> roundsUsed;
+
+    /*
+     * Mark: the shape drawn round a score: none (par), a circle (birdie or better), a square (bogey), a double square (worse).
+     */
+    public enum Mark
+    {
+        NONE, CIRCLE, SQUARE, DOUBLE_SQUARE
+    }
 
     /*
      +--------------------------------------------------------------------------+
@@ -248,12 +291,484 @@ public final class ScorecardReport extends Report
         return 1;
     }
 
+    // ------------------------------------------------------------ the card
+
     /*
-     * paintBody(sheet, page, pages): the card and the figures box.
+     * markOf(score, par): the mark round a score: a circle for a birdie or better, a square for a bogey, a double square for worse.
+     */
+    public static Mark markOf(int score, int par)
+    {
+        int overPar = score - par;
+        if (overPar <= -1)
+        {
+            return Mark.CIRCLE;
+        }
+        if (overPar == 1)
+        {
+            return Mark.SQUARE;
+        }
+        if (overPar >= 2)
+        {
+            return Mark.DOUBLE_SQUARE;
+        }
+        return Mark.NONE;
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | slots()                                                                  |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | The card's columns after the label column: the index of each hole        |
+     | played (0 is the first hole played), then -1 for Out, -2 for In and -3   |
+     | for Total. 18 holes: 1-9, Out, 10-18, In, Total; nine holes: the nine    |
+     | and Total.                                                               |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: the columns, left to right                                   |
+     +--------------------------------------------------------------------------+
+     */
+    private List<Integer> slots()
+    {
+        List<Integer> slots = new ArrayList<>();
+        for (int hole = 0; hole < round.holes(); hole = hole + 1)
+        {
+            slots.add(hole);
+            if (round.holes() == Tee.HOLES && hole == Tee.NINE - 1)
+            {
+                slots.add(-1);
+            }
+        }
+        if (round.holes() == Tee.HOLES)
+        {
+            slots.add(-2);
+        }
+        slots.add(-3);
+        return slots;
+    }
+
+    /*
+     * headings(): the header row after "Hole": the hole numbers played, Out, In and Total.
+     */
+    public List<String> headings()
+    {
+        List<String> headings = new ArrayList<>();
+        for (int slot : slots())
+        {
+            headings.add(slotHeading(slot));
+        }
+        return headings;
+    }
+
+    /*
+     * slotHeading(slot): a column's heading: its hole number, Out, In or Total.
+     */
+    private String slotHeading(int slot)
+    {
+        if (slot == -1)
+        {
+            return OUT;
+        }
+        if (slot == -2)
+        {
+            return IN;
+        }
+        if (slot == -3)
+        {
+            return TOTAL;
+        }
+        return Integer.toString(round.startHole() + slot + 1);
+    }
+
+    /*
+     * sum(values, slot): the total of the values for Out (holes 1-9), In (10-18) or Total.
+     */
+    private int sum(int[] values, int slot)
+    {
+        int first = 0;
+        int last = values.length;
+        if (slot == -1)
+        {
+            last = Tee.NINE;
+        }
+        else if (slot == -2)
+        {
+            first = Tee.NINE;
+        }
+        int total = 0;
+        for (int hole = first; hole < last; hole = hole + 1)
+        {
+            total = total + values[hole];
+        }
+        return total;
+    }
+
+    /*
+     * parsPlayed(): the par of each hole played.
+     */
+    private int[] parsPlayed()
+    {
+        int[] pars = new int[round.holes()];
+        for (int hole = 0; hole < round.holes(); hole = hole + 1)
+        {
+            pars[hole] = tee().pars()[round.startHole() + hole];
+        }
+        return pars;
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | rowTexts()                                                               |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | The words in the six body rows (Par, Hdcp, Score, Putts, Fairway,        |
+     | Sand), one per column of headings(): totals for Par, Score and Putts     |
+     | in Out, In and Total, nothing there for the others; a check for a        |
+     | fairway hit and "-" on a par 3; a check for a bunker.                    |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: the rows, top to bottom                                      |
+     +--------------------------------------------------------------------------+
+     */
+    public List<List<String>> rowTexts()
+    {
+        int[] pars = parsPlayed();
+        List<List<String>> rows = new ArrayList<>();
+        for (int row = 0; row < LABELS.size(); row = row + 1)
+        {
+            List<String> texts = new ArrayList<>();
+            for (int slot : slots())
+            {
+                texts.add(cellText(row, slot, pars));
+            }
+            rows.add(texts);
+        }
+        return rows;
+    }
+
+    /*
+     * cellText(row, slot, pars): the words in one cell of the card (see rowTexts).
+     */
+    private String cellText(int row, int slot, int[] pars)
+    {
+        boolean total = slot < 0;
+        switch (row)
+        {
+            case 0:
+                if (total)
+                {
+                    return Integer.toString(sum(pars, slot));
+                }
+                return Integer.toString(pars[slot]);
+            case 1:
+                if (total)
+                {
+                    return "";
+                }
+                return Integer.toString(tee().strokeIndex()[round.startHole() + slot]);
+            case 2:
+                if (total)
+                {
+                    return Integer.toString(sum(round.scores(), slot));
+                }
+                return Integer.toString(round.scores()[slot]);
+            case 3:
+                if (total)
+                {
+                    return Integer.toString(sum(round.putts(), slot));
+                }
+                return Integer.toString(round.putts()[slot]);
+            case 4:
+                if (total)
+                {
+                    return "";
+                }
+                if (pars[slot] == 3)
+                {
+                    return "-";
+                }
+                if (round.fairway()[slot])
+                {
+                    return Sheet.CHECK;
+                }
+                return "";
+            default:
+                if (!total && round.sand()[slot])
+                {
+                    return Sheet.CHECK;
+                }
+                return "";
+        }
+    }
+
+    /*
+     * ofHoles(part, whole): "3 of 14".
+     */
+    private static String ofHoles(int part, int whole)
+    {
+        return part + " of " + whole;
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | figures()                                                                |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | The nine captions and values of the figures box, in reading order:       |
+     | Score ("88   (+16)"), Putts, Fairways ("3 of 14"), Greens in             |
+     | regulation, Two putts or fewer, Sand saves ("1 of 3" or "-"), Rating /   |
+     | slope, Differential and Index after this round ("-" for anything the     |
+     | round does not have: a historical round or the composite has no          |
+     | differential and no index after it).                                     |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: pairs of caption and value                                   |
+     +--------------------------------------------------------------------------+
+     */
+    public List<String[]> figures()
+    {
+        RoundFigures figures = RoundFigures.of(round, tee());
+        int overPar = figures.score() - figures.par();
+        String toPar = "E";
+        if (overPar > 0)
+        {
+            toPar = "+" + overPar;
+        }
+        else if (overPar < 0)
+        {
+            toPar = Integer.toString(overPar);
+        }
+        String sand = "-";
+        if (figures.bunkers() > 0)
+        {
+            sand = ofHoles(figures.sandSaves(), figures.bunkers());
+        }
+        String rating = "-";
+        int slope = tee().slopeFor(round.startHole(), round.holes());
+        if (slope > 0)
+        {
+            rating = String.format(Locale.ROOT, "%.1f / %d", tee().ratingFor(round.startHole(), round.holes()), slope);
+        }
+        String differential = "-";
+        String indexAfter = "-";
+        for (Handicap.Entry entry : data.handicap().entries())
+        {
+            if (entry.round().id() == round.id() && round.id() != BestRound.COMPOSITE_ID)
+            {
+                differential = oneDecimal(entry.differential());
+                if (entry.indexAfter() != null)
+                {
+                    indexAfter = Handicap.format(entry.indexAfter());
+                }
+            }
+        }
+        List<String[]> pairs = new ArrayList<>();
+        pairs.add(new String[] {"Score", figures.score() + "   (" + toPar + ")"});
+        pairs.add(new String[] {"Putts", Integer.toString(figures.putts())});
+        pairs.add(new String[] {"Fairways", ofHoles(figures.fairways(), figures.fairwayChances())});
+        pairs.add(new String[] {"Greens in regulation", ofHoles(figures.greens(), figures.holes())});
+        pairs.add(new String[] {"Two putts or fewer", ofHoles(figures.twoPutts(), figures.holes())});
+        pairs.add(new String[] {"Sand saves", sand});
+        pairs.add(new String[] {"Rating / slope", rating});
+        pairs.add(new String[] {"Differential", differential});
+        pairs.add(new String[] {"Index after this round", indexAfter});
+        return pairs;
+    }
+
+    /*
+     * cardWidth(): the width of the card: the label column and a column for each heading.
+     */
+    double cardWidth()
+    {
+        return LABEL_WIDTH + headings().size() * HOLE_WIDTH;
+    }
+
+    /*
+     * cardBottom(): the y under the card's last row.
+     */
+    static double cardBottom()
+    {
+        return CARD_TOP + HEADER_HEIGHT + LABELS.size() * ROW_HEIGHT;
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | paintBody(sheet, page, pages)                                            |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | The card, the legend under it and the figures box.                       |
+     |                                                                          |
+     | Passed in:  sheet - the page; page, pages - always 0 and 1               |
+     | Passed out: nothing                                                      |
+     +--------------------------------------------------------------------------+
      */
     @Override
     protected void paintBody(Sheet sheet, int page, int pages)
     {
-        // the card and the figures box
+        if (isEmpty())
+        {
+            return;
+        }
+        paintCard(sheet);
+        Font legendFont = Sheet.sans(Font.PLAIN, 11);
+        double across = sheet.width() - Sheet.MARGIN - Sheet.MARGIN;
+        double legendTop = cardBottom() + LEGEND_GAP;
+        sheet.text(Sheet.fit(LEGEND, legendFont, across), Sheet.MARGIN, legendTop, legendFont, Sheet.GREY);
+        double boxTop = legendTop + Sheet.lineHeight(legendFont) + BOX_GAP;
+        paintFigures(sheet, figures(), boxTop, across);
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | paintFigures(sheet, pairs, boxTop, across)                               |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | The rounded figures box (radius 10, (240,236,228) with a dark brown 2    |
+     | unit edge, 230 high): three columns by three rows of a grey 12 caption   |
+     | and a bold 21 value.                                                     |
+     |                                                                          |
+     | Passed in:  sheet  - the page                                            |
+     |             pairs  - nine captions and values, in reading order          |
+     |             boxTop - where the box starts                                |
+     |             across - its width                                           |
+     | Passed out: nothing                                                      |
+     +--------------------------------------------------------------------------+
+     */
+    static void paintFigures(Sheet sheet, List<String[]> pairs, double boxTop, double across)
+    {
+        sheet.roundBox(Sheet.MARGIN, boxTop, across, BOX_HEIGHT, 10, Sheet.BOX, Sheet.BROWN, 2);
+        double columnWidth = FIGURE_STEP;
+        for (int lp = 0; lp < pairs.size(); lp = lp + 1)
+        {
+            int col = lp % 3;
+            int row = lp / 3;
+            double x = Sheet.MARGIN + 28 + col * columnWidth;
+            double captionTop = boxTop + 26 + row * 66;
+            sheet.text(pairs.get(lp)[0], x, captionTop, Sheet.sans(Font.PLAIN, 12), Sheet.GREY);
+            Font valueFont = Sheet.sans(Font.BOLD, 21);
+            sheet.text(Sheet.fit(pairs.get(lp)[1], valueFont, columnWidth - 12), x, captionTop + 18, valueFont, Sheet.INK);
+        }
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | paintCard(sheet)                                                         |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | The card itself: the brown header row, the six body rows with their      |
+     | zebra colours, the shaded Out/In/Total cells, the light outlines and     |
+     | the score marks.                                                         |
+     |                                                                          |
+     | Passed in:  sheet - the page                                             |
+     | Passed out: nothing                                                      |
+     +--------------------------------------------------------------------------+
+     */
+    private void paintCard(Sheet sheet)
+    {
+        List<String> headings = headings();
+        List<Integer> slots = slots();
+        List<List<String>> rows = rowTexts();
+        int[] pars = parsPlayed();
+        double width = cardWidth();
+        double x = Sheet.MARGIN;
+        Font headFont = Sheet.sans(Font.BOLD, 13);
+        sheet.fill(x, CARD_TOP, width, HEADER_HEIGHT, Sheet.BROWN);
+        sheet.textIn("Hole", x, CARD_TOP, LABEL_WIDTH, HEADER_HEIGHT, headFont, java.awt.Color.WHITE, Table.Align.CENTRE, 0);
+        for (int col = 0; col < headings.size(); col = col + 1)
+        {
+            sheet.textIn(headings.get(col), x + LABEL_WIDTH + col * HOLE_WIDTH, CARD_TOP, HOLE_WIDTH, HEADER_HEIGHT, headFont,
+                    java.awt.Color.WHITE, Table.Align.CENTRE, 0);
+        }
+        double top = CARD_TOP + HEADER_HEIGHT;
+        for (int row = 0; row < rows.size(); row = row + 1)
+        {
+            java.awt.Color face = java.awt.Color.WHITE;
+            if (row % 2 == 1)
+            {
+                face = Sheet.ZEBRA;
+            }
+            sheet.fill(x, top, width, ROW_HEIGHT, face);
+            sheet.textIn(LABELS.get(row), x, top, LABEL_WIDTH, ROW_HEIGHT, Sheet.sans(Font.BOLD, 13), Sheet.BROWN, Table.Align.CENTRE, 0);
+            for (int col = 0; col < slots.size(); col = col + 1)
+            {
+                double left = x + LABEL_WIDTH + col * HOLE_WIDTH;
+                boolean total = slots.get(col) < 0;
+                if (total)
+                {
+                    sheet.fill(left, top, HOLE_WIDTH, ROW_HEIGHT, Sheet.BOX);
+                }
+                double size = 13;
+                int style = Font.PLAIN;
+                if (row == SCORE_ROW)
+                {
+                    size = 15;
+                    style = Font.BOLD;
+                }
+                if (total)
+                {
+                    style = Font.BOLD;
+                }
+                cellWords(sheet, rows.get(row).get(col), left, top, Sheet.sans(style, size));
+                if (row == SCORE_ROW && !total)
+                {
+                    int hole = slots.get(col);
+                    paintMark(sheet, markOf(round.scores()[hole], pars[hole]), left + HOLE_WIDTH / 2, top + ROW_HEIGHT / 2);
+                }
+            }
+            top = top + ROW_HEIGHT;
+        }
+        double bodyTop = CARD_TOP + HEADER_HEIGHT;
+        for (int row = 0; row <= rows.size(); row = row + 1)
+        {
+            sheet.line(x, bodyTop + row * ROW_HEIGHT, x + width, bodyTop + row * ROW_HEIGHT, OUTLINE, 1);
+        }
+        sheet.line(x, bodyTop, x, top, OUTLINE, 1);
+        for (int col = 0; col <= slots.size(); col = col + 1)
+        {
+            double lineX = x + LABEL_WIDTH + col * HOLE_WIDTH;
+            sheet.line(lineX, bodyTop, lineX, top, OUTLINE, 1);
+        }
+    }
+
+    /*
+     * cellWords(sheet, words, left, top, font): the words centred in a hole cell; a check mark the font cannot draw is drawn as a tick.
+     */
+    private static void cellWords(Sheet sheet, String words, double left, double top, Font font)
+    {
+        if (words.equals(Sheet.CHECK) && font.canDisplayUpTo(words) != -1)
+        {
+            paintTick(sheet, left + HOLE_WIDTH / 2, top + ROW_HEIGHT / 2);
+            return;
+        }
+        sheet.textIn(words, left, top, HOLE_WIDTH, ROW_HEIGHT, font, Sheet.INK, Table.Align.CENTRE, 0);
+    }
+
+    /*
+     * paintTick(sheet, centreX, centreY): a drawn tick, for a font with no check mark.
+     */
+    private static void paintTick(Sheet sheet, double centreX, double centreY)
+    {
+        sheet.line(centreX - 6, centreY, centreX - 2, centreY + 5, Sheet.INK, 2.5);
+        sheet.line(centreX - 2, centreY + 5, centreX + 6, centreY - 6, Sheet.INK, 2.5);
+    }
+
+    /*
+     * paintMark(sheet, mark, centreX, centreY): the shape round a score, dark brown, 2 units thick.
+     */
+    static void paintMark(Sheet sheet, Mark mark, double centreX, double centreY)
+    {
+        if (mark == Mark.CIRCLE)
+        {
+            sheet.circle(centreX, centreY, 30, Sheet.BROWN, 2);
+        }
+        else if (mark == Mark.SQUARE)
+        {
+            sheet.square(centreX, centreY, 28, Sheet.BROWN, 2);
+        }
+        else if (mark == Mark.DOUBLE_SQUARE)
+        {
+            sheet.square(centreX, centreY, 28, Sheet.BROWN, 2);
+            sheet.square(centreX, centreY, 22, Sheet.BROWN, 2);
+        }
     }
 }
