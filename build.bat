@@ -20,7 +20,7 @@ if exist out rmdir /s /q out
 mkdir out
 
 set SOURCES=
-for %%f in (src\golfanalyst\*.java src\golfanalyst\gui\*.java) do set SOURCES=!SOURCES! "%%f"
+for %%f in (src\golfanalyst\*.java src\golfanalyst\gui\*.java src\golfanalyst\print\*.java) do set SOURCES=!SOURCES! "%%f"
 
 "%JAVAC_CMD%" -encoding UTF-8 -d out !SOURCES!
 if errorlevel 1 (

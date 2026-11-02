@@ -566,6 +566,14 @@ public final class SelfTest
         }
 
         checkCourseAnalysis();
+        try
+        {
+            golfanalyst.print.PrintSelfTest.run(SelfTest::check);
+        }
+        catch (IOException failure)
+        {
+            check("the printing checks ran without error: " + failure, false);
+        }
 
         try
         {

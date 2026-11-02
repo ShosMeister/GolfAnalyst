@@ -28,6 +28,7 @@ import golfanalyst.DataStore;
  | clearData()      - Clear: asks what to clear, twice, then clears it      |
  | importData()     - Import: checks the files, then adds what is new       |
  | openSettings(), exportData() - the Settings and Export windows           |
+ | printReports()   - the Print window                                      |
  +--------------------------------------------------------------------------+
  */
 public interface Shell
@@ -179,4 +180,9 @@ public interface Shell
      * exportData(): what Home's Export button does: the Export window, then a copy of the chosen courses and rounds in a new folder.
      */
     void exportData();
+
+    /*
+     * printReports(): what Home's Print button does: the Print window, then the chosen report to the printer.
+     */
+    void printReports();
 }

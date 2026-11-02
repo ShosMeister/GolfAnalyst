@@ -30,8 +30,7 @@ import javax.swing.JPanel;
  | Course, New Round, Edit Round, Import, Export, Clear) and viewing on the |
  | right (Rounds, Stats Board, Analyzer, Best Round, Print, Settings), six  |
  | in each. The grid fills across each row, so the order they are added in  |
- | is row by row. Print is in place and says so in the footer until it is   |
- | built.                                                                   |
+ | is row by row.                                                           |
  |                                                                          |
  | Public Methods:                                                          |
  | onShow() - refreshes every figure from the data                          |
@@ -133,7 +132,7 @@ public final class HomePage extends Page
         buttons.add(actionButton("Import", () -> shell.importData()));
         buttons.add(actionButton("Best Round", () -> shell.bestRound()));
         buttons.add(actionButton("Export", () -> shell.exportData()));
-        buttons.add(actionButton("Print", () -> shell.setStatus("Print is not built yet.")));
+        buttons.add(actionButton("Print", () -> shell.printReports()));
         buttons.add(actionButton("Clear", () -> shell.clearData()));
         buttons.add(actionButton("Settings", () -> shell.openSettings()));
         JPanel buttonColumn = new JPanel(new BorderLayout());

@@ -198,6 +198,16 @@ public final class GuiSelfTest
         }
 
         /*
+         * printReports(): remembers that the Print window was asked for.
+         */
+        @Override
+        public void printReports()
+        {
+            windowCalls = windowCalls + 1;
+            lastPage = "print";
+        }
+
+        /*
          * newCourse(): remembers that New Course was asked for.
          */
         @Override
@@ -841,8 +851,14 @@ public final class GuiSelfTest
         check("the First arrow changes the title to the first round", panel.header().title().startsWith("00001:"));
         ((WoodButton) findByText(panel, "Close")).doClick();
         check("Close goes back to Home", panel.header().title().equals("Golf Analyst Stats Home"));
+        PrintForm[] printShown = new PrintForm[1];
+        panel.setPrintTools(null, shown ->
+        {
+            printShown[0] = shown;
+            return ConfirmForm.CANCELLED;
+        });
         ((WoodButton) findByText(panel, "Print")).doClick();
-        check("an unbuilt button says so", panel.footer().status().contains("not built yet"));
+        check("Home's Print button opens the Print window", printShown[0] != null);
         ((WoodButton) findByText(panel, "Stats Board")).doClick();
         check("the Stats Board button opens the Stats Board", panel.header().title().equals("Stats Board")
                 && panel.footer().status().equals(StatsPage.FOOTER_HINT));
@@ -963,6 +979,7 @@ public final class GuiSelfTest
         checkSettingsScreen();
         checkExportScreen();
         checkAnalyzerScreen();
+        checkPrintDialog();
         checkDeleteRound();
         checkClearData();
         checkFooterHand();
@@ -2652,6 +2669,230 @@ public final class GuiSelfTest
                 && emptyPage.cell(1, 0).getText().equals("-") && emptyPage.cell(9, 20).getText().equals("-")
                 && emptyPage.roundsValue.getText().equals("-") && emptyPanel.header().title().equals("Analyzer")
                 && emptyPage.getFocusTraversalPolicy().getFirstComponent(emptyPage) == emptyPage.closeButton);
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | FakePrinter                                                              |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Stands in for the printer and the footer in the Print window's checks:   |
+     | it remembers what was sent and said, and answers as told (true for      |
+     | Print pressed in the system dialog, false for Cancel there).            |
+     +--------------------------------------------------------------------------+
+     */
+    private static final class FakePrinter implements PrintForm.Tools
+    {
+        boolean answer = true;
+        int printed = 0;
+        golfanalyst.print.Report last = null;
+        String said = "";
+
+        /*
+         * print(report): remembers the report and answers as told.
+         */
+        @Override
+        public boolean print(golfanalyst.print.Report report)
+        {
+            printed = printed + 1;
+            last = report;
+            return answer;
+        }
+
+        /*
+         * say(text): remembers the footer message.
+         */
+        @Override
+        public void say(String text)
+        {
+            said = text;
+        }
+    }
+
+    /*
+     * onlyCardShowing(form, kind): whether the chosen report's options are the only ones showing.
+     */
+    private static boolean onlyCardShowing(PrintForm form, PrintForm.Kind kind)
+    {
+        boolean only = true;
+        for (PrintForm.Kind other : PrintForm.Kind.values())
+        {
+            only = only && form.optionPanels.get(other).isVisible() == (other == kind);
+        }
+        return only && form.reportTitle.getText().equals(kind.label);
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | checkPrintDialog()                                                       |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | The Print window through code, on the sample data printed on November   |
+     | 1, 2026: it is built with no display and no call to the program window;  |
+     | its size (about 760 wide, inside 90% of the program window) and that    |
+     | nothing overlaps; each report's options and pulldowns; the Period dates  |
+     | in the From and To boxes, open only for Custom dates..., and a bad date  |
+     | switching Print off; the small picture redrawn when a choice changes;   |
+     | the note; Print... sending to the printer and the footer saying so; the  |
+     | system dialog cancelled; Cancel; nothing to print; Home's Print button.  |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing (throws IOException if a temporary file fails)       |
+     +--------------------------------------------------------------------------+
+     */
+    private static void checkPrintDialog() throws IOException
+    {
+        DataStore sampleStore = new DataStore(Path.of("sample-data"));
+        golfanalyst.print.ReportData data = golfanalyst.print.ReportData.of(sampleStore, LocalDate.of(2026, 11, 1), Theme.VERSION);
+        FakePrinter printer = new FakePrinter();
+        TestShell shell = new TestShell(sampleStore);
+        PrintForm form = new PrintForm(data, printer);
+        check("print: the window is built with no display and asks nothing of the program window", shell.windowCalls == 0
+                && printer.said.isEmpty() && printer.printed == 0 && form.choices.get(PrintForm.Kind.HANDICAP).isSelected()
+                && form.printerChoice.isSelected());
+
+        form.setSize(form.getPreferredSize());
+        layoutAll(form);
+        AppPanel windowPanel = new AppPanel(sampleStore, Path.of("help"), "");
+        java.awt.Dimension window = windowPanel.getPreferredSize();
+        check("print: the window is about 760 wide and fits inside 90% of the program window", form.getWidth() >= 720
+                && form.getWidth() <= 800 && form.getWidth() <= window.width * 0.9 && form.getHeight() <= window.height * 0.9
+                && form.getHeight() >= 440);
+        check("print: nothing in the Print window overlaps or runs off", fitsInside(form) && noOverlaps(form.buttonRow()));
+        java.awt.Rectangle note = javax.swing.SwingUtilities.convertRectangle(form.noteBoxPanel().getParent(), form.noteBoxPanel().getBounds(), form);
+        java.awt.Rectangle buttons = javax.swing.SwingUtilities.convertRectangle(form.buttonRow().getParent(), form.buttonRow().getBounds(), form);
+        check("print: the note box shows all its words and sits above the buttons", note.y + note.height <= buttons.y
+                && form.noteArea().getHeight() >= form.noteArea().getPreferredSize().height
+                && form.noteArea().getText().equals("This will print one page: the Handicap Report for your last 20 rounds." + PrintForm.PRINTER_NOTE));
+
+        check("print: the Handicap Report's options are one grey line", onlyCardShowing(form, PrintForm.Kind.HANDICAP)
+                && form.preview.report() instanceof golfanalyst.print.HandicapReport && form.printButton.isEnabled()
+                && form.printButton.getText().equals("Print..."));
+
+        form.choices.get(PrintForm.Kind.ROUND_LOG).doClick();
+        layoutAll(form);
+        boolean periodsRight = form.logPeriod.getItemCount() == 10 && form.logPeriod.getItemAt(0) == golfanalyst.Period.ALL_TIME
+                && form.logPeriod.getItemAt(9) == golfanalyst.Period.CUSTOM;
+        check("print: the Round Log has course and tees (All courses first), Period, dates and the historical box",
+                onlyCardShowing(form, PrintForm.Kind.ROUND_LOG) && form.logTees.getItemAt(0).label().equals("All courses")
+                && form.logTees.getItemAt(0).teeId() == null && form.logTees.getItemCount() > 2 && periodsRight
+                && form.logHistorical.isSelected() == sampleStore.includeHistorical() && fitsInside(form));
+        golfanalyst.print.RoundLogReport allLog = (golfanalyst.print.RoundLogReport) form.preview.report();
+        check("print: the Round Log note counts the rounds", form.noteArea().getText().equals("This will print "
+                + allLog.rounds().size() + " rounds." + PrintForm.PRINTER_NOTE) && allLog.rounds().size() > 20);
+        check("print: the date boxes show the period, grey and closed", !form.fromBox.isEnabled() && !form.toBox.isEnabled()
+                && form.fromBox.getText().equals(sampleStore.roundsByDate().get(0).date().toString())
+                && form.toBox.getText().equals("2026-11-01"));
+        form.logPeriod.setSelectedItem(golfanalyst.Period.LAST_MONTH);
+        check("print: Last month puts October 1 to 31 in the boxes", form.fromBox.getText().equals("2026-10-01")
+                && form.toBox.getText().equals("2026-10-31") && !form.fromBox.isEnabled());
+        golfanalyst.print.Report before = form.preview.report();
+        form.logPeriod.setSelectedItem(golfanalyst.Period.CUSTOM);
+        check("print: Custom dates... opens the boxes to type in", form.fromBox.isEnabled() && form.toBox.isEnabled()
+                && form.fromBox.getBackground().equals(Color.WHITE));
+        form.fromBox.setText("someday");
+        check("print: a date that cannot be read switches Print off and says what to fix", !form.printButton.isEnabled()
+                && form.noteArea().getText().equals(PrintForm.BAD_FROM) && form.preview.report() == null);
+        form.fromBox.setText("6/1/2026");
+        form.toBox.setText("2026-05-01");
+        check("print: a From date after the To date is refused", !form.printButton.isEnabled()
+                && form.noteArea().getText().equals(PrintForm.FROM_AFTER_TO));
+        form.toBox.setText("2026-06-30");
+        golfanalyst.print.RoundLogReport june = (golfanalyst.print.RoundLogReport) form.preview.report();
+        boolean inJune = true;
+        for (golfanalyst.Round round : june.rounds())
+        {
+            inJune = inJune && round.date().getMonthValue() == 6 && round.date().getYear() == 2026;
+        }
+        check("print: custom dates pick the rounds between them, and the small picture is redrawn", form.printButton.isEnabled()
+                && inJune && june != before && june.rounds().size() < allLog.rounds().size());
+        form.logPeriod.setSelectedItem(golfanalyst.Period.ALL_TIME);
+        form.logTees.setSelectedIndex(1);
+        golfanalyst.print.RoundLogReport oneTee = (golfanalyst.print.RoundLogReport) form.preview.report();
+        boolean sameTee = !oneTee.rounds().isEmpty();
+        for (golfanalyst.Round round : oneTee.rounds())
+        {
+            sameTee = sameTee && round.teeId() == form.logTees.getItemAt(1).teeId();
+        }
+        check("print: choosing tees lists only their rounds", sameTee && form.logTees.getItemAt(1).label().contains(":"));
+
+        form.choices.get(PrintForm.Kind.SCORECARD).doClick();
+        golfanalyst.Round newest = sampleStore.roundsByDate().get(sampleStore.roundsByDate().size() - 1);
+        golfanalyst.Tee newestTee = sampleStore.teeMap().get(newest.teeId());
+        check("print: A round's scorecard lists the rounds newest first", onlyCardShowing(form, PrintForm.Kind.SCORECARD)
+                && form.roundList.getItemCount() == sampleStore.roundsByDate().size()
+                && form.roundList.getItemAt(0).label().equals(newest.date() + "  " + newestTee.label() + "  " + newest.totalScore())
+                && ((golfanalyst.print.ScorecardReport) form.preview.report()).round() == newest);
+
+        form.choices.get(PrintForm.Kind.BEST).doClick();
+        check("print: Best Round has Best Round's course and tees and Single ticked", onlyCardShowing(form, PrintForm.Kind.BEST)
+                && form.bestRows.getItemCount() == golfanalyst.BestRound.choices(data.rounds(), data.tees(), data.includeHistorical()).size()
+                && form.singleButton.isSelected()
+                && ((golfanalyst.BestRound.Choice) form.bestRows.getSelectedItem()).key()
+                .equals(golfanalyst.BestRound.latestChoice(data.rounds(), data.tees(), data.includeHistorical()).key()));
+        form.compositeButton.doClick();
+        check("print: Composite asks for the composite", ((golfanalyst.print.ScorecardReport) form.preview.report()).composite());
+
+        form.choices.get(PrintForm.Kind.STATS).doClick();
+        check("print: the Stats Board has the historical box, starting as Home's", onlyCardShowing(form, PrintForm.Kind.STATS)
+                && form.statsHistorical.isSelected() == sampleStore.includeHistorical()
+                && form.preview.report() instanceof golfanalyst.print.StatsBoardReport);
+
+        form.choices.get(PrintForm.Kind.MY_CARD).doClick();
+        check("print: My scorecard lists every set of tees and the index it will use", onlyCardShowing(form, PrintForm.Kind.MY_CARD)
+                && form.cardTees.getItemCount() == sampleStore.teeMap().size()
+                && form.cardIndexLine.getText().equals("Handicap Index " + golfanalyst.Handicap.format(data.handicap().currentIndex())
+                + " will be used.")
+                && ((golfanalyst.print.MyScorecardReport) form.preview.report()).tee().id() == newest.teeId());
+
+        form.choices.get(PrintForm.Kind.NOTES).doClick();
+        check("print: Course notes lists the Analyzer's rows", onlyCardShowing(form, PrintForm.Kind.NOTES)
+                && form.notesRows.getItemCount() == golfanalyst.CourseAnalysis.rows(data.rounds(), data.tees(), data.includeHistorical()).size()
+                && form.preview.report() instanceof golfanalyst.print.CourseNotesReport);
+        layoutAll(form);
+        check("print: every report's options fit without overlapping", fitsInside(form));
+
+        windowPanel.setStatus("before");
+        windowPanel.setPrintTools(printer, shown -> ConfirmForm.CANCELLED);
+        windowPanel.printReports();
+        check("print: Cancel changes nothing", windowPanel.footer().status().equals("before") && printer.printed == 0);
+        printer.answer = false;
+        windowPanel.setPrintTools(printer, shown ->
+        {
+            shown.printPressed();
+            return shown.answer();
+        });
+        windowPanel.printReports();
+        check("print: cancelling the system print dialog leaves the Print window open and says nothing", printer.printed == 1
+                && windowPanel.footer().status().equals("before"));
+        printer.answer = true;
+        windowPanel.printReports();
+        check("print: Print... sends the report and the footer says so", printer.printed == 2
+                && printer.last instanceof golfanalyst.print.HandicapReport && windowPanel.footer().status().equals(PrintForm.SENT));
+
+        Path empty = Files.createTempDirectory("golfanalyst-print-empty").resolve(DataStore.DATA_FOLDER);
+        Files.createDirectories(empty);
+        Files.writeString(empty.resolve(DataLoader.COURSES_FILE), golfanalyst.CourseWriter.STANDARD_HEADER + "\n", StandardCharsets.UTF_8);
+        Files.writeString(empty.resolve(DataLoader.ROUNDS_FILE), golfanalyst.RoundWriter.STANDARD_HEADER + "\n", StandardCharsets.UTF_8);
+        golfanalyst.print.ReportData nothing = golfanalyst.print.ReportData.of(new DataStore(empty), LocalDate.of(2026, 11, 1), Theme.VERSION);
+        FakePrinter idle = new FakePrinter();
+        PrintForm emptyForm = new PrintForm(nothing, idle);
+        boolean allOff = true;
+        for (PrintForm.Kind kind : PrintForm.Kind.values())
+        {
+            emptyForm.choices.get(kind).doClick();
+            allOff = allOff && !emptyForm.printButton.isEnabled() && emptyForm.noteArea().getText().equals(PrintForm.NOTHING_NOTE)
+                    && (emptyForm.preview.report() == null || emptyForm.preview.report().isEmpty());
+        }
+        emptyForm.printPressed();
+        check("print: with no rounds every report has nothing to print and Print is off", allOff && idle.printed == 0
+                && idle.said.equals(PrintForm.NOTHING_SAID) && emptyForm.answer() == ConfirmForm.CANCELLED
+                && emptyForm.logTees.getItemCount() == 1 && emptyForm.roundList.getItemCount() == 0);
+
+        TestShell homeShell = new TestShell(sampleStore);
+        HomePage home = new HomePage(homeShell);
+        ((WoodButton) findByText(home, "Print")).doClick();
+        check("print: Home's Print button asks for the Print window", homeShell.lastPage.equals("print"));
     }
 
     /*

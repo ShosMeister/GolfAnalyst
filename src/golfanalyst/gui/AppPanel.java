@@ -45,7 +45,7 @@ import javax.swing.SwingUtilities;
  | the Shell methods   - store, setStatus, refreshTitle, goHome, newRound,  |
  |                       browseRounds, editRound, newCourse, readyToSave,   |
  |                       askYesNo, confirmTwice, clearData, importData,     |
- |                       openSettings, exportData                           |
+ |                       openSettings, exportData, printReports             |
  +--------------------------------------------------------------------------+
  */
 @SuppressWarnings({"serial", "this-escape"})
@@ -104,6 +104,17 @@ public final class AppPanel extends JPanel implements Shell
     }
 
     /*
+     * PrintAsker: shows the Print window and gives its answer (on screen normally; the self-test answers by code).
+     */
+    interface PrintAsker
+    {
+        /*
+         * ask(form): ConfirmForm.GO once a report was sent, CANCELLED otherwise.
+         */
+        int ask(PrintForm form);
+    }
+
+    /*
      * ImportAsker: shows the Import window and gives its answer (on screen normally; the self-test answers by code).
      */
     interface ImportAsker
@@ -133,6 +144,8 @@ public final class AppPanel extends JPanel implements Shell
     private transient SettingsForm.Tools settingsTools = new ScreenTools();
     private transient SettingsAsker settingsAsker = form -> form.showOn(this);
     private transient ExportAsker exportAsker = form -> form.showOn(this);
+    private transient PrintForm.Tools printTools = new ScreenPrintTools();
+    private transient PrintAsker printAsker = form -> form.showOn(this);
     private transient Path programDir = Path.of("");
 
     /*
@@ -818,6 +831,70 @@ public final class AppPanel extends JPanel implements Shell
     void setExportAsker(ExportAsker newAsker)
     {
         exportAsker = newAsker;
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | printReports()                                                           |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | What Home's Print button does: shows the Print window, made from the     |
+     | data as it is now and today's date. The window itself sends the chosen  |
+     | report through the print tools (the system print dialog); once it has   |
+     | gone the footer says "Sent to the printer.". Cancel changes nothing.    |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing                                                      |
+     +--------------------------------------------------------------------------+
+     */
+    @Override
+    public void printReports()
+    {
+        golfanalyst.print.ReportData data = golfanalyst.print.ReportData.of(store, java.time.LocalDate.now(), Theme.VERSION);
+        PrintForm form = new PrintForm(data, printTools);
+        if (printAsker.ask(form) == ConfirmForm.GO)
+        {
+            setStatus(form.doneMessage());
+        }
+    }
+
+    /*
+     * setPrintTools(tools, newAsker): replaces the printer and the on-screen Print window with code (for the self-test).
+     */
+    void setPrintTools(PrintForm.Tools tools, PrintAsker newAsker)
+    {
+        printTools = tools;
+        printAsker = newAsker;
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | ScreenPrintTools                                                         |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | What the Print window gets from the real program window: the system's   |
+     | own print dialog and printing (ReportPrintable.send), and the footer.   |
+     +--------------------------------------------------------------------------+
+     */
+    private final class ScreenPrintTools implements PrintForm.Tools
+    {
+        /*
+         * print(report): the system print dialog, then printing; false if it was cancelled.
+         */
+        @Override
+        public boolean print(golfanalyst.print.Report report) throws java.awt.print.PrinterException
+        {
+            return golfanalyst.print.ReportPrintable.send(report);
+        }
+
+        /*
+         * say(text): a footer message.
+         */
+        @Override
+        public void say(String text)
+        {
+            setStatus(text);
+        }
     }
 
     /*

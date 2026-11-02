@@ -7,3 +7,6 @@ data/
 GolfAnalyst_v302AM.txt
 GolfAnalyst_Courses.txt
 courses-to-finish.tsv
+
+# design pictures and recordings handed over while a feature is built (not part of the program)
+Incoming/
