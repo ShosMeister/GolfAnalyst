@@ -276,6 +276,56 @@ public final class Sheet
 
     /*
      +--------------------------------------------------------------------------+
+     | textWithBoldDagger(words, x, top, font, colour)                          |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | One line of text like text(), but every dagger in it drawn bold at the   |
+     | same size, so a note's dagger is as easy to read as the table's. Words   |
+     | with no dagger come out exactly as text() draws them.                    |
+     |                                                                          |
+     | Passed in:  words        - the line                                      |
+     |             x, top       - where it starts                               |
+     |             font, colour - how the words look                            |
+     | Passed out: nothing                                                      |
+     +--------------------------------------------------------------------------+
+     */
+    public void textWithBoldDagger(String words, double x, double top, Font font, Color colour)
+    {
+        Font bold = font.deriveFont(Font.BOLD);
+        double left = x;
+        String rest = words;
+        int at = rest.indexOf(DAGGER);
+        while (at >= 0)
+        {
+            String before = rest.substring(0, at);
+            text(before, left, top, font, colour);
+            left = left + textWidth(before, font);
+            text(DAGGER, left, top, bold, colour);
+            left = left + textWidth(DAGGER, bold);
+            rest = rest.substring(at + DAGGER.length());
+            at = rest.indexOf(DAGGER);
+        }
+        text(rest, left, top, font, colour);
+    }
+
+    /*
+     * boldDaggerRoom(room, words, font): the room left for words drawn plain once their bold daggers' extra width is taken off.
+     */
+    public static double boldDaggerRoom(double room, String words, Font font)
+    {
+        double extra = Math.max(0, textWidth(DAGGER, font.deriveFont(Font.BOLD)) - textWidth(DAGGER, font));
+        double left = room;
+        int at = words.indexOf(DAGGER);
+        while (at >= 0)
+        {
+            left = left - extra;
+            at = words.indexOf(DAGGER, at + DAGGER.length());
+        }
+        return left;
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
      | textIn(words, x, y, boxWidth, boxHeight, font, colour, align, pad)       |
      +--------------------------------------------------------------------------+
      | Purpose:                                                                 |

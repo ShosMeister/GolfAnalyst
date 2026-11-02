@@ -765,7 +765,7 @@ public final class RoundLogReport extends Report
         {
             if (!note.isEmpty())
             {
-                sheet.text(Sheet.fit(note, noteFont, across), Sheet.MARGIN, below + NOTE_GAP, noteFont, Sheet.GREY);
+                drawNote(sheet, note, below + NOTE_GAP, noteFont, across);
             }
             return;
         }
@@ -778,6 +778,15 @@ public final class RoundLogReport extends Report
         }
         below = summary.drawRows(sheet, Sheet.MARGIN, below, 0, summary.rows().size());
         below = summary.drawEndRule(sheet, Sheet.MARGIN, below);
-        sheet.text(Sheet.fit(note, noteFont, across), Sheet.MARGIN, below + NOTE_GAP, noteFont, Sheet.GREY);
+        drawNote(sheet, note, below + NOTE_GAP, noteFont, across);
+    }
+
+    /*
+     * drawNote(sheet, note, top, font, across): the grey note on one line from the left margin, its dagger bold.
+     */
+    private static void drawNote(Sheet sheet, String note, double top, Font font, double across)
+    {
+        String shown = Sheet.fit(note, font, Sheet.boldDaggerRoom(across, note, font));
+        sheet.textWithBoldDagger(shown, Sheet.MARGIN, top, font, Sheet.GREY);
     }
 }

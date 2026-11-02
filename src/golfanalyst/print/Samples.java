@@ -21,6 +21,8 @@ import javax.imageio.ImageIO;
  | design unit, Letter paper), so they can be put beside the design         |
  | pictures in docs\mockups. The sample data has no golfer's name, so the   |
  | test name "Angelo" is used, in memory only: no settings file is written. |
+ | print_actual_round_log_historical.png treats the two oldest White rounds |
+ | at Sample Links as historical, again only in memory, so the H shows.     |
  | Run from the project folder after build.bat:                             |
  |   java -cp out golfanalyst.print.Samples docs\mockups                    |
  |                                                                          |
@@ -63,6 +65,8 @@ public final class Samples
             }
         }
         write(new RoundLogReport(data, whiteTees, null, null, data.includeHistorical()), 0, folder.resolve("print_actual_round_log.png"));
+        ReportData historical = withHistorical(data, whiteTees, 2);
+        write(new RoundLogReport(historical, whiteTees, null, null, true), 0, folder.resolve("print_actual_round_log_historical.png"));
         RoundLogReport everything = new RoundLogReport(data, null, null, null, true);
         for (int page = 0; page < everything.pageCount(everything.letterHeight()); page = page + 1)
         {
@@ -95,6 +99,39 @@ public final class Samples
         }
         write(new CourseNotesReport(data, busiest), 0, folder.resolve("print_actual_course_notes.png"));
         System.out.println("Pictures written to " + folder.toAbsolutePath());
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | withHistorical(data, teeId, count)                                       |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | A copy of the report data in memory with the oldest rounds on one set    |
+     | of tees marked historical and the handicap worked out again without      |
+     | them. Nothing is read from or written to a file.                         |
+     |                                                                          |
+     | Passed in:  data  - the sample's report data                             |
+     |             teeId - the tees                                             |
+     |             count - how many of their oldest rounds to mark              |
+     | Passed out: the copy                                                     |
+     +--------------------------------------------------------------------------+
+     */
+    static ReportData withHistorical(ReportData data, int teeId, int count)
+    {
+        java.util.List<Round> rounds = new java.util.ArrayList<>();
+        int marked = 0;
+        for (Round round : data.rounds())
+        {
+            if (round.teeId() == teeId && marked < count)
+            {
+                round = new Round(round.id(), round.teeId(), round.date(), round.pcc(), round.startHole(), round.holes(), round.scores(),
+                        round.putts(), round.fairway(), round.sand(), true);
+                marked = marked + 1;
+            }
+            rounds.add(round);
+        }
+        return new ReportData(rounds, data.tees(), golfanalyst.Handicap.compute(rounds, data.tees()), data.golfer(), true, data.sample(),
+                data.today(), data.version());
     }
 
     /*

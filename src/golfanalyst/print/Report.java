@@ -298,7 +298,7 @@ public abstract class Report
      +--------------------------------------------------------------------------+
      | Purpose:                                                                 |
      | Writes paragraphs one under another, each wrapped to the room, with a    |
-     | gap between them.                                                        |
+     | gap between them. A dagger in them is drawn bold (the notes' legend).    |
      |                                                                          |
      | Passed in:  sheet       - the page                                       |
      |             texts       - the paragraphs                                 |
@@ -319,9 +319,9 @@ public abstract class Report
             {
                 y = y + gap;
             }
-            for (String line : Sheet.wrap(texts.get(lp), font, room))
+            for (String line : Sheet.wrap(texts.get(lp), font, Sheet.boldDaggerRoom(room, texts.get(lp), font)))
             {
-                sheet.text(line, x, y, font, colour);
+                sheet.textWithBoldDagger(line, x, y, font, colour);
                 y = y + Sheet.lineHeight(font) + 2;
             }
         }

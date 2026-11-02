@@ -2959,7 +2959,7 @@ public final class GuiSelfTest
         printer.replace = true;
         againForm.printPressed();
         check("print: told to replace it, the file is written", printer.replaceAsked == 2 && againForm.answer() == ConfirmForm.GO
-                && Files.readString(saved, StandardCharsets.UTF_8).contains("Course : Tee Box"));
+                && Files.readString(saved, StandardCharsets.UTF_8).contains("Course (tee),Rating / slope"));
         printer.saveAs = saveFolder.resolve("handicap.csv");
         windowPanel.setPrintTools(printer, shown ->
         {

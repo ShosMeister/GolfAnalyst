@@ -14,7 +14,7 @@ import java.util.Set;
  | The Stats Board on paper (on its side): the screen's columns (Course :   |
  | Tee Box 266, Rating\Slope 96, then Rnds, Avg, Best, Fwy %, GIR %,        |
  | 2-Putt %, Putts/Rnd and Sand % at 62 each), its rows and its rounding    |
- | (StatsBoard's own text for every cell), the widths scaled up in          |
+ | (StatsBoard's own text for every figure), the widths scaled up in        |
  | proportion so the table fills the 980 units between the margins. First   |
  | the two tan total rows,                                                  |
  | "All 18-hole rounds" and "All nine-hole rounds", then a row per tee for  |
@@ -23,7 +23,10 @@ import java.util.Set;
  | StatsBoard.best, each section on its own (Avg, Best and Putts/Rnd lowest,|
  | the four percentages highest, among rows with 2 or more rounds when 2 or |
  | more such rows exist; ties as shown all count; "-" never).               |
- | Rows are 24 high from y 170; every page repeats the header row.          |
+ | Rows are 24 high from y 170; every page repeats the header row. The      |
+ | names follow the other printed reports, not the screen: the headings     |
+ | "Course (tee)" and "Rating / slope", the rows "Edgewater (Senior)" and   |
+ | "Sample Links (White), front nine" (spreadsheet files too).              |
  |                                                                          |
  | Public Methods:                                                          |
  | the Report methods; board(); table(); rowsPerPage(height)                |
@@ -34,6 +37,8 @@ public final class StatsBoardReport extends Report
 
     public static final String NAME = "Stats Board";
     public static final String NINE_BAND = "Nine-hole rounds";
+    public static final String COURSE_HEADING = "Course (tee)";
+    public static final String RATING_HEADING = "Rating / slope";
     static final double TABLE_TOP = 170;
     static final double ROW_HEIGHT = 24;
     private static final double[] WIDTHS = {266, 96, 62, 62, 62, 62, 62, 62, 62, 62};
@@ -124,16 +129,75 @@ public final class StatsBoardReport extends Report
     }
 
     /*
+     * heading(column): a column's printed heading: "Course (tee)" and "Rating / slope", the others as on the screen.
+     */
+    static String heading(StatsBoard.Column column)
+    {
+        if (column == StatsBoard.Column.COURSE)
+        {
+            return COURSE_HEADING;
+        }
+        if (column == StatsBoard.Column.RATING)
+        {
+            return RATING_HEADING;
+        }
+        return column.heading();
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | label(row)                                                               |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | A row's printed name, as the other reports name tees: "Edgewater         |
+     | (Senior)", "Sample Links (White), front nine" or ", back nine" for a     |
+     | nine of an 18-hole tee. Total rows keep their own names.                 |
+     |                                                                          |
+     | Passed in:  row - a board row                                            |
+     | Passed out: the name                                                     |
+     +--------------------------------------------------------------------------+
+     */
+    String label(StatsBoard.Row row)
+    {
+        golfanalyst.Tee tee = data.tees().get(row.teeId());
+        if (tee == null)
+        {
+            return row.label();
+        }
+        if (row.part() == StatsBoard.Part.FRONT)
+        {
+            return tee.label() + ", front nine";
+        }
+        if (row.part() == StatsBoard.Part.BACK)
+        {
+            return tee.label() + ", back nine";
+        }
+        return tee.label();
+    }
+
+    /*
+     * cell(row, column): a row's printed words in a column: its name in the first, the screen's text in the others.
+     */
+    private String cell(StatsBoard.Row row, StatsBoard.Column column)
+    {
+        if (column == StatsBoard.Column.COURSE)
+        {
+            return label(row);
+        }
+        return row.text(column);
+    }
+
+    /*
      * row(row, kind, best): one board row as a table row, its best figures shaded.
      */
-    private static Table.Row row(StatsBoard.Row row, Table.Kind kind, Map<StatsBoard.Column, Set<String>> best)
+    private Table.Row row(StatsBoard.Row row, Table.Kind kind, Map<StatsBoard.Column, Set<String>> best)
     {
         List<String> cells = new ArrayList<>();
         List<Integer> shaded = new ArrayList<>();
         StatsBoard.Column[] columns = StatsBoard.Column.values();
         for (int col = 0; col < columns.length; col = col + 1)
         {
-            cells.add(row.text(columns[col]));
+            cells.add(cell(row, columns[col]));
             Set<String> keys = best.get(columns[col]);
             if (keys != null && keys.contains(row.key()))
             {
@@ -165,7 +229,7 @@ public final class StatsBoardReport extends Report
             {
                 align = Table.Align.LEFT;
             }
-            columns.add(new Table.Column(boardColumns[col].heading(), WIDTHS[col] * ACROSS / SCREEN_WIDTH, align));
+            columns.add(new Table.Column(heading(boardColumns[col]), WIDTHS[col] * ACROSS / SCREEN_WIDTH, align));
         }
         Table table = new Table(columns, ROW_HEIGHT);
         table.add(row(board.allEighteen(), Table.Kind.TOTAL, Map.of()));
@@ -204,7 +268,7 @@ public final class StatsBoardReport extends Report
         List<String> header = new ArrayList<>();
         for (StatsBoard.Column column : StatsBoard.Column.values())
         {
-            header.add(column.heading());
+            header.add(heading(column));
         }
         rows.add(header);
         List<StatsBoard.Row> boardRows = new ArrayList<>();
@@ -217,7 +281,7 @@ public final class StatsBoardReport extends Report
             List<String> cells = new ArrayList<>();
             for (StatsBoard.Column column : StatsBoard.Column.values())
             {
-                String words = boardRow.text(column);
+                String words = cell(boardRow, column);
                 if (words.equals("-"))
                 {
                     words = "";

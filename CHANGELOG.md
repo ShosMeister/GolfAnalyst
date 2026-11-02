@@ -56,4 +56,4 @@ that nothing about how it was built is lost. The wording is the help text's own,
 
 - v4.00 (before release): The Print window has its own i and ? buttons for its Info and Help.
 
-- v4.00 (before release): Printing polished: bigger daggers and check marks, the Round Log's note on every page that needs it, a cleaner My Scorecard, a full-width Stats Board, tinted Avg vs par in Course notes, and a Print window that sizes itself to its words.
+- v4.00 (before release): Printing polished: bigger daggers and check marks, the Round Log's note on every page that needs it, a cleaner My Scorecard, a full-width Stats Board with the same course and tee names as the other reports, bold daggers in the notes, tinted Avg vs par in Course notes, and a Print window that sizes itself to its words.

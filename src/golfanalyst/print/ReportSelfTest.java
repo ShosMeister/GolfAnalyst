@@ -61,6 +61,8 @@ final class ReportSelfTest
         checkMyScorecard();
         checkCourseNotes();
         checkPageNotes();
+        checkBoldDaggers();
+        checkHistoricalSample();
         try
         {
             checkNames();
@@ -600,10 +602,24 @@ final class ReportSelfTest
         List<Table.Row> rows = table.rows();
         check("stats board: totals first, then the 18-hole rows, the nine-hole band and the nine-hole rows", rows.size() == 6
                 && rows.get(0).kind() == Table.Kind.TOTAL && rows.get(0).cells().get(0).equals("All 18-hole rounds")
-                && rows.get(1).cells().get(0).equals("All nine-hole rounds") && rows.get(2).cells().get(0).equals("Test Links:White")
+                && rows.get(1).cells().get(0).equals("All nine-hole rounds") && rows.get(2).cells().get(0).equals("Test Links (White)")
                 && rows.get(3).kind() == Table.Kind.GROUP && rows.get(3).cells().get(0).equals(StatsBoardReport.NINE_BAND)
-                && rows.get(4).cells().get(0).equals("Little Nine:Red") && rows.get(5).cells().get(0).equals("Test Links:White (Front 9)"));
-        check("stats board: the screen's columns and words, widened to fill the page", table.columns().size() == 10
+                && rows.get(4).cells().get(0).equals("Little Nine (Red)") && rows.get(5).cells().get(0).equals("Test Links (White), front nine"));
+        List<Round> backRounds = logRounds();
+        backRounds.add(round(7, LINKS, "2026-04-15", 9, Tee.NINE, 0, 2, true, new int[0], false));
+        StatsBoardReport back = new StatsBoardReport(data(backRounds), false);
+        boolean backNamed = false;
+        for (Table.Row backRow : back.table().rows())
+        {
+            backNamed = backNamed || backRow.cells().get(0).equals("Test Links (White), back nine");
+        }
+        check("stats board: the printed names, the headings Course (tee) and Rating / slope, the screen's own names unchanged",
+                backNamed && table.columns().get(0).title().equals("Course (tee)") && table.columns().get(1).title().equals("Rating / slope")
+                && golfanalyst.StatsBoard.Column.COURSE.heading().equals("Course : Tee Box")
+                && golfanalyst.StatsBoard.Column.RATING.heading().equals("Rating\\Slope")
+                && board.board().nine().get(1).label().equals("Test Links:White (Front 9)")
+                && board.board().eighteen().get(0).label().equals("Test Links:White"));
+        check("stats board: the screen's columns and figures, widened to fill the page", table.columns().size() == 10
                 && Math.abs(table.columns().get(0).width() - 266 * 980.0 / 858) < 1e-9
                 && Math.abs(table.columns().get(1).width() - 96 * 980.0 / 858) < 1e-9 && table.columns().get(9).title().equals("Sand %")
                 && Math.abs(table.width() - 980) < 1e-9
@@ -855,10 +871,10 @@ final class ReportSelfTest
         withNine.add(round(5, NINE, "2026-04-01", 0, Tee.NINE, 0, 2, true, new int[0], false));
         StatsBoardReport board = new StatsBoardReport(data(withNine), false);
         List<List<String>> boardRows = board.spreadsheet();
-        check("spreadsheet, stats board: the screen's columns, the totals and every row", boardRows.get(0).size() == 10
-                && boardRows.get(0).get(0).equals("Course : Tee Box") && boardRows.get(0).get(9).equals("Sand %") && boardRows.size() == 1 + 2 + 1 + 2
-                && boardRows.get(1).get(0).equals("All 18-hole rounds") && boardRows.get(3).get(0).equals("Test Links:White")
-                && boardRows.get(4).get(0).equals("Little Nine:Red") && boardRows.get(4).get(9).isEmpty() && boardRows.get(3).get(9).equals("0")
+        check("spreadsheet, stats board: the printed names, the totals and every row", boardRows.get(0).size() == 10
+                && boardRows.get(0).get(0).equals("Course (tee)") && boardRows.get(0).get(1).equals("Rating / slope") && boardRows.get(0).get(9).equals("Sand %") && boardRows.size() == 1 + 2 + 1 + 2
+                && boardRows.get(1).get(0).equals("All 18-hole rounds") && boardRows.get(3).get(0).equals("Test Links (White)")
+                && boardRows.get(4).get(0).equals("Little Nine (Red)") && boardRows.get(4).get(9).isEmpty() && boardRows.get(3).get(9).equals("0")
                 && board.spreadsheetWords().equals("5 rows"));
 
         golfanalyst.BestRound.Choice row = new golfanalyst.BestRound.Choice(1, golfanalyst.StatsBoard.Part.EIGHTEEN, "Odd");
@@ -962,5 +978,99 @@ final class ReportSelfTest
         BufferedImage none = PrintSelfTest.picture(plain, 0, letter);
         check("page notes: a page with no dagger or H has no note", plain.noteOn(0, letter).isEmpty()
                 && PrintSelfTest.near(none, 60, noteTop, 400, noteTop + 14, Sheet.GREY) == 0);
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | checkBoldDaggers()                                                       |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | The notes' dagger is bold at the note's own size: drawn by               |
+     | textWithBoldDagger it has more ink than a plain one, the words after it  |
+     | are the same, and on a Round Log page whose note starts with the dagger  |
+     | the dagger there has the bold one's ink.                                 |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing                                                      |
+     +--------------------------------------------------------------------------+
+     */
+    private static void checkBoldDaggers()
+    {
+        java.awt.Font font = Sheet.sans(java.awt.Font.PLAIN, RoundLogReport.NOTE_SIZE);
+        BufferedImage plain = blank(200, 40);
+        BufferedImage bold = blank(200, 40);
+        java.awt.Graphics2D plainPen = plain.createGraphics();
+        java.awt.Graphics2D boldPen = bold.createGraphics();
+        new Sheet(plainPen, 200, 40).text(Sheet.DAGGER, 10, 10, font, Sheet.GREY);
+        new Sheet(boldPen, 200, 40).textWithBoldDagger(Sheet.DAGGER, 10, 10, font, Sheet.GREY);
+        plainPen.dispose();
+        boldPen.dispose();
+        int plainInk = PrintSelfTest.inked(plain, 0, 0, 200, 40);
+        int boldInk = PrintSelfTest.inked(bold, 0, 0, 200, 40);
+        double daggerWide = Sheet.textWidth(Sheet.DAGGER, font.deriveFont(java.awt.Font.BOLD));
+        check("bold daggers: the notes' dagger is bold, the words round it as before", boldInk > plainInk
+                && Sheet.boldDaggerRoom(500, "a " + Sheet.DAGGER + " b " + Sheet.DAGGER, font) <= 500
+                && Sheet.boldDaggerRoom(500, "no dagger", font) == 500);
+
+        List<Round> rounds = steady(50);
+        Round later = rounds.get(30);
+        rounds.set(30, round(later.id(), LINKS, later.date().toString(), 0, Tee.NINE, 1, 2, true, new int[0], false));
+        RoundLogReport log = new RoundLogReport(data(rounds), LINKS.id(), null, null, true);
+        double letter = Sheet.LETTER_SHORT;
+        int noteTop = (int) (RoundLogReport.TABLE_TOP + Table.HEADER_HEIGHT + 22 * RoundLogReport.ROW_HEIGHT + Table.END_RULE
+                + RoundLogReport.NOTE_GAP);
+        BufferedImage page = PrintSelfTest.picture(log, 1, letter);
+        int pageInk = PrintSelfTest.inked(page, (int) Sheet.MARGIN, noteTop - 2, (int) (Sheet.MARGIN + daggerWide), noteTop + 16);
+        check("bold daggers: the Round Log note's dagger is drawn bold (" + pageInk + " pixels, plain " + plainInk + ")",
+                log.noteOn(1, letter).startsWith(Sheet.DAGGER) && pageInk >= boldInk - 2 && pageInk > plainInk);
+    }
+
+    /*
+     * blank(width, height): a white picture to draw a test on.
+     */
+    private static BufferedImage blank(int width, int height)
+    {
+        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        java.awt.Graphics2D pen = image.createGraphics();
+        pen.setColor(java.awt.Color.WHITE);
+        pen.fillRect(0, 0, width, height);
+        pen.dispose();
+        return image;
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | checkHistoricalSample()                                                  |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | The historical sample picture's data: Samples.withHistorical marks only  |
+     | the two oldest rounds on the tees, leaves the data it was given as it    |
+     | was, and the Round Log drawn from it has H marks and the H legend.       |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing                                                      |
+     +--------------------------------------------------------------------------+
+     */
+    private static void checkHistoricalSample()
+    {
+        ReportData data = data(steady(6));
+        ReportData copy = Samples.withHistorical(data, LINKS.id(), 2);
+        int marked = 0;
+        for (Round round : copy.rounds())
+        {
+            if (round.historical())
+            {
+                marked = marked + 1;
+            }
+        }
+        boolean untouched = true;
+        for (Round round : data.rounds())
+        {
+            untouched = untouched && !round.historical();
+        }
+        RoundLogReport log = new RoundLogReport(copy, LINKS.id(), null, null, true);
+        check("historical sample: two oldest rounds marked in a copy only, the H and its legend printed", marked == 2
+                && copy.rounds().get(0).historical() && copy.rounds().get(1).historical() && !copy.rounds().get(2).historical()
+                && untouched && copy.includeHistorical() && log.noteOn(0, Sheet.LETTER_SHORT).contains(RoundLogReport.HISTORICAL_PART));
     }
 }

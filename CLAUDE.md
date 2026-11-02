@@ -373,8 +373,12 @@ Not built either: deleting a tee, merging two courses.
   (room kept for it: 22 rounds a Letter page), the summary only on the last page and never split. Tables draw the
   dagger and H bold 15, cards their check marks bold 14. My Scorecard: Strokes blank where a hole gives none (totals
   kept), no Pick-up totals. The Stats Board's widths are the screen's scaled to fill the 980 units; its shading is
-  `StatsBoard.best`, the screen's own rule (Best column included). Course notes tints the Avg vs par cells as the
-  hole numbers. `Samples` draws with the test name "Angelo" in memory (the sample data has no name). The All courses
+  `StatsBoard.best`, the screen's own rule (Best column included). The printed Stats Board (and its .csv) names rows as
+  the other reports do ("Edgewater (Senior)", "Sample Links (White), front nine"), headings "Course (tee)" and "Rating /
+  slope"; the screen keeps its own. Notes draw their dagger bold at the note's size (`Sheet.textWithBoldDagger`).
+  Course notes tints the Avg vs par cells as the
+  hole numbers. `Samples` draws with the test name "Angelo" in memory (the sample data has no name), and
+  print_actual_round_log_historical.png with the two oldest White rounds at Sample Links historical, in memory only. The All courses
   Round Log uses the user's widths, 1016 wide: 36 units past the right margin. Spreadsheet files (`Csv`): UTF-8 with
   a byte order mark, quoted fields, CRLF, written via a temporary file; the save window starts in LastExportFolder
   (else Documents) and a file already there is replaced only after `askReplace`. The Print window is modal, so the header's Help
