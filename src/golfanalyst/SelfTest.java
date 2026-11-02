@@ -715,7 +715,8 @@ public final class SelfTest
         CourseAnalysis.Analysis withOld = CourseAnalysis.analyse(rows.get(0), rounds, tees, true);
         check("analysis: historical rounds count only when the box is ticked", withOld.rounds().size() == 3
                 && withOld.holes().get(0).rounds() == 3 && withOld.holes().get(0).counts()[CourseAnalysis.PAR] == 1
-                && withOld.summary().avgScore() == 78.0 && full.holes().get(0).counts()[CourseAnalysis.PAR] == 0);
+                && withOld.summary().avgScore() == 78.0 && withOld.hardestHoles(3).equals(List.of(5, 3, 6))
+                && withOld.bestHoles(3).equals(List.of(1, 4, 2)) && full.holes().get(0).counts()[CourseAnalysis.PAR] == 0);
 
         CourseAnalysis.Analysis backNine = CourseAnalysis.analyse(latest, rounds, tees, false);
         check("analysis: a back nine is holes 10-18 with no Out or In", backNine.holes().size() == Tee.NINE

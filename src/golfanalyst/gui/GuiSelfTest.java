@@ -188,6 +188,16 @@ public final class GuiSelfTest
         }
 
         /*
+         * analyzer(): remembers that the Analyzer was asked for.
+         */
+        @Override
+        public void analyzer()
+        {
+            windowCalls = windowCalls + 1;
+            lastPage = "analyzer";
+        }
+
+        /*
          * newCourse(): remembers that New Course was asked for.
          */
         @Override
@@ -664,7 +674,8 @@ public final class GuiSelfTest
 
         // Wording: a score belongs to a hole; rounds are what the handicap counts
         for (String file : new String[] {"home-info.txt", "home-help.txt", "round-new-info.txt", "round-new-help.txt",
-                "round-view-info.txt", "round-view-help.txt", "round-edit-info.txt", "round-edit-help.txt", "course-info.txt", "course-help.txt"})
+                "round-view-info.txt", "round-view-help.txt", "round-edit-info.txt", "round-edit-help.txt", "course-info.txt", "course-help.txt",
+                "analyzer-info.txt", "analyzer-help.txt"})
         {
             String helpText = Files.readString(Path.of("help", file));
             check(file + " does not call a round a score", !helpText.contains("Scores Used") && !helpText.contains("20 scores")
@@ -740,7 +751,7 @@ public final class GuiSelfTest
         check("while entering, the round help files are the entry ones", page.helpKey().equals("round-new"));
         page.showLatest();
         check("while looking, the round help files are the viewing ones", page.helpKey().equals("round-view"));
-        for (String key : new String[] {"home", "round-new", "round-view", "round-edit", "course"})
+        for (String key : new String[] {"home", "round-new", "round-view", "round-edit", "course", "analyzer"})
         {
             for (String kind : new String[] {"info", "help"})
             {
@@ -808,7 +819,7 @@ public final class GuiSelfTest
         check("the First arrow changes the title to the first round", panel.header().title().startsWith("00001:"));
         ((WoodButton) findByText(panel, "Close")).doClick();
         check("Close goes back to Home", panel.header().title().equals("Golf Analyst Stats Home"));
-        ((WoodButton) findByText(panel, "Analyzer")).doClick();
+        ((WoodButton) findByText(panel, "Print")).doClick();
         check("an unbuilt button says so", panel.footer().status().contains("not built yet"));
         ((WoodButton) findByText(panel, "Stats Board")).doClick();
         check("the Stats Board button opens the Stats Board", panel.header().title().equals("Stats Board")
@@ -929,6 +940,7 @@ public final class GuiSelfTest
         checkCourseBarFits();
         checkSettingsScreen();
         checkExportScreen();
+        checkAnalyzerScreen();
         checkDeleteRound();
         checkClearData();
         checkFooterHand();
@@ -1258,7 +1270,8 @@ public final class GuiSelfTest
         check("help window: a label is bold", javax.swing.text.StyleConstants.isBold(label));
 
         for (String file : new String[] {"home-info.txt", "home-help.txt", "round-new-info.txt", "round-new-help.txt",
-                "round-view-info.txt", "round-view-help.txt", "round-edit-info.txt", "round-edit-help.txt", "course-info.txt", "course-help.txt"})
+                "round-view-info.txt", "round-view-help.txt", "round-edit-info.txt", "round-edit-help.txt", "course-info.txt", "course-help.txt",
+                "analyzer-info.txt", "analyzer-help.txt"})
         {
             String text = Files.readString(Path.of("help", file));
             List<HelpFormatter.Piece> filePieces = HelpFormatter.pieces(text);
@@ -2377,6 +2390,226 @@ public final class GuiSelfTest
         {
             return list.map(path -> path.getFileName().toString()).sorted().toList();
         }
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | checkAnalyzerScreen()                                                    |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | The Analyzer through the real window logic on rounds worked out by hand  |
+     | (the same ones as the engine's checkCourseAnalysis): tee 1 of 18 holes,  |
+     | round 1 with aces on 1 and 4, a birdie on 2, a double on 3 and an 8 on   |
+     | 5; round 2 all bogeys; round 3 all pars, historical; round 4 a back      |
+     | nine of pars, the latest. It checks that the page is built without       |
+     | calling the window; Home's button; the default row (the back nine,       |
+     | holes 10-18, one round, no tint); another row (18 holes with Out, In     |
+     | and All in grey); the three views and their numbers; the tints match     |
+     | hardestHoles and bestHoles; Include historical rounds on and off; the    |
+     | Tab order; Close; no rounds; and the layout (widths, no overlaps).       |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing (throws IOException if a temporary file fails)       |
+     +--------------------------------------------------------------------------+
+     */
+    private static void checkAnalyzerScreen() throws IOException
+    {
+        TestShell buildShell = new TestShell(new DataStore(Path.of("sample-data")));
+        new AnalyzerPage(buildShell);
+        check("analyzer: the page is built without calling the window", buildShell.windowCalls == 0);
+
+        Path data = Files.createTempDirectory("golfanalyst-analyzer-screen").resolve(DataStore.DATA_FOLDER);
+        Files.createDirectories(data);
+        int[] pars = {4, 5, 4, 3, 4, 5, 4, 3, 4, 4, 4, 3, 5, 4, 3, 4, 5, 4};
+        int[] ranks = new int[golfanalyst.Tee.HOLES];
+        for (int lp = 0; lp < golfanalyst.Tee.HOLES; lp = lp + 1)
+        {
+            ranks[lp] = lp + 1;
+        }
+        golfanalyst.Tee tee = new golfanalyst.Tee(1, "Analysis Links", "Fort Mill", "SC", "29708", "White", golfanalyst.Tee.HOLES, 70.0, 120,
+                0, pars, ranks, 35.0, 120, 35.0, 120);
+        Files.writeString(data.resolve(DataLoader.COURSES_FILE), golfanalyst.CourseWriter.STANDARD_HEADER + "\n"
+                + golfanalyst.CourseWriter.formatLine(tee, golfanalyst.CourseWriter.STANDARD_HEADER.split("\t")) + "\n", StandardCharsets.UTF_8);
+        int[] firstScores = pars.clone();
+        firstScores[0] = 1;
+        firstScores[1] = 4;
+        firstScores[2] = 6;
+        firstScores[3] = 1;
+        firstScores[4] = 8;
+        int[] firstPutts = new int[golfanalyst.Tee.HOLES];
+        java.util.Arrays.fill(firstPutts, 2);
+        firstPutts[0] = 0;
+        firstPutts[3] = 0;
+        boolean[] allFairways = new boolean[golfanalyst.Tee.HOLES];
+        java.util.Arrays.fill(allFairways, true);
+        for (int hole = 0; hole < golfanalyst.Tee.HOLES; hole = hole + 1)
+        {
+            allFairways[hole] = pars[hole] > 3;
+        }
+        boolean[] sandOnSix = new boolean[golfanalyst.Tee.HOLES];
+        sandOnSix[5] = true;
+        int[] bogeys = new int[golfanalyst.Tee.HOLES];
+        for (int lp = 0; lp < golfanalyst.Tee.HOLES; lp = lp + 1)
+        {
+            bogeys[lp] = pars[lp] + 1;
+        }
+        int[] twos = new int[golfanalyst.Tee.HOLES];
+        java.util.Arrays.fill(twos, 2);
+        List<Round> rounds = List.of(
+                new Round(1, 1, LocalDate.parse("2026-05-01"), 0, 0, golfanalyst.Tee.HOLES, firstScores, firstPutts, allFairways, sandOnSix),
+                new Round(2, 1, LocalDate.parse("2026-05-02"), 0, 0, golfanalyst.Tee.HOLES, bogeys, twos, new boolean[golfanalyst.Tee.HOLES],
+                        sandOnSix.clone()),
+                new Round(3, 1, LocalDate.parse("2026-05-03"), 0, 0, golfanalyst.Tee.HOLES, pars.clone(), twos.clone(),
+                        new boolean[golfanalyst.Tee.HOLES], new boolean[golfanalyst.Tee.HOLES], true),
+                new Round(4, 1, LocalDate.parse("2026-05-10"), 0, golfanalyst.Tee.NINE, golfanalyst.Tee.NINE,
+                        java.util.Arrays.copyOfRange(pars, golfanalyst.Tee.NINE, golfanalyst.Tee.HOLES), java.util.Arrays.copyOf(twos, golfanalyst.Tee.NINE),
+                        new boolean[golfanalyst.Tee.NINE], new boolean[golfanalyst.Tee.NINE]));
+        String header = golfanalyst.RoundWriter.STANDARD_HEADER + "\tHistorical";
+        StringBuilder roundLines = new StringBuilder(header).append("\n");
+        for (Round round : rounds)
+        {
+            roundLines.append(golfanalyst.RoundWriter.formatLine(round, tee, header.split("\t"))).append("\n");
+        }
+        Files.writeString(data.resolve(DataLoader.ROUNDS_FILE), roundLines.toString(), StandardCharsets.UTF_8);
+        DataStore store = new DataStore(data);
+        check("analyzer: the hand-made rounds load", store.dataset().problems().isEmpty() && store.roundsByDate().size() == 4
+                && store.roundsByDate().stream().filter(Round::historical).count() == 1);
+
+        TestShell homeShell = new TestShell(store);
+        HomePage home = new HomePage(homeShell);
+        ((WoodButton) findByText(home, "Analyzer")).doClick();
+        check("analyzer: Home's Analyzer button asks the window for it", homeShell.lastPage.equals("analyzer"));
+
+        AppPanel panel = new AppPanel(store, Path.of("help"), "");
+        panel.analyzer();
+        AnalyzerPage page = panel.analyzerPage();
+        check("analyzer: it opens on the latest round's row, Counts ticked", page.countsButton.isSelected()
+                && ((golfanalyst.BestRound.Choice) page.rowCombo.getSelectedItem()).part() == golfanalyst.StatsBoard.Part.BACK
+                && page.rowCombo.getItemCount() == 2 && page.captions().equals(AnalyzerPage.COUNT_ROWS)
+                && panel.header().title().equals("Analyzer: Analysis Links:White (Back 9)"));
+        boolean backNumbers = page.columnCount() == 10 && page.cell(0, 9).getText().equals("All");
+        for (int col = 0; col < 9; col = col + 1)
+        {
+            backNumbers = backNumbers && page.cell(0, col).getText().equals(Integer.toString(col + 10))
+                    && page.cell(1, col).getText().equals(Integer.toString(pars[col + 9]));
+        }
+        check("analyzer: a back nine shows holes 10-18 and All, with no Out or In", backNumbers);
+        boolean noTint = true;
+        for (int col = 0; col < 9; col = col + 1)
+        {
+            noTint = noTint && page.cell(0, col).getBackground().equals(Color.WHITE);
+        }
+        check("analyzer: a row with a single round is not tinted", noTint && page.hardestValue.getText().equals("-")
+                && page.bestHolesValue.getText().equals("-") && page.roundsValue.getText().equals("1")
+                && panel.footer().status().equals("1 round on Analysis Links:White (Back 9)."));
+        check("analyzer: Counts shows the pars made, and a zero as a faint dash", page.cell(6, 0).getText().equals("1")
+                && page.cell(3, 0).getText().equals("-") && page.cell(3, 0).getForeground().equals(AnalyzerPage.FAINT)
+                && page.cell(6, 9).getText().equals("9"));
+
+        page.rowCombo.setSelectedIndex(0);
+        golfanalyst.CourseAnalysis.Analysis shown = page.analysis();
+        check("analyzer: choosing the 18-hole row shows 18 holes, Out, In and All in light grey", page.columnCount() == 21
+                && page.cell(0, 18).getText().equals("Out") && page.cell(0, 19).getText().equals("In") && page.cell(0, 20).getText().equals("All")
+                && page.cell(5, 18).getBackground().equals(AnalyzerPage.TOTAL_FACE) && page.cell(5, 20).getBackground().equals(AnalyzerPage.TOTAL_FACE)
+                && page.cell(1, 20).getText().equals("72") && page.cell(2, 20).getText().equals("3")
+                && panel.header().title().equals("Analyzer: Analysis Links:White"));
+        check("analyzer: the seven results counted (historical rounds included)", page.cell(3, 0).getText().equals("1")
+                && page.cell(4, 3).getText().equals("1") && page.cell(5, 1).getText().equals("1") && page.cell(8, 2).getText().equals("1")
+                && page.cell(9, 4).getText().equals("1") && page.cell(6, 20).getText().equals("31") && page.cell(7, 20).getText().equals("18"));
+        List<Integer> hard = shown.hardestHoles(3);
+        List<Integer> best = new ArrayList<>();
+        for (int hole : shown.bestHoles(18))
+        {
+            if (best.size() < 3 && !hard.contains(hole))
+            {
+                best.add(hole);
+            }
+        }
+        boolean tintsMatch = hard.equals(List.of(5, 3, 6)) && best.equals(List.of(1, 4, 2));
+        for (int col = 0; col < 18; col = col + 1)
+        {
+            int hole = col + 1;
+            Color wanted = (hard.contains(hole) ? AnalyzerPage.HARD_TINT : (best.contains(hole) ? AnalyzerPage.BEST_TINT : Color.WHITE));
+            tintsMatch = tintsMatch && page.cell(0, col).getBackground().equals(wanted) && page.cell(5, col).getBackground().equals(Color.WHITE);
+        }
+        check("analyzer: the three hardest holes are red and the three best gold, as hardestHoles and bestHoles say", tintsMatch
+                && page.hardestValue.getText().equals("5, 3, 6") && page.bestHolesValue.getText().equals("1, 4, 2")
+                && page.hardestValue.getBackground().equals(AnalyzerPage.HARD_TINT)
+                && page.bestHolesValue.getBackground().equals(AnalyzerPage.BEST_TINT));
+        check("analyzer: the footer counts the rounds and explains the tints", panel.footer().status()
+                .equals("3 rounds on Analysis Links:White." + AnalyzerPage.TINT_NOTE));
+        check("analyzer: the summary", page.avgScoreValue.getText().equals("78.0") && page.bestScoreValue.getText().equals("72")
+                && page.puttsValue.getText().equals("34.7") && page.fairwaysValue.getText().equals("33%")
+                && page.sandValue.getText().equals("50%"));
+
+        page.percentButton.doClick();
+        check("analyzer: Percent shows whole-number percentages of the rounds on each hole", page.captions().equals(AnalyzerPage.COUNT_ROWS)
+                && page.cell(3, 0).getText().equals("33") && page.cell(6, 1).getText().equals("33") && page.cell(6, 6).getText().equals("67")
+                && page.cell(4, 0).getText().equals("-") && page.cell(2, 0).getText().equals("3"));
+        check("analyzer: Percent in Out, In and All is of the holes played", page.cell(6, 20).getText().equals("57")
+                && page.cell(6, 19).getText().equals("67") && page.cell(7, 18).getText().equals("33"));
+
+        page.averagesButton.doClick();
+        check("analyzer: Averages has its own rows", page.captions().equals(AnalyzerPage.AVERAGE_ROWS) && page.cell(10, 0).getText().equals("-"));
+        check("analyzer: averages to one decimal, vs par with a sign (whole in the totals)", page.cell(3, 0).getText().equals("3.3")
+                && page.cell(4, 4).getText().equals("+1.7") && page.cell(4, 0).getText().equals("-0.7") && page.cell(4, 20).getText().equals("+6")
+                && page.cell(5, 4).getText().equals("4") && page.cell(6, 4).getText().equals("8") && page.cell(7, 0).getText().equals("1.3")
+                && page.cell(5, 20).getText().equals("72") && page.cell(6, 20).getText().equals("90"));
+        check("analyzer: fairway % none on a par 3, greens %, sand saves only with sand", page.cell(8, 3).getText().equals("-")
+                && page.cell(8, 0).getText().equals("33") && page.cell(9, 2).getText().equals("33") && page.cell(10, 5).getText().equals("50")
+                && page.cell(10, 6).getText().equals("-"));
+        check("analyzer: in Averages the Avg vs par cells of the tinted holes are tinted too", page.cell(4, 4).getBackground()
+                .equals(AnalyzerPage.HARD_TINT) && page.cell(4, 0).getBackground().equals(AnalyzerPage.BEST_TINT)
+                && page.cell(4, 5).getBackground().equals(AnalyzerPage.HARD_TINT) && page.cell(4, 7).getBackground().equals(Color.WHITE)
+                && page.cell(3, 4).getBackground().equals(Color.WHITE));
+
+        java.awt.FocusTraversalPolicy policy = page.getFocusTraversalPolicy();
+        check("analyzer: Tab goes pulldown, Counts, Percent, Averages, Close", policy.getFirstComponent(page) == page.rowCombo
+                && policy.getComponentAfter(page, page.rowCombo) == page.countsButton
+                && policy.getComponentAfter(page, page.countsButton) == page.percentButton
+                && policy.getComponentAfter(page, page.percentButton) == page.averagesButton
+                && policy.getComponentAfter(page, page.averagesButton) == page.closeButton
+                && policy.getComponentAfter(page, page.closeButton) == page.rowCombo);
+
+        page.setSize(945, 626);
+        layoutAll(page);
+        java.awt.Rectangle captions = javax.swing.SwingUtilities.convertRectangle(page.captionFrame.getParent(), page.captionFrame.getBounds(), page);
+        java.awt.Rectangle gridBox = javax.swing.SwingUtilities.convertRectangle(page.gridFrame.getParent(), page.gridFrame.getBounds(), page);
+        java.awt.Rectangle summary = javax.swing.SwingUtilities.convertRectangle(page.summaryFrame.getParent(), page.summaryFrame.getBounds(), page);
+        check("analyzer: the frames are 130 and 778 px wide, 10 px apart, inside the 921 px within the page's edges",
+                captions.width == 130 && gridBox.width == 21 * AnalyzerPage.CELL_WIDTH + 22 && gridBox.x - captions.x - captions.width == 10
+                && captions.x >= AnalyzerPage.PAGE_EDGE && gridBox.x + gridBox.width <= 945 - AnalyzerPage.PAGE_EDGE
+                && Math.abs(captions.x - (945 - gridBox.x - gridBox.width)) <= 1);
+        check("analyzer: rows of 24 px line up with the captions, and the summary sits under both frames", gridBox.height == captions.height
+                && gridBox.height == 11 * AnalyzerPage.CELL_HEIGHT + 22 && summary.y > gridBox.y + gridBox.height
+                && summary.x == captions.x && summary.width == gridBox.x + gridBox.width - captions.x && summary.y + summary.height <= 626
+                && page.closeButton.getWidth() == 112 && page.closeButton.getHeight() == 32);
+        check("analyzer: no part of the page overlaps another", noOverlaps(page.gridPanel()) && noOverlaps(page.summaryFrame)
+                && noOverlaps(page.captionFrame) && !captions.intersects(gridBox));
+        page.closeButton.doClick();
+        check("analyzer: Close goes Home", panel.header().title().equals("Golf Analyst Stats Home"));
+
+        store.setIncludeHistorical(false);
+        panel.analyzer();
+        page.rowCombo.setSelectedIndex(0);
+        check("analyzer: without historical rounds they are left out, and the footer says so", page.analysis().rounds().size() == 2
+                && page.cell(2, 20).getText().equals("2") && page.cell(6, 0).getText().equals("-")
+                && panel.footer().status().equals("2 rounds on Analysis Links:White." + AnalyzerPage.TINT_NOTE + StatsPage.HISTORICAL_LEFT_OUT)
+                && page.hardestValue.getText().equals("5, 3, 6") && page.bestHolesValue.getText().equals("1, 4, 2"));
+
+        Path empty = Files.createTempDirectory("golfanalyst-analyzer-empty").resolve(DataStore.DATA_FOLDER);
+        Files.createDirectories(empty);
+        Files.copy(data.resolve(DataLoader.COURSES_FILE), empty.resolve(DataLoader.COURSES_FILE));
+        Files.writeString(empty.resolve(DataLoader.ROUNDS_FILE), header + "\n", StandardCharsets.UTF_8);
+        AppPanel emptyPanel = new AppPanel(new DataStore(empty), Path.of("help"), "");
+        emptyPanel.analyzer();
+        AnalyzerPage emptyPage = emptyPanel.analyzerPage();
+        check("analyzer: no rounds: the message, the controls off and a grid of dashes", emptyPanel.footer().status()
+                .equals(AnalyzerPage.NO_ROUNDS_YET) && !emptyPage.rowCombo.isEnabled() && !emptyPage.countsButton.isEnabled()
+                && !emptyPage.percentButton.isEnabled() && !emptyPage.averagesButton.isEnabled() && emptyPage.columnCount() == 21
+                && emptyPage.cell(1, 0).getText().equals("-") && emptyPage.cell(9, 20).getText().equals("-")
+                && emptyPage.roundsValue.getText().equals("-") && emptyPanel.header().title().equals("Analyzer")
+                && emptyPage.getFocusTraversalPolicy().getFirstComponent(emptyPage) == emptyPage.closeButton);
     }
 
     /*

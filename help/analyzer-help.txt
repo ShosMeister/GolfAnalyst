@@ -1,0 +1,31 @@
+Analyzer - Help
+
+Here is how to use the Analyzer to find the holes that cost you strokes.
+
+# Getting here
+
+Press Analyzer on the Home screen. It opens on the course and tees of the round you played most recently, showing Counts. Historical rounds are included when Include historical rounds is checked on the Home screen.
+
+# Choosing the course
+
+Open the Course / tee at the top and pick another course or set of tees. The screen updates immediately. A front nine and a back nine you played on their own have rows of their own, so they are never mixed with your 18-hole rounds.
+
+# Choosing the view
+
+Click Counts, Percent or Averages. Counts is the plain tally of your birdies, pars and bogeys on each hole. Percent turns that into how often, which is easier to compare when you have played some holes more than others. Averages shows your average score, putts, fairways, greens and sand saves on each hole.
+
+# Finding where you lose strokes
+
+1. Look at the red holes. They are the three holes where you take the most strokes over par on average, and the frame underneath lists them under Hardest holes.
+
+2. Switch to Averages and read down a red hole's column. A low Fairway % says it starts at the tee. A low Greens % with good fairways says it is the approach. High Avg putts says it is on the green.
+
+3. Look at Counts for the same hole. Lots of Dbl Bogey and Other means one bad shot is turning into a big number; a row of bogeys means you are steady but a shot short.
+
+4. Compare with the gold holes. They are your best holes; whatever you do there is working.
+
+The figures get more trustworthy the more rounds you have on the course, so a hole that looks bad after two rounds may just have been an unlucky day.
+
+# Leaving
+
+Press Close, or the Home button, to go back to the Home screen. There is nothing to save here, so you can leave whenever you like.

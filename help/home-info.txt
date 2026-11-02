@@ -46,7 +46,7 @@ On the left: New Course adds a course and its tees, or fixes a course you have a
 
 On the right: Rounds is the screen for looking at the rounds you have saved. Stats Board, Analyzer and Best Round show your statistics in more detail, and Print prints what you are looking at. Settings keeps your name, your choices about backups and which data folder the program uses.
 
-The Analyzer and Print buttons are there, but those features are not built yet.
+The Print button is there, but printing is not built yet.
 
 Import: Adds rounds and courses from files laid out like rounds.tsv and courses.tsv. It only ever adds: a set of tees or a round you already have is skipped, and it never changes a tee or a round that is already in the program. It shows you what it will add before it writes anything, and keeps a copy of your files in the backups folder first.
 
@@ -115,7 +115,7 @@ Rounds: Type in a round with the cursor moving by itself down the scores and the
 
 Courses: Courses and their sets of tees are typed in on the New Course screen, with the city and state checked against the ZIP code, and can be corrected or deleted there.
 
-Looking at your golf: The Stats Board shows your statistics course by course and tee by tee, with your nine-hole rounds kept apart. Best Round shows your lowest round on a course, or a composite of your best score on every hole.
+Looking at your golf: The Stats Board shows your statistics course by course and tee by tee, with your nine-hole rounds kept apart. Best Round shows your lowest round on a course, or a composite of your best score on every hole. The Analyzer shows how you play every hole of a course, from how often you make each score to your putts, fairways and greens, with your hardest holes in red and your best in gold.
 
 Looking after your data: Import adds rounds and courses from another copy of the program or from a spreadsheet, after showing you what it will add. Export makes a copy of everything, one course, or your rounds from a date, ready for Import. Clear lets you start fresh. Every change to your files first keeps a copy of them in a dated folder of its own in the backups folder. Putting one back is just copying its files over yours, and Settings lets you choose how many to keep and have them copied to a USB stick or a cloud folder too.
 

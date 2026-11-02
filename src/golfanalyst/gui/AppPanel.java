@@ -57,6 +57,7 @@ public final class AppPanel extends JPanel implements Shell
     public static final String COURSE = "course";
     public static final String STATS = "stats";
     public static final String BEST = "best";
+    public static final String ANALYZER = "analyzer";
     static final String SAMPLE_QUESTION = "This is the sample data. Create your own data folder first?";
     static final String CLEAR_SAMPLE_QUESTION = "This is the sample data. There is nothing of yours to clear. Create your own data folder first?";
     static final String CLEAR_TITLE = "Clear data";
@@ -124,6 +125,7 @@ public final class AppPanel extends JPanel implements Shell
     private final CoursePage coursePage;
     private final StatsPage statsPage;
     private final RoundPage bestPage;
+    private final AnalyzerPage analyzerPage;
     private String current = HOME;
     private transient ToIntFunction<String> asker = question -> askOnScreen(question);
     private transient Confirmer confirmer = (form, title) -> form.showOn(this);
@@ -159,16 +161,19 @@ public final class AppPanel extends JPanel implements Shell
         coursePage = new CoursePage(this);
         statsPage = new StatsPage(this);
         bestPage = new RoundPage(this, true);
+        analyzerPage = new AnalyzerPage(this);
         pages.put(HOME, homePage);
         pages.put(ROUND, roundPage);
         pages.put(COURSE, coursePage);
         pages.put(STATS, statsPage);
         pages.put(BEST, bestPage);
+        pages.put(ANALYZER, analyzerPage);
         center.add(homePage, HOME);
         center.add(roundPage, ROUND);
         center.add(coursePage, COURSE);
         center.add(statsPage, STATS);
         center.add(bestPage, BEST);
+        center.add(analyzerPage, ANALYZER);
         add(header, BorderLayout.NORTH);
         add(center, BorderLayout.CENTER);
         add(footer, BorderLayout.SOUTH);
@@ -218,7 +223,7 @@ public final class AppPanel extends JPanel implements Shell
      | and puts its title in the header. The Home button is switched off on     |
      | the Home page.                                                           |
      |                                                                          |
-     | Passed in:  pageName - HOME, ROUND, COURSE, STATS or BEST                |
+     | Passed in:  pageName - HOME, ROUND, COURSE, STATS, BEST or ANALYZER      |
      | Passed out: nothing                                                      |
      +--------------------------------------------------------------------------+
      */
@@ -364,6 +369,23 @@ public final class AppPanel extends JPanel implements Shell
     {
         bestPage.showBest();
         navigate(BEST);
+    }
+
+    /*
+     * analyzer(): opens the Analyzer afresh (its onShow picks the latest round's course and tees and Counts).
+     */
+    @Override
+    public void analyzer()
+    {
+        navigate(ANALYZER);
+    }
+
+    /*
+     * analyzerPage(): the Analyzer page (for tests).
+     */
+    AnalyzerPage analyzerPage()
+    {
+        return analyzerPage;
     }
 
     /*

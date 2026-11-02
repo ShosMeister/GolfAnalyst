@@ -1,0 +1,69 @@
+Analyzer - Info
+
+This is the Analyzer. It takes every round you have played on one course and set of tees and shows, hole by hole, how you really play each one. Nothing on it can be typed in: every number is worked out from your saved rounds.
+
+# Across the top
+
+Course / tee: The course and set of tees you are looking at, the same list as Best Round: an 18-hole set of tees, the front nine or back nine of an 18-hole course marked (Front 9) or (Back 9), and a nine-hole course. 18-hole and nine-hole rounds are never mixed.
+
+Counts, Percent and Averages: The three ways of looking at the holes. Only one shows at a time.
+
+# The grid
+
+There is one column for every hole: 1 to 18, 1 to 9, or 10 to 18 for a back nine. An 18-hole set of tees then has Out (holes 1-9), In (holes 10-18) and All, in light gray. A nine has only All.
+
+Hole par and Rounds: The par of each hole, and how many of your rounds have a score on it.
+
+A gray dash means zero, or nothing to show, such as fairways on a par 3 or sand saves on a hole where you were never in the sand.
+
+# Counts
+
+How many times you made each kind of score on every hole, compared with its par:
+
+Dbl Eagle: Three or more under par. A hole in one on a par 4 is one.
+
+Eagle: Two under par. A hole in one on a par 3 is an eagle.
+
+Birdie: One under par.
+
+Par: Par for the hole.
+
+Bogey: One over par.
+
+Dbl Bogey: Two over par.
+
+Other: Three or more over par.
+
+In Out, In and All the counts of those holes are added up.
+
+# Percent
+
+The same seven rows as a percentage of the rounds played on the hole, rounded to a whole number. If you played a hole 6 times and made par 2 of them, it shows 33. In Out, In and All it is a percentage of all the holes you played in that part.
+
+# Averages
+
+Avg score: Your average score on the hole.
+
+Avg vs par: How many strokes over par (or under, with a minus sign) you take on average. It is the quickest way to see where your strokes go. In Out, In and All it is shown as a whole number so it fits.
+
+Best and Worst: Your lowest and highest score on the hole.
+
+Avg putts: Your average number of putts.
+
+Fairway %, Greens % and Sand saves %: The same as on the Home screen, for that one hole: fairways only on par 4s and 5s, greens in regulation when your score minus your putts is no more than par minus 2, and sand saves when you were in the sand and still made par or better.
+
+# Red and gold
+
+Red marks your three hardest holes, the ones where you lose the most strokes to par on average. Gold marks your three best holes, where you lose the fewest. The hole numbers are tinted, and in Averages so is the Avg vs par row. If two holes are level, the lower hole number comes first. A hole is never both. With only one round there is nothing to compare, so nothing is tinted.
+
+# The frame underneath
+
+Rounds, Avg score and Best score: How many rounds, your average total and your lowest total.
+
+Putts / round, Fairways, Greens and Sand saves: The same figures as the Home screen, for this course and set of tees only.
+
+Hardest holes and Best holes: The red and gold holes, hardest or best first.
+
+Close: Goes back to the Home screen.
+
+The bar along the bottom says how many rounds the figures come from. Historical rounds are included when Include historical rounds is checked on the Home screen; if it is unchecked, the bar says so.

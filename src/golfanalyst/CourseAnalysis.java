@@ -324,7 +324,9 @@ public final class CourseAnalysis
             percents[lp] = Stats.pct(counts[lp], played);
         }
         double avgScore = average(strokes, played);
-        return new HoleStats(hole, par, played, counts, percents, avgScore, avgScore - par, best, worst, average(putts, played),
+        // over par from the strokes over par, not average minus par, so equal averages tie exactly when ranked
+        int overPar = strokes - par * played;
+        return new HoleStats(hole, par, played, counts, percents, avgScore, average(overPar, played), best, worst, average(putts, played),
                 (par >= 4 ? Stats.pct(fairways, played) : Double.NaN), Stats.pct(greens, played), Stats.pct(sandSaves, sandShots));
     }
 
@@ -416,7 +418,8 @@ public final class CourseAnalysis
             percents[lp] = Stats.pct(counts[lp], scored);
         }
         double avgScore = average(strokes, roundCount);
-        return new Totals(label, from, to, par, roundCount, counts, percents, avgScore, avgScore - par, best, worst,
+        int overPar = strokes - par * roundCount;
+        return new Totals(label, from, to, par, roundCount, counts, percents, avgScore, average(overPar, roundCount), best, worst,
                 average(putts, roundCount), Stats.pct(fairways, fairwayChances), Stats.pct(greens, scored), Stats.pct(sandSaves, sandShots));
     }
 

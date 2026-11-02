@@ -214,7 +214,7 @@ Courses and rounds live in two plain tab-separated text files. Written for one u
   left New Course, New Round, Edit Round, Import, Export, Clear; right Rounds, Stats Board, Analyzer, Best Round,
   Print, Settings (six a column; the grid fills row by row).
 - Help: the i button says WHAT is on the screen; the ? button says HOW to use it. Files in `help/`
-  (`home-*`, `round-new-*`, `round-view-*`, `round-edit-*`, `course-*`, `stats-*`, `best-*`). Update them with every feature. Keep the user's friendly
+  (`home-*`, `round-new-*`, `round-view-*`, `round-edit-*`, `course-*`, `stats-*`, `best-*`, `analyzer-*`). Update them with every feature. Keep the user's friendly
   voice. The files stay plain text: the first line is the window title; a line starting with "# " is a section
   heading (put "# " in front of every new section heading); "Label: text" (colon within 45 characters, no period
   before it) shows the label in bold; "3. First sentence. More" shows the first sentence in bold
@@ -238,9 +238,8 @@ Stats Board (v4.40), Close back to the Stats Board and the close-box question (v
 Historical box on the round screens and Include historical rounds on Home (v4.60), the backups folder, Delete Round
 and Clear (v4.70), dialogs sized to their text (v4.71), Import, Correct... and the ZIP code check (v4.80); since
 then, still v4.00: every dialog in the wooden look, Delete course, backups as dated folders, Settings, Export, and the
-Analyzer's figures (`CourseAnalysis`).
-Not built (buttons are in place and say "not built yet"): the Analyzer's SCREEN (its data class `CourseAnalysis` is
-built and tested), Print.
+Analyzer's figures (`CourseAnalysis`) and the Analyzer screen.
+Not built (the button is in place and says "not built yet"): Print.
 Not built either: deleting a tee, merging two courses.
 - **Edit Course** (built, v4.20): no separate button. On New Course, typing a saved course's name and zip loads its
   tees (first four) into the frames; title "Edit Course"; empty frames take new tees. City/state editable (a change
@@ -319,13 +318,30 @@ Not built either: deleting a tee, merging two courses.
   out; Historical column dropped when no exported round is historical) and ReadMe.txt; temporary files then a move;
   any failure deletes the half-made folder. Only reads: no backup, works on the sample data (LastExportFolder is not
   saved there). Footer "Exported 12 sets of tees and 37 rounds to ...." Tests include a round trip through Import.
-- **Analyzer data** (built, v4.00 before release; NO screen yet): `CourseAnalysis` (engine). `rows`/`latestRow` are
+- **Analyzer data** (built, v4.00 before release): `CourseAnalysis` (engine). `rows`/`latestRow` are
   Best Round's choices; `analyse(row, rounds, tees, includeHistorical)` gives per hole par, rounds, counts and exact
   percentages in `CATEGORIES` (Dbl Eagle <= -3, Eagle, Birdie, Par, Bogey, Dbl Bogey, Other >= +3), average score and
   over par, best, worst, average putts, fairway % (par 4/5; NaN on par 3), GIR %, sand saves % (NaN without sand);
   Out/In (18-hole rows only) and All totals (the same figures per round over those holes); a Summary;
-  `hardestHoles(n)`/`bestHoles(n)` by average over par, ties by hole number. The user's screen mock-ups (Counts /
-  Percent / Averages views) are in `Incoming/`.
+  `hardestHoles(n)`/`bestHoles(n)` by average over par, ties by hole number (over par is worked out as strokes over
+  par / count, not average minus par, so equal averages tie exactly in floating point).
+- **Analyzer screen** (built, v4.00 before release): `AnalyzerPage` (card `ANALYZER`, `Shell.analyzer()`, Home's
+  Analyzer button; background `analyzer.jpg`; help `analyzer-*`). Bar like Best Round's: Course / tee pulldown
+  (`CourseAnalysis.rows`, default `latestRow`) and Counts / Percent / Averages (Counts ticked on every opening).
+  Under it, centred: a caption `WoodFrame` (WoodTags 108 x 22 in 24 px rows) and 10 px right a grid `WoodFrame`
+  (white JLabel cells 36 x 24, 13 pt, bold heading row, hairlines under and right; Out/In (18-hole rows only)/All in
+  (236,236,236)). Width 130 + 10 + (21 x 36 + 22 = 778) = 918 of the 921 px inside the page's 12 px edges. Under
+  both, a teak `WoodFrame` summary (Rounds, Avg score, Best score / Putts / round, Fairways, Greens / Sand saves,
+  Hardest holes on (255,214,208), Best holes on (255,236,150)) with Close 112 x 32 (goes Home). Counts and Percent
+  rows: Hole, Hole par, Rounds and the seven results (Percent rounded to whole numbers; totals are of holes played);
+  Averages rows: Avg score, Avg vs par (signed one decimal, whole number in totals), Best, Worst, Avg putts, Fairway
+  %, Greens %, Sand saves %. Zero counts/percentages and NaN show a faint "-" (170,165,155); in Averages a 0 is
+  shown. Tints only with 2+ rounds: red `hardestHoles(3)`, gold the first three of `bestHoles` not red, on the hole
+  numbers and (Averages) the Avg vs par row. Footer "6 rounds on X." + the tint sentence when tinted +
+  `StatsPage.HISTORICAL_LEFT_OUT` when historical rounds are left out; no rounds: "There are no rounds yet.",
+  controls off, an 18-hole grid of dashes. Tab order (`BarTraversal`): pulldown, Counts, Percent, Averages, Close.
+- `Incoming/` holds the user's design pictures for reference while a feature is built; they are not committed and
+  are removed once it is done.
 - **Correct...** (built, v4.80): in Edit Course `courseField`/`zipField` are locked; `CoursePage.correctButton`
   (90 x 24) sets `correcting` (no lookups while it is on). Save: `DataStore.correctCourse` ->
   `CourseWriter.correctCourse` rewrites only the Course, Zip, City and State cells of every tee (backup first);

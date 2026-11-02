@@ -36,6 +36,10 @@ Press Stats Board to see your statistics for each course and set of tees, side b
 
 Press Best Round to see your lowest round on a course and set of tees. Click Composite there to see your best score on every hole put together into one round: what you could shoot if every hole went as well as it ever has. The ? button on that screen tells you more.
 
+# Hole by hole
+
+Press Analyzer to see how you play every hole of a course and set of tees: how often you make each score, and your averages for score, putts, fairways, greens and sand saves. Red marks the holes where you lose the most strokes, gold your best holes. The ? button on that screen shows how to use it to find where your strokes go.
+
 # Using what the numbers tell you
 
 Look at your four percentages: Fairways Hit, Greens In Reg, Sand Saves and Two-Putt. See which one is low compared with the others. That is where to practice.
