@@ -56,6 +56,10 @@ final class ReportSelfTest
         checkRoundLog();
         checkRoundLogPages();
         checkScorecard();
+        checkBestRound();
+        checkStatsBoard();
+        checkMyScorecard();
+        checkCourseNotes();
     }
 
     // ------------------------------------------------------------ made-up rounds
@@ -502,5 +506,233 @@ final class ReportSelfTest
         check("scorecard and round log: a long course name is cut short inside the margins", PrintSelfTest.inked(longCard, 1041, 60, 1100, 110) == 0
                 && PrintSelfTest.inked(longCard, 900, 66, 1040, 110) > 50 && Sheet.fit(longTee.label(), Sheet.sans(java.awt.Font.PLAIN, 13), 174)
                 .endsWith(Sheet.ELLIPSIS) && PrintSelfTest.near(longLog, 320, 202, 360, 222, Sheet.INK) > 5);
+    }
+
+    // ------------------------------------------------------------ part 3
+
+    /*
+     * withIndex(data, index): the same data with today's Handicap Index set by hand (null for none), for the card's strokes.
+     */
+    static ReportData withIndex(ReportData data, Double index)
+    {
+        Handicap.Result result = new Handicap.Result(data.handicap().entries(), data.handicap().currentDifferentials(), index, null);
+        return new ReportData(data.rounds(), data.tees(), result, data.golfer(), data.includeHistorical(), data.sample(), data.today(),
+                data.version());
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | checkBestRound()                                                         |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Best Round on Test Links (round 1 all pars, round 2 all bogeys): the     |
+     | single best is round 1 with its date and number; the composite takes     |
+     | the best score on every hole, says how many rounds it was built from     |
+     | and has no differential or index, as on the Best Round screen.           |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing                                                      |
+     +--------------------------------------------------------------------------+
+     */
+    private static void checkBestRound()
+    {
+        List<Round> rounds = new ArrayList<>();
+        rounds.add(round(1, LINKS, "2026-01-10", 0, Tee.HOLES, 0, 2, true, new int[0], false));
+        Round bogeys = round(2, LINKS, "2026-02-10", 0, Tee.HOLES, 1, 2, false, new int[0], false);
+        int[] mixed = bogeys.scores().clone();
+        mixed[0] = PARS[0] - 1;
+        rounds.add(new Round(2, LINKS.id(), bogeys.date(), 0, 0, Tee.HOLES, mixed, bogeys.putts(), bogeys.fairway(), bogeys.sand()));
+        ReportData data = data(rounds);
+        golfanalyst.BestRound.Choice choice = golfanalyst.BestRound.latestChoice(data.rounds(), data.tees(), true);
+        ScorecardReport single = ScorecardReport.forBest(data, choice, false);
+        check("best round: the single best round with its date and number", single.round().id() == 1
+                && single.heading().equals("Best Round   -   Test Links (White)") && single.subtitle(0).equals("Pat   -   2026-01-10   -   round 00001")
+                && single.name().equals("Best Round") && single.figures().get(0)[1].equals("72   (E)"));
+        ScorecardReport composite = ScorecardReport.forBest(data, choice, true);
+        List<String> scores = composite.rowTexts().get(2);
+        check("best round: the composite is the best score on every hole and has no differential or index", composite.composite()
+                && composite.heading().equals("Best Round   -   Test Links (White) (composite)")
+                && composite.subtitle(0).equals("Pat   -   built from your 2 rounds") && scores.get(0).equals("3") && scores.get(1).equals("4")
+                && scores.get(20).equals("71") && composite.figures().get(7)[1].equals("-") && composite.figures().get(8)[1].equals("-"));
+        check("best round: no course chosen has nothing to print", ScorecardReport.forBest(data, null, false).isEmpty());
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | checkStatsBoard()                                                        |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | The Stats Board report: the two total rows first, the 18-hole rows, the  |
+     | "Nine-hole rounds" band and the nine-hole rows; the screen's columns and |
+     | words; the best figures shaded where StatsBoard.best says; the           |
+     | historical words; and 30 sets of tees breaking onto a second page with   |
+     | the header row again.                                                    |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing                                                      |
+     +--------------------------------------------------------------------------+
+     */
+    private static void checkStatsBoard()
+    {
+        List<Round> rounds = logRounds();
+        rounds.add(round(5, NINE, "2026-04-01", 0, Tee.NINE, 0, 2, true, new int[0], false));
+        rounds.add(round(6, NINE, "2026-04-08", 0, Tee.NINE, 1, 2, true, new int[0], false));
+        ReportData data = data(rounds);
+        StatsBoardReport board = new StatsBoardReport(data, false);
+        Table table = board.table();
+        List<Table.Row> rows = table.rows();
+        check("stats board: totals first, then the 18-hole rows, the nine-hole band and the nine-hole rows", rows.size() == 6
+                && rows.get(0).kind() == Table.Kind.TOTAL && rows.get(0).cells().get(0).equals("All 18-hole rounds")
+                && rows.get(1).cells().get(0).equals("All nine-hole rounds") && rows.get(2).cells().get(0).equals("Test Links:White")
+                && rows.get(3).kind() == Table.Kind.GROUP && rows.get(3).cells().get(0).equals(StatsBoardReport.NINE_BAND)
+                && rows.get(4).cells().get(0).equals("Little Nine:Red") && rows.get(5).cells().get(0).equals("Test Links:White (Front 9)"));
+        check("stats board: the screen's columns and words", table.columns().size() == 10 && table.columns().get(0).width() == 266
+                && table.columns().get(1).width() == 96 && table.columns().get(9).title().equals("Sand %") && table.width() == 858
+                && rows.get(2).cells().get(2).equals("2") && rows.get(2).cells().get(3).equals("81")
+                && rows.get(2).cells().get(1).equals("72.0 / 113") && board.subtitle(0).equals("Pat   -   historical rounds not included")
+                && new StatsBoardReport(data, true).subtitle(0).endsWith("historical rounds included"));
+        java.util.Map<golfanalyst.StatsBoard.Column, java.util.Set<String>> best = golfanalyst.StatsBoard.best(board.board().nine());
+        boolean shadedRight = true;
+        for (int col = 0; col < golfanalyst.StatsBoard.Column.values().length; col = col + 1)
+        {
+            java.util.Set<String> keys = best.get(golfanalyst.StatsBoard.Column.values()[col]);
+            boolean wanted = keys != null && keys.contains(board.board().nine().get(0).key());
+            shadedRight = shadedRight && rows.get(4).shadedCells().contains(col) == wanted;
+        }
+        check("stats board: the best figures are shaded as the screen shows gold", shadedRight && rows.get(0).shadedCells().isEmpty());
+
+        java.util.Map<Integer, Tee> many = new HashMap<>();
+        List<Round> manyRounds = new ArrayList<>();
+        for (int lp = 0; lp < 30; lp = lp + 1)
+        {
+            Tee tee = new Tee(10 + lp, "Course " + (10 + lp), "Fort Mill", "SC", "29708", "White", Tee.HOLES, 72.0, 113, 6000, PARS, INDEXES,
+                    36.0, 113, 36.0, 113);
+            many.put(tee.id(), tee);
+            manyRounds.add(round(100 + lp, tee, LocalDate.of(2026, 1, 1).plusDays(lp).toString(), 0, Tee.HOLES, 0, 2, true, new int[0],
+                    false));
+        }
+        ReportData manyData = new ReportData(manyRounds, many, Handicap.compute(manyRounds, many), "Pat", true, false, PrintSelfTest.TODAY,
+                "4.00");
+        StatsBoardReport long1 = new StatsBoardReport(manyData, true);
+        BufferedImage second = PrintSelfTest.picture(long1, 1, Sheet.LETTER_SHORT);
+        check("stats board: many rows break onto a second page with the header row again", long1.pageCount(Sheet.LETTER_SHORT) == 2
+                && long1.rowsPerPage(Sheet.LETTER_SHORT) == 23 && PrintSelfTest.count(second, 70, 175, 900, 195, Sheet.BROWN) > 1000
+                && PrintSelfTest.near(second, 70, 205, 300, 225, Sheet.INK) > 20);
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | checkMyScorecard()                                                       |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | My scorecard on Test Links (rating 72.0, slope 113, par 72, so the       |
+     | course handicap is the index rounded): 15.3 gives 15, a stroke on        |
+     | handicap numbers 1-15 and pick-up par + 3 there; 20.0 gives 20, two      |
+     | strokes on numbers 1 and 2; 0.0 gives none and pick-up par + 2; a plus   |
+     | 2.0 gives a stroke back ("-1") on numbers 17 and 18 and shows "+2"; a    |
+     | nine-hole course uses half the index (7.7) with the nine's rating 35.0   |
+     | and par 36, so 7; with no index the Strokes row is empty and pick-up is  |
+     | par + 5.                                                                 |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing                                                      |
+     +--------------------------------------------------------------------------+
+     */
+    private static void checkMyScorecard()
+    {
+        ReportData data = data(logRounds());
+        MyScorecardReport fifteen = new MyScorecardReport(withIndex(data, 15.3), LINKS);
+        int[] strokes = fifteen.strokes();
+        int[] pickUps = fifteen.pickUps();
+        check("my scorecard: index 15.3 gives 15 strokes, one on handicap numbers 1 to 15", fifteen.courseHandicap() == 15
+                && strokes[2] == 1 && strokes[1] == 1 && strokes[5] == 0 && strokes[14] == 0 && pickUps[2] == 3 + 3 && pickUps[5] == 4 + 2
+                && fifteen.subtitle(0).equals("Pat   -   Handicap Index 15.3") && fifteen.heading().equals("My Scorecard   -   Test Links (White)"));
+        List<List<String>> rows = fifteen.rowTexts();
+        check("my scorecard: the rows and their totals, and four empty rows to write in", fifteen.headings().size() == 21
+                && rows.get(2).get(20).equals("15") && rows.get(0).get(20).equals("72") && rows.get(3).get(20).equals(Integer.toString(72 + 36 + 15))
+                && rows.get(1).get(9).isEmpty() && rows.get(4).get(0).isEmpty() && rows.get(7).get(20).isEmpty()
+                && fifteen.figures().get(0)[1].equals("15") && fifteen.figures().get(1)[1].equals("72.0 / 113")
+                && fifteen.figures().get(2)[1].equals("6200") && fifteen.figures().get(3)[1].equals("72"));
+        MyScorecardReport twenty = new MyScorecardReport(withIndex(data, 20.0), LINKS);
+        check("my scorecard: index 20.0 gives two strokes on the two hardest holes", twenty.courseHandicap() == 20 && twenty.strokes()[2] == 2
+                && twenty.strokes()[11] == 2 && twenty.strokes()[0] == 1 && twenty.pickUps()[2] == 3 + 4);
+        MyScorecardReport zero = new MyScorecardReport(withIndex(data, 0.0), LINKS);
+        boolean allZero = true;
+        for (int hole = 0; hole < Tee.HOLES; hole = hole + 1)
+        {
+            allZero = allZero && zero.strokes()[hole] == 0 && zero.pickUps()[hole] == PARS[hole] + 2;
+        }
+        check("my scorecard: a zero handicap gives no strokes and pick-up par + 2", zero.courseHandicap() == 0 && allZero);
+        MyScorecardReport plus = new MyScorecardReport(withIndex(data, -2.0), LINKS);
+        check("my scorecard: a plus handicap gives a stroke back on the two easiest holes", plus.courseHandicap() == -2
+                && plus.strokes()[14] == -1 && plus.strokes()[5] == -1 && plus.strokes()[0] == 0 && plus.rowTexts().get(2).get(15).equals("-1")
+                && plus.pickUps()[14] == PARS[14] + 1 && plus.figures().get(0)[1].equals("+2") && plus.subtitle(0).endsWith("Handicap Index +2.0"));
+        MyScorecardReport nine = new MyScorecardReport(withIndex(data, 15.3), NINE);
+        int ninth = 0;
+        for (int stroke : nine.strokes())
+        {
+            ninth = ninth + stroke;
+        }
+        check("my scorecard: a nine-hole course uses half the index with the nine's rating", nine.courseHandicap() == 7 && ninth == 7
+                && nine.strokes()[0] == 1 && nine.strokes()[1] == 0 && nine.headings().size() == 10
+                && nine.headings().get(9).equals("Total") && nine.rowTexts().get(0).get(9).equals("36"));
+        MyScorecardReport none = new MyScorecardReport(withIndex(data, null), LINKS);
+        check("my scorecard: with no index the Strokes row is empty and pick-up is par + 5", none.strokes() == null
+                && none.rowTexts().get(2).get(0).isEmpty() && none.rowTexts().get(2).get(20).isEmpty() && none.pickUps()[0] == PARS[0] + 5
+                && none.figures().get(0)[1].equals("-") && none.subtitle(0).equals("Pat   -   no Handicap Index yet"));
+        BufferedImage page = PrintSelfTest.picture(none, 0, Sheet.LETTER_SHORT);
+        check("my scorecard: the card, the notes and the box fit above the foot rule", PrintSelfTest.count(page, 60, 700, 1040, 780, Sheet.BOX) == 0
+                && PrintSelfTest.count(page, 100, 580, 1000, 650, Sheet.BOX) > 1000);
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | checkCourseNotes()                                                       |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Course notes on two rounds made to be worst on holes 11, 5 and 6 (in     |
+     | that ranking) and best on 13, 8 and 9: the lists in hole-number order,   |
+     | the hole numbers tinted red and gold on the page, the rows and totals,   |
+     | and no tint with one round.                                              |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing                                                      |
+     +--------------------------------------------------------------------------+
+     */
+    private static void checkCourseNotes()
+    {
+        int[] extra = {0, 0, 0, 0, 3, 2, 0, -1, -1, 0, 4, 0, -2, 0, 0, 0, 0, 0};
+        List<Round> rounds = new ArrayList<>();
+        for (int lp = 0; lp < 2; lp = lp + 1)
+        {
+            Round even = round(lp + 1, LINKS, LocalDate.of(2026, 3, 1).plusDays(lp).toString(), 0, Tee.HOLES, 0, 2, true, new int[0], false);
+            int[] scores = even.scores().clone();
+            for (int hole = 0; hole < Tee.HOLES; hole = hole + 1)
+            {
+                scores[hole] = scores[hole] + extra[hole];
+            }
+            rounds.add(new Round(even.id(), LINKS.id(), even.date(), 0, 0, Tee.HOLES, scores, even.putts(), even.fairway(), even.sand()));
+        }
+        ReportData data = data(rounds);
+        golfanalyst.BestRound.Choice row = golfanalyst.CourseAnalysis.latestRow(data.rounds(), data.tees(), true);
+        CourseNotesReport notes = new CourseNotesReport(data, row);
+        check("course notes: the hardest and easiest holes in hole-number order", notes.analysis().hardestHoles(3).equals(List.of(11, 5, 6))
+                && notes.hardest().equals(List.of(5, 6, 11)) && notes.easiest().equals(List.of(8, 9, 13))
+                && notes.figures().get(7)[1].equals("5, 6, 11") && notes.figures().get(8)[1].equals("8, 9, 13")
+                && notes.heading().equals("Course Notes   -   Test Links (White)") && notes.subtitle(0).equals("Pat   -   2 rounds"));
+        List<List<String>> rows = notes.rowTexts();
+        check("course notes: the rows, Out, In and All", notes.headings().size() == 21 && notes.headings().get(18).equals("Out")
+                && notes.headings().get(20).equals("All") && rows.get(0).get(20).equals("72") && rows.get(3).get(10).equals("+4.0")
+                && rows.get(3).get(12).equals("-2.0") && rows.get(2).get(4).equals("7.0") && rows.get(1).get(0).equals("7")
+                && rows.get(1).get(19).isEmpty() && rows.get(7).get(2).equals("-") && rows.get(3).get(20).equals("+5"));
+        BufferedImage page = PrintSelfTest.picture(notes, 0, Sheet.LETTER_SHORT);
+        int left = (int) (Sheet.MARGIN + Card.LABEL_WIDTH);
+        int top = (int) CourseNotesReport.CARD_TOP + 3;
+        check("course notes: the hole numbers are tinted red and gold on the page", PrintSelfTest.count(page, left + 4 * 42 + 3, top, left + 4 * 42 + 8,
+                top + 5, Sheet.HARD) > 10 && PrintSelfTest.count(page, left + 12 * 42 + 3, top, left + 12 * 42 + 8, top + 5, Sheet.EASY) > 10
+                && PrintSelfTest.count(page, left + 3, top, left + 8, top + 5, Sheet.BROWN) > 10);
+        CourseNotesReport one = new CourseNotesReport(data(List.of(rounds.get(0))), row);
+        check("course notes: one round is not tinted", one.hardest().isEmpty() && one.figures().get(7)[1].equals("-")
+                && one.figures().get(8)[1].equals("-"));
     }
 }

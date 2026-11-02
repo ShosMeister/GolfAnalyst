@@ -1,25 +1,38 @@
 package golfanalyst.print;
 
 import golfanalyst.StatsBoard;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /*
  +--------------------------------------------------------------------------+
  | StatsBoardReport                                                         |
  +--------------------------------------------------------------------------+
  | Purpose:                                                                 |
- | The Stats Board on paper (on its side): the same columns, rows and       |
- | rounding as the screen, the nine-hole rows in their own section after    |
- | the 18-hole rows, and the best figure of each column shaded where the    |
- | screen shows gold.                                                       |
+ | The Stats Board on paper (on its side): the screen's columns (Course :   |
+ | Tee Box 266, Rating\Slope 96, then Rnds, Avg, Best, Fwy %, GIR %,        |
+ | 2-Putt %, Putts/Rnd and Sand % at 62 each), its rows and its rounding    |
+ | (StatsBoard's own text for every cell). First the two tan total rows,    |
+ | "All 18-hole rounds" and "All nine-hole rounds", then a row per tee for  |
+ | 18-hole rounds, then a "Nine-hole rounds" band and the nine-hole rows.   |
+ | The best figure of a column among rows with 2 or more rounds is shaded   |
+ | (255,240,190) where the screen shows gold, each section on its own.      |
+ | Rows are 24 high from y 170; every page repeats the header row.          |
  |                                                                          |
  | Public Methods:                                                          |
- | the Report methods; board() - the figures                                |
+ | the Report methods; board(); table(); rowsPerPage(height)                |
  +--------------------------------------------------------------------------+
  */
 public final class StatsBoardReport extends Report
 {
 
     public static final String NAME = "Stats Board";
+    public static final String NINE_BAND = "Nine-hole rounds";
+    static final double TABLE_TOP = 170;
+    static final double ROW_HEIGHT = 24;
+    private static final double[] WIDTHS = {266, 96, 62, 62, 62, 62, 62, 62, 62, 62};
     private final boolean includeHistorical;
     private final StatsBoard.Board board;
 
@@ -105,20 +118,94 @@ public final class StatsBoardReport extends Report
     }
 
     /*
+     * row(row, kind, best): one board row as a table row, its best figures shaded.
+     */
+    private static Table.Row row(StatsBoard.Row row, Table.Kind kind, Map<StatsBoard.Column, Set<String>> best)
+    {
+        List<String> cells = new ArrayList<>();
+        List<Integer> shaded = new ArrayList<>();
+        StatsBoard.Column[] columns = StatsBoard.Column.values();
+        for (int col = 0; col < columns.length; col = col + 1)
+        {
+            cells.add(row.text(columns[col]));
+            Set<String> keys = best.get(columns[col]);
+            if (keys != null && keys.contains(row.key()))
+            {
+                shaded.add(col);
+            }
+        }
+        return new Table.Row(cells, kind, shaded);
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | table()                                                                  |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | The whole board as one table (see the class comment for the order).      |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: the table                                                    |
+     +--------------------------------------------------------------------------+
+     */
+    public Table table()
+    {
+        List<Table.Column> columns = new ArrayList<>();
+        StatsBoard.Column[] boardColumns = StatsBoard.Column.values();
+        for (int col = 0; col < boardColumns.length; col = col + 1)
+        {
+            Table.Align align = Table.Align.CENTRE;
+            if (col == 0)
+            {
+                align = Table.Align.LEFT;
+            }
+            columns.add(new Table.Column(boardColumns[col].heading(), WIDTHS[col], align));
+        }
+        Table table = new Table(columns, ROW_HEIGHT);
+        table.add(row(board.allEighteen(), Table.Kind.TOTAL, Map.of()));
+        table.add(row(board.allNine(), Table.Kind.TOTAL, Map.of()));
+        Map<StatsBoard.Column, Set<String>> bestEighteen = StatsBoard.best(board.eighteen());
+        for (StatsBoard.Row row : board.eighteen())
+        {
+            table.add(row(row, Table.Kind.NORMAL, bestEighteen));
+        }
+        table.add(new Table.Row(List.of(NINE_BAND), Table.Kind.GROUP));
+        Map<StatsBoard.Column, Set<String>> bestNine = StatsBoard.best(board.nine());
+        for (StatsBoard.Row row : board.nine())
+        {
+            table.add(row(row, Table.Kind.NORMAL, bestNine));
+        }
+        return table;
+    }
+
+    /*
+     * rowsPerPage(height): how many rows fit on a page this high under the header row (at least 1).
+     */
+    public int rowsPerPage(double height)
+    {
+        return Math.max(1, table().rowsThatFit(bodyBottom(height) - TABLE_TOP));
+    }
+
+    /*
      * pageCount(height): how many pages the rows take.
      */
     @Override
     public int pageCount(double height)
     {
-        return 1;
+        int perPage = rowsPerPage(height);
+        return Math.max(1, (table().rows().size() + perPage - 1) / perPage);
     }
 
     /*
-     * paintBody(sheet, page, pages): the rows on this page.
+     * paintBody(sheet, page, pages): the header row and this page's rows.
      */
     @Override
     protected void paintBody(Sheet sheet, int page, int pages)
     {
-        // the table
+        Table table = table();
+        int perPage = rowsPerPage(sheet.height());
+        int first = Math.min(table.rows().size(), page * perPage);
+        int last = Math.min(table.rows().size(), first + perPage);
+        table.draw(sheet, Sheet.MARGIN, TABLE_TOP, first, last);
     }
 }

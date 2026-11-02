@@ -72,6 +72,22 @@ public final class Samples
             }
         }
         write(ScorecardReport.forRound(data, shown), 0, folder.resolve("print_actual_scorecard.png"));
+        golfanalyst.BestRound.Choice latest = golfanalyst.BestRound.latestChoice(data.rounds(), data.tees(), data.includeHistorical());
+        write(ScorecardReport.forBest(data, latest, false), 0, folder.resolve("print_actual_best_round.png"));
+        write(new StatsBoardReport(data, data.includeHistorical()), 0, folder.resolve("print_actual_stats_board.png"));
+        write(new MyScorecardReport(data, data.tees().get(newest.teeId())), 0, folder.resolve("print_actual_my_scorecard.png"));
+        golfanalyst.BestRound.Choice busiest = null;
+        int most = 0;
+        for (golfanalyst.BestRound.Choice row : golfanalyst.CourseAnalysis.rows(data.rounds(), data.tees(), data.includeHistorical()))
+        {
+            int count = golfanalyst.BestRound.roundsOf(row, data.rounds(), data.tees(), data.includeHistorical()).size();
+            if (count > most)
+            {
+                most = count;
+                busiest = row;
+            }
+        }
+        write(new CourseNotesReport(data, busiest), 0, folder.resolve("print_actual_course_notes.png"));
         System.out.println("Pictures written to " + folder.toAbsolutePath());
     }
 

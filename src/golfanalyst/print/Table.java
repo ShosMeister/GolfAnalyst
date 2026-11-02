@@ -62,11 +62,12 @@ public final class Table
 
     /*
      * Kind: NORMAL rows take the zebra colours by their place, SHADED rows are shaded all across, GROUP rows are tan and bold
-     * with their first cell written across the whole row, STRIPE rows always take the zebra colour and WHITE rows are always white.
+     * with their first cell written across the whole row, STRIPE rows always take the zebra colour and WHITE rows are always white;
+     * TOTAL rows are tan with bold words in every cell.
      */
     public enum Kind
     {
-        NORMAL, SHADED, GROUP, STRIPE, WHITE
+        NORMAL, SHADED, GROUP, STRIPE, WHITE, TOTAL
     }
 
     /*
@@ -190,7 +191,7 @@ public final class Table
             {
                 face = Sheet.SHADE;
             }
-            else if (row.kind() == Kind.GROUP)
+            else if (row.kind() == Kind.GROUP || row.kind() == Kind.TOTAL)
             {
                 face = GROUP_FACE;
             }
@@ -205,7 +206,12 @@ public final class Table
                 top = top + rowHeight;
                 continue;
             }
-            Font font = Sheet.sans(Font.PLAIN, BODY_SIZE);
+            int style = Font.PLAIN;
+            if (row.kind() == Kind.TOTAL)
+            {
+                style = Font.BOLD;
+            }
+            Font font = Sheet.sans(style, BODY_SIZE);
             double left = x;
             for (int col = 0; col < columns.size(); col = col + 1)
             {

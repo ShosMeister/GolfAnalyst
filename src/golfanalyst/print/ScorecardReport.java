@@ -609,147 +609,28 @@ public final class ScorecardReport extends Report
         {
             return;
         }
-        paintCard(sheet);
+        List<Boolean> totals = new ArrayList<>();
+        for (int slot : slots())
+        {
+            totals.add(slot < 0);
+        }
+        int[] pars = parsPlayed();
+        List<Integer> slots = slots();
+        Card.paint(sheet, CARD_TOP, LABELS, headings(), totals, rowTexts(), ROW_HEIGHT, SCORE_ROW, java.util.Map.of(),
+                (onSheet, row, col, centreX, centreY) ->
+                {
+                    int hole = slots.get(col);
+                    if (row == SCORE_ROW && hole >= 0)
+                    {
+                        paintMark(onSheet, markOf(round.scores()[hole], pars[hole]), centreX, centreY);
+                    }
+                });
         Font legendFont = Sheet.sans(Font.PLAIN, 11);
         double across = sheet.width() - Sheet.MARGIN - Sheet.MARGIN;
         double legendTop = cardBottom() + LEGEND_GAP;
         sheet.text(Sheet.fit(LEGEND, legendFont, across), Sheet.MARGIN, legendTop, legendFont, Sheet.GREY);
-        double boxTop = legendTop + Sheet.lineHeight(legendFont) + BOX_GAP;
-        paintFigures(sheet, figures(), boxTop, across);
-    }
-
-    /*
-     +--------------------------------------------------------------------------+
-     | paintFigures(sheet, pairs, boxTop, across)                               |
-     +--------------------------------------------------------------------------+
-     | Purpose:                                                                 |
-     | The rounded figures box (radius 10, (240,236,228) with a dark brown 2    |
-     | unit edge, 230 high): three columns by three rows of a grey 12 caption   |
-     | and a bold 21 value.                                                     |
-     |                                                                          |
-     | Passed in:  sheet  - the page                                            |
-     |             pairs  - nine captions and values, in reading order          |
-     |             boxTop - where the box starts                                |
-     |             across - its width                                           |
-     | Passed out: nothing                                                      |
-     +--------------------------------------------------------------------------+
-     */
-    static void paintFigures(Sheet sheet, List<String[]> pairs, double boxTop, double across)
-    {
-        sheet.roundBox(Sheet.MARGIN, boxTop, across, BOX_HEIGHT, 10, Sheet.BOX, Sheet.BROWN, 2);
-        double columnWidth = FIGURE_STEP;
-        for (int lp = 0; lp < pairs.size(); lp = lp + 1)
-        {
-            int col = lp % 3;
-            int row = lp / 3;
-            double x = Sheet.MARGIN + 28 + col * columnWidth;
-            double captionTop = boxTop + 26 + row * 66;
-            sheet.text(pairs.get(lp)[0], x, captionTop, Sheet.sans(Font.PLAIN, 12), Sheet.GREY);
-            Font valueFont = Sheet.sans(Font.BOLD, 21);
-            sheet.text(Sheet.fit(pairs.get(lp)[1], valueFont, columnWidth - 12), x, captionTop + 18, valueFont, Sheet.INK);
-        }
-    }
-
-    /*
-     +--------------------------------------------------------------------------+
-     | paintCard(sheet)                                                         |
-     +--------------------------------------------------------------------------+
-     | Purpose:                                                                 |
-     | The card itself: the brown header row, the six body rows with their      |
-     | zebra colours, the shaded Out/In/Total cells, the light outlines and     |
-     | the score marks.                                                         |
-     |                                                                          |
-     | Passed in:  sheet - the page                                             |
-     | Passed out: nothing                                                      |
-     +--------------------------------------------------------------------------+
-     */
-    private void paintCard(Sheet sheet)
-    {
-        List<String> headings = headings();
-        List<Integer> slots = slots();
-        List<List<String>> rows = rowTexts();
-        int[] pars = parsPlayed();
-        double width = cardWidth();
-        double x = Sheet.MARGIN;
-        Font headFont = Sheet.sans(Font.BOLD, 13);
-        sheet.fill(x, CARD_TOP, width, HEADER_HEIGHT, Sheet.BROWN);
-        sheet.textIn("Hole", x, CARD_TOP, LABEL_WIDTH, HEADER_HEIGHT, headFont, java.awt.Color.WHITE, Table.Align.CENTRE, 0);
-        for (int col = 0; col < headings.size(); col = col + 1)
-        {
-            sheet.textIn(headings.get(col), x + LABEL_WIDTH + col * HOLE_WIDTH, CARD_TOP, HOLE_WIDTH, HEADER_HEIGHT, headFont,
-                    java.awt.Color.WHITE, Table.Align.CENTRE, 0);
-        }
-        double top = CARD_TOP + HEADER_HEIGHT;
-        for (int row = 0; row < rows.size(); row = row + 1)
-        {
-            java.awt.Color face = java.awt.Color.WHITE;
-            if (row % 2 == 1)
-            {
-                face = Sheet.ZEBRA;
-            }
-            sheet.fill(x, top, width, ROW_HEIGHT, face);
-            sheet.textIn(LABELS.get(row), x, top, LABEL_WIDTH, ROW_HEIGHT, Sheet.sans(Font.BOLD, 13), Sheet.BROWN, Table.Align.CENTRE, 0);
-            for (int col = 0; col < slots.size(); col = col + 1)
-            {
-                double left = x + LABEL_WIDTH + col * HOLE_WIDTH;
-                boolean total = slots.get(col) < 0;
-                if (total)
-                {
-                    sheet.fill(left, top, HOLE_WIDTH, ROW_HEIGHT, Sheet.BOX);
-                }
-                double size = 13;
-                int style = Font.PLAIN;
-                if (row == SCORE_ROW)
-                {
-                    size = 15;
-                    style = Font.BOLD;
-                }
-                if (total)
-                {
-                    style = Font.BOLD;
-                }
-                cellWords(sheet, rows.get(row).get(col), left, top, Sheet.sans(style, size));
-                if (row == SCORE_ROW && !total)
-                {
-                    int hole = slots.get(col);
-                    paintMark(sheet, markOf(round.scores()[hole], pars[hole]), left + HOLE_WIDTH / 2, top + ROW_HEIGHT / 2);
-                }
-            }
-            top = top + ROW_HEIGHT;
-        }
-        double bodyTop = CARD_TOP + HEADER_HEIGHT;
-        for (int row = 0; row <= rows.size(); row = row + 1)
-        {
-            sheet.line(x, bodyTop + row * ROW_HEIGHT, x + width, bodyTop + row * ROW_HEIGHT, OUTLINE, 1);
-        }
-        sheet.line(x, bodyTop, x, top, OUTLINE, 1);
-        for (int col = 0; col <= slots.size(); col = col + 1)
-        {
-            double lineX = x + LABEL_WIDTH + col * HOLE_WIDTH;
-            sheet.line(lineX, bodyTop, lineX, top, OUTLINE, 1);
-        }
-    }
-
-    /*
-     * cellWords(sheet, words, left, top, font): the words centred in a hole cell; a check mark the font cannot draw is drawn as a tick.
-     */
-    private static void cellWords(Sheet sheet, String words, double left, double top, Font font)
-    {
-        if (words.equals(Sheet.CHECK) && font.canDisplayUpTo(words) != -1)
-        {
-            paintTick(sheet, left + HOLE_WIDTH / 2, top + ROW_HEIGHT / 2);
-            return;
-        }
-        sheet.textIn(words, left, top, HOLE_WIDTH, ROW_HEIGHT, font, Sheet.INK, Table.Align.CENTRE, 0);
-    }
-
-    /*
-     * paintTick(sheet, centreX, centreY): a drawn tick, for a font with no check mark.
-     */
-    private static void paintTick(Sheet sheet, double centreX, double centreY)
-    {
-        sheet.line(centreX - 6, centreY, centreX - 2, centreY + 5, Sheet.INK, 2.5);
-        sheet.line(centreX - 2, centreY + 5, centreX + 6, centreY - 6, Sheet.INK, 2.5);
+        double boxTop = Math.min(legendTop + Sheet.lineHeight(legendFont) + BOX_GAP, bodyBottom(sheet.height()) + 10 - BOX_HEIGHT);
+        Card.paintFigures(sheet, figures(), boxTop, BOX_HEIGHT, 3, 66, null);
     }
 
     /*
