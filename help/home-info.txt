@@ -16,7 +16,7 @@ Rounds Used: How many of the rounds on record count toward your index, out of ho
 
 # Historical rounds
 
-A historical round is a saved round kept for reference, such as a round brought over from the Excel version. It never counts toward your Handicap Index. Whether it counts in your statistics, the Stats Board and Best Round is up to you: check or uncheck Include historical rounds under Golfer's Stats. It starts checked, because your historical rounds are still true facts about your game. Uncheck it to see how you play without historical rounds included. When you step through your rounds, a historical round says "historical" in the 18-Hole Diff box, and the bar at the bottom says so too.
+A historical round is a saved round kept for reference, such as a round brought over from the Excel version. It never counts toward your Handicap Index. Whether it counts in your statistics, the Stats Board, Best Round and the Analyzer is up to you: check or uncheck Include historical rounds under Golfer's Stats. It starts checked, because your historical rounds are still true facts about your game. Uncheck it to see how you play without historical rounds included. When you step through your rounds, a historical round says "historical" in the 18-Hole Diff box, and the bar at the bottom says so too.
 
 # The Golfer's Stats section (right)
 
@@ -36,7 +36,7 @@ Greens In Reg: The percentage of holes where you reached the green in regulation
 
 Two-Putt: The percentage of holes where you took two putts or fewer. Whatever is left over was three putts or more.
 
-Include historical rounds: Decides whether historical rounds count in the numbers in this section, in the round counts on the left, on the Stats Board and in Best Round. Checked, they do. Unchecked, only non-historical rounds are included. It never changes your Handicap Index, Low Index or Rounds Used, which never include historical rounds. The program remembers your choice.
+Include historical rounds: Decides whether historical rounds count in the numbers in this section, in the round counts on the left, on the Stats Board, in Best Round and in the Analyzer. Checked, they do. Unchecked, only non-historical rounds are included. It never changes your Handicap Index, Low Index or Rounds Used, which never include historical rounds. The program remembers your choice.
 
 # The buttons in the middle
 

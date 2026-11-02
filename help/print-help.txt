@@ -14,6 +14,22 @@ Press Print on the Home screen. The Print window opens over the program; nothing
 
 3. Check the gray box. It says what will be printed, for example "This will print 15 rounds.", or what still needs fixing.
 
+# The choices for each report
+
+Handicap Report: None. It always uses your last 20 rounds that count for your handicap.
+
+Round Log: Pick a course and set of tees (or All courses), a Period, and whether to include historical rounds.
+
+A round's scorecard: Pick the round. The newest are first.
+
+Best Round: Pick the course and set of tees, and Single or Composite, as on the Best Round screen.
+
+Stats Board: Choose whether to include historical rounds. The box starts the way it is on the Home screen.
+
+My scorecard for a course: Pick the course and set of tees. It uses your current Handicap Index, which the gray line shows.
+
+Course notes: Pick the course and set of tees, as on the Analyzer. It follows the Include historical rounds box on the Home screen.
+
 # The Round Log's Period
 
 All time: Every round you have.

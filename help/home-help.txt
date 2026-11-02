@@ -52,7 +52,7 @@ For example, I know, from using this program, that my weakness is getting to the
 
 # Historical rounds
 
-When you enter or edit a historical round, check the Historical box. To include or leave out historical rounds in the Home screen statistics, the Stats Board and Best Round, check or uncheck Include historical rounds under Golfer's Stats. Home Info explains the effect on your Handicap Index and statistics.
+When you enter or edit a historical round, check the Historical box. To include or leave out historical rounds in the Home screen statistics, the Stats Board, Best Round and the Analyzer, check or uncheck Include historical rounds under Golfer's Stats. Home Info explains the effect on your Handicap Index and statistics.
 
 # Seeing the whole picture
 

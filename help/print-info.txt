@@ -24,7 +24,7 @@ The lines underneath: Which differentials make your index and what their average
 
 # Round Log
 
-A list of your rounds, oldest first, for one set of tees or all courses, for the period you choose. For each round: the holes played, score, putts, fairways hit of your par 4s and 5s, greens in regulation, holes with two putts or fewer, sand saves of the holes where you were in a bunker, and the differential. A dagger marks a nine-hole round and an H a historical round.
+A list of your rounds, oldest first, for one set of tees or all courses, for the period you choose. For each round: the holes played, score, putts, fairways hit of your par 4s and 5s, greens in regulation, holes with two putts or fewer, sand saves of the holes where you were in a bunker, and the differential. A dagger marks a nine-hole round and an H a historical round. The Include historical rounds box in the Print window starts the way it is on the Home screen.
 
 The summary: For each kind of round (18 holes, front nine, back nine, nine-hole course) an Average row and a Best row. The percentages count every hole you played, not an average of each round's percentage.
 
@@ -40,7 +40,7 @@ Your best round on a course and set of tees on the same scorecard: the lowest ro
 
 # Stats Board
 
-The Stats Board screen on paper: your statistics for every course and set of tees, the nine-hole rounds in their own section. The shaded figures are the best in each column, where the screen shows gold.
+The Stats Board screen on paper: your statistics for every course and set of tees, the nine-hole rounds in their own section. The shaded figures are the best in each column among the sets of tees with two or more rounds, where the screen shows gold. The Include historical rounds box in the Print window starts the way it is on the Home screen.
 
 # My scorecard for a course
 
@@ -52,7 +52,7 @@ Pick-up number: The most a hole can count towards your handicap: a net double bo
 
 # Course notes
 
-The Analyzer's figures for a course and set of tees on one page: each hole's par, handicap number, average score, average over par, best, worst, putts, fairways and greens, with your three hardest holes in red and your three easiest in gold.
+The Analyzer's figures for a course and set of tees on one page: each hole's par, handicap number, average score, average over par, best, worst, putts, fairways and greens, with your three hardest holes in red and your three easiest in gold. It follows the Include historical rounds box on the Home screen.
 
 # Spreadsheet files
 
