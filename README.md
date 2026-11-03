@@ -9,6 +9,15 @@ Index (18-hole and 9-hole rounds), and the performance statistics.
 Needs a JDK, version 17 or newer (not just a "Java runtime"; the compiler is part of the JDK).
 No other libraries.
 
+## Installing it (Windows)
+
+`tools\make-installer.bat` builds `target\installer\GolfAnalyst-4.0.0-testcopy.exe` (every photograph; a test copy
+not to be shared) or, with `photos=none`, the public `GolfAnalyst-4.0.0.exe`, plus a "runs anywhere" zip for Mac and
+Linux (Java 17 or newer). The installer brings its own trimmed Java, installs just for you (no administrator
+rights) with a Start menu entry, and never writes inside its own folder: your data lives in `Documents\Golf Analyst`
+and uninstalling never touches it. How to build it, and what it needs (the WiX Toolset), is in
+[docs/BUILDING.md](docs/BUILDING.md). Testers get `README-testers.txt`.
+
 ## Running it
 
 **In NetBeans** (the usual way): File > Open Project, choose this folder (it shows a Maven icon).
@@ -41,9 +50,15 @@ with exit code 1 if either set of tests fails. Tell me the exact message if any 
 ## Which data folder it opens
 
 1. the folder you name when you start it;
-2. otherwise a folder called `data` next to the program;
-3. otherwise, if there is no `data` folder, `sample-data` (the window title and the footer say so);
-4. otherwise a new empty `data` folder with just the file headers.
+2. otherwise the folder named in `golfanalyst.location` (Settings, Change...): next to the program when run from
+   the project, in `%APPDATA%\Golf Analyst` when installed;
+3. otherwise your own data folder: `data` next to the program when run from the project, `Documents\Golf Analyst`
+   when installed;
+4. otherwise `sample-data` (the window title and the footer say so);
+5. otherwise a new empty own data folder with just the file headers.
+
+Installed (the installer, or `run.bat`/`run.sh` from the zip), the sample data comes with the program and is never
+written to: saving on it asks only whether to make your own data folder.
 
 `sample-data` is randomly generated and is not real. It is there to show the format. The program
 adds courses to `courses.tsv` and rounds to `rounds.tsv` itself when you press Save. While it is

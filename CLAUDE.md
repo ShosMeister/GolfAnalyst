@@ -7,7 +7,9 @@ Courses and rounds live in two plain tab-separated text files. Written for one u
 - Windows scripts in the project folder: `build.bat`, `app.bat` (opens the window), `run.bat` (text reports), `test.bat`.
   `jdk.bat` finds a JDK (PATH, JAVA_HOME, common folders, NetBeans' bundled JDK). The scripts call each other by
   full path (`call "%~dp0jdk.bat"`) so they work when `NoDefaultCurrentDirectoryInExePath` is set; keep it that way.
-  `test.bat` exits 1 if either test run fails.
+  `test.bat` exits 1 if either test run fails. `tools\make-installer.bat [photos=all|none] [type=exe|msi]` builds the
+  installer and the "runs anywhere" zip into `target\installer\` (never committed; see docs\BUILDING.md: Maven, jdeps,
+  jlink, jpackage, WiX 5 as a dotnet tool). Default photos=all: a TEST COPY, `-testcopy` in the file names.
 - NetBeans opens it as a Maven project (`pom.xml`, source folder is `src`, main class `golfanalyst.gui.App`).
   The program must run with the project folder as its working folder: it reads `images/`, `help/` and `data/`
   (or `sample-data/` if there is no `data/`).
@@ -26,7 +28,7 @@ Courses and rounds live in two plain tab-separated text files. Written for one u
   get data; also knows if it is the sample data), `Settings` (settings.txt), `DataLocation` (golfanalyst.location:
   which data folder to use), `Importer`, `Exporter`, `CourseDeleter`, `ZipCodes`, `StatsBoard` (the Stats Board's
   rows, totals, sorting and gold; no Swing), `BestRound` (Best Round's choices, best single round and composite; no
-  Swing), `CourseAnalysis` (the Analyzer's figures; no Swing), `Period` (the Print window's periods with a given today),
+  Swing), `ProgramFolders` (where the program's files are and where it may write: project or installed mode), `CourseAnalysis` (the Analyzer's figures; no Swing), `Period` (the Print window's periods with a given today),
   `Main` (text reports, `--selftest`), `SelfTest`.
 - `src/golfanalyst/print/`: the printed reports, drawn by code with java.awt only (no Swing windows) in design units:
   `Sheet` (drawing helpers, colours), `Table` (list tables), `Card` (scorecard-style tables and the figures box),
@@ -41,6 +43,9 @@ Courses and rounds live in two plain tab-separated text files. Written for one u
   (`WoodButton`, `IconButton`, `ValueBox`, `WoodPanel`, `WoodFrame`, `WoodTag`, `ImageCheckBox`, `BackdropPanel`,
   `WoodScrollBarUI`), dialogs (`ConfirmForm`, `ImportForm`, `ExportForm`, `SettingsForm`, `PrintForm` + `PagePreview`),
   `GuiSelfTest`.
+- `installer/` (GolfAnalyst.ico from images\Home.png via `tools\MakeIcon.java`, credits.txt, testcopy-notice.txt,
+  photos-none-leave-out.txt, README-testers.txt, zip\run.bat, run.sh, README.txt), `tools/` (make-installer.bat,
+  MakeIcon.java), `docs/BUILDING.md`.
 - `images/` (wood buttons, textures, `backgrounds/<page>.jpg|gif`), `help/` (plain text Info and Help files),
   `sample-data/` (made up, plus the Edgewater course the user added, TeeIDs 5-8; its round 37 is the latest round, so
   New Round opens on Edgewater Senior and the screen tests expect its pars), `data/` (the user's real data, never overwrite it).
@@ -79,6 +84,16 @@ Courses and rounds live in two plain tab-separated text files. Written for one u
   `LastExportFolder` there). Which data folder to use is in `golfanalyst.location` next to the program
   (`DataLocation`), read by `App` after the command-line argument and before `data`/`sample-data`; Settings' Change...
   writes it (copying the data first if asked, never over a file) and it takes effect at the next start.
+- Installed mode (`ProgramFolders`, set by `-Dgolfanalyst.home=$APPDIR` from the jpackage launcher and by the zip's
+  run.bat/run.sh; `App` calls `ProgramFolders.setActive(fromSystem())`): the program NEVER writes inside its own
+  folder (it may be read-only). images/help/sample-data/zipcodes.tsv come from `programFile(...)`; the own data folder
+  is Documents\Golf Analyst (`systemDocuments`: Windows' known-folder lookup through PowerShell, OneDrive aware);
+  golfanalyst.location and the sample data's settings.txt (`DataStore.settingsDir`) are in %APPDATA%\Golf Analyst
+  (~/Library/Application Support or ~/.config elsewhere). Start: location file, own folder, sample. On the sample
+  data `readyToSave` asks `SAMPLE_QUESTION_INSTALLED` (Yes makes the own folder, No saves nothing); Create my own data
+  folder asks `ownFolderQuestion` first if the folder is there and, installed, writes the location file. From the
+  project (no property) everything is as before. Tests use `ProgramFolders.installed(...)` with fake folders and
+  check nothing appears in the program's folder.
 - Never write the byte-order mark as an invisible character in source: use `LineReplacer.BYTE_ORDER_MARK`.
 - A page with unsaved changes overrides `Page.canLeave()` to ask "Discard your changes?" (`Shell.askYesNo`); the
   Home button, the arrows, Cancel and the window's close box all go through it. Round entry (anything typed since

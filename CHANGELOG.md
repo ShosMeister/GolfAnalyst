@@ -59,3 +59,5 @@ that nothing about how it was built is lost. The wording is the help text's own,
 - v4.00 (before release): Printing polished: bigger daggers and check marks, the Round Log's note on every page that needs it, a cleaner My Scorecard, a full-width Stats Board with the same course and tee names as the other reports, bold daggers in the notes, tinted Avg vs par in Course notes, and a Print window that sizes itself to its words.
 
 - v4.00 (before release): The Rounds screen's Show box lists the 18-hole rounds, front nines and back nines of a set of tees separately (the same rows as Best Round and the Analyzer), and a double-click on a Stats Board row opens exactly the rounds in that row.
+
+- v4.00 (before release): A Windows installer (tools\make-installer.bat: its own trimmed Java, per-user, Start menu entry, photos=all test copy or photos=none public build) and a "runs anywhere" zip; installed, the program never writes in its own folder and keeps your data in Documents\Golf Analyst.

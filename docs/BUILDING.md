@@ -68,6 +68,22 @@ java tools\MakeIcon.java images\Home.png installer\GolfAnalyst.ico
 
 Home.png is only 80 x 80, so the 256 size is enlarged and a little soft; a bigger original would make it sharper.
 
+## The "runs anywhere" zip
+
+The same script also makes `target\installer\GolfAnalyst-4.0.0[-testcopy].zip` for Mac and Linux (and Windows with
+its own Java), until native installers can be built there (jpackage only builds for the system it runs on). It
+holds the jar, the program's files, `run.bat`, `run.sh` and `README.txt` (from `installer\zip\`; Java 17 or newer is
+needed), and for a test copy `README-testers.txt`, which also goes next to the installer. The zip is made with
+Windows' own `tar`, so its paths use forward slashes, as Macs and Linux need; `.gitattributes` keeps `run.sh` with
+plain line ends. `run.bat` and `run.sh` pass `-Dgolfanalyst.home`, so the zip keeps your data in Documents too.
+
+## Trying a build
+
+```
+msiexec /i target\installer\GolfAnalyst-4.0.0-testcopy.msi /qn      (silent install, no administrator rights)
+msiexec /x target\installer\GolfAnalyst-4.0.0-testcopy.msi /qn      (silent uninstall)
+```
+
 ## Where the installed program keeps things
 
 The installed program never writes inside its own folder.

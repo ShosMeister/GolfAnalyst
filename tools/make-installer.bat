@@ -11,7 +11,11 @@ rem        zipcodes.tsv (with or without the background photographs);
 rem     3. a trimmed Java runtime, with jdeps to find the modules the
 rem        program uses and jlink to make it;
 rem     4. the installer, with jpackage (it needs the WiX Toolset, see
-rem        docs\BUILDING.md).
+rem        docs\BUILDING.md);
+rem     5. the "runs anywhere" zip for Mac and Linux (and Windows with its
+rem        own Java): the program's files, run.bat, run.sh and README.txt.
+rem   A test copy also gets README-testers.txt, in the zip and next to the
+rem   installer.
 rem   Everything it makes is in target\installer, which is not committed.
 rem
 rem   Passed in (in any order; "photos=none" and "photos none" both work,
@@ -25,7 +29,8 @@ rem                    installer\photos-none-leave-out.txt
 rem     type=exe     - a setup program (the default)
 rem     type=msi     - a Windows Installer package (handy for a silent
 rem                    install: msiexec /i GolfAnalyst-4.0.0.msi /qn)
-rem   Passed out: target\installer\GolfAnalyst-4.0.0[-testcopy].exe/.msi
+rem   Passed out: target\installer\GolfAnalyst-4.0.0[-testcopy].exe/.msi and
+rem               target\installer\GolfAnalyst-4.0.0[-testcopy].zip
 rem               Exit code 0 when it was made, 1 if a step failed.
 rem ======================================================================
 setlocal EnableExtensions
@@ -124,7 +129,7 @@ echo.
 rem ---------------------------------------------------------------------
 rem   1. The jar
 rem ---------------------------------------------------------------------
-echo [1/4] Building the jar with Maven
+echo [1/5] Building the jar with Maven
 pushd "%PROJECT%"
 call "%MVN_CMD%" -q -B package -DskipTests
 if errorlevel 1 (
@@ -137,7 +142,7 @@ popd
 rem ---------------------------------------------------------------------
 rem   2. The program's files
 rem ---------------------------------------------------------------------
-echo [2/4] Gathering the program's files
+echo [2/5] Gathering the program's files
 if exist "%WORK%" rmdir /s /q "%WORK%"
 mkdir "%INPUT%\images\backgrounds" "%INPUT%\help" "%INPUT%\sample-data"
 copy /y "%PROJECT%\target\%JAR_BUILT%" "%INPUT%\%JAR_NAME%" >nul || goto copyFailed
@@ -156,7 +161,7 @@ if "%PHOTOS%"=="none" (
 rem ---------------------------------------------------------------------
 rem   3. The trimmed Java runtime
 rem ---------------------------------------------------------------------
-echo [3/4] Making a trimmed Java runtime
+echo [3/5] Making a trimmed Java runtime
 set "MODULES="
 for /f "delims=" %%m in ('call "%JDK_BIN%jdeps.exe" --print-module-deps --ignore-missing-deps --multi-release 17 "%INPUT%\%JAR_NAME%"') do set "MODULES=%%m"
 if not defined MODULES (
@@ -173,7 +178,7 @@ if errorlevel 1 (
 rem ---------------------------------------------------------------------
 rem   4. The installer
 rem ---------------------------------------------------------------------
-echo [4/4] Making the installer with jpackage
+echo [4/5] Making the installer with jpackage
 if "%PHOTOS%"=="all" (
   copy /b "%PROJECT%\installer\testcopy-notice.txt" + "%PROJECT%\installer\credits.txt" "%WORK%\license.txt" >nul
 ) else (
@@ -195,8 +200,31 @@ if errorlevel 1 (
   echo The installer was made but could not be moved to %RESULT%.
   exit /b 1
 )
+rem ---------------------------------------------------------------------
+rem   5. The "runs anywhere" zip
+rem ---------------------------------------------------------------------
+echo [5/5] Making the runs-anywhere zip
+set "ZIP_NAME=%FILE_NAME%-%APP_VERSION%%SUFFIX%"
+set "ZIP_DIR=%WORK%\zip\%ZIP_NAME%"
+mkdir "%ZIP_DIR%"
+xcopy /e /i /q /y "%INPUT%" "%ZIP_DIR%" >nul || goto copyFailed
+copy /y "%PROJECT%\installer\zip\run.bat" "%ZIP_DIR%" >nul || goto copyFailed
+copy /y "%PROJECT%\installer\zip\run.sh" "%ZIP_DIR%" >nul || goto copyFailed
+copy /y "%PROJECT%\installer\zip\README.txt" "%ZIP_DIR%" >nul || goto copyFailed
+if "%PHOTOS%"=="all" (
+  copy /y "%PROJECT%\installer\README-testers.txt" "%ZIP_DIR%" >nul || goto copyFailed
+  copy /y "%PROJECT%\installer\README-testers.txt" "%OUT%" >nul || goto copyFailed
+)
+if exist "%OUT%\%ZIP_NAME%.zip" del /q "%OUT%\%ZIP_NAME%.zip"
+rem tar (in Windows 10 and later) writes zip paths with forward slashes, which Macs and Linux need
+"%SystemRoot%\System32\tar.exe" -a -c -f "%OUT%\%ZIP_NAME%.zip" -C "%WORK%\zip" "%ZIP_NAME%"
+if errorlevel 1 (
+  echo The zip could not be made.
+  exit /b 1
+)
 echo.
 echo Made %RESULT%
+echo Made %OUT%\%ZIP_NAME%.zip
 if "%PHOTOS%"=="all" (echo Build type: TEST COPY ^(photos=all^) - not for sharing.) else (echo Build type: public ^(photos=none^).)
 exit /b 0
 
