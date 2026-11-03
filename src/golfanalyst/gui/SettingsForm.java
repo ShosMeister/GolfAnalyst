@@ -148,7 +148,7 @@ final class SettingsForm extends JPanel
         this.tools = tools;
         this.dataDir = store.dir();
         this.sample = store.isSampleData();
-        Settings settings = Settings.load(dataDir);
+        Settings settings = Settings.load(store.settingsDir());
         nameBox = ConfirmForm.textBox(store.golferName());
         for (int count : Settings.KEEP_CHOICES)
         {

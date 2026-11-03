@@ -990,6 +990,7 @@ public final class GuiSelfTest
         checkStatsPage();
         checkShowKinds();
         checkShowHistorical();
+        checkInstalledFolders();
         checkBestRoundPage();
         checkSampleSafeguard();
 
@@ -3176,7 +3177,7 @@ public final class GuiSelfTest
         check("settings: the Settings and Export buttons ask the window", settingsAsked.equals("settings") && homeShell.lastPage.equals("export"));
 
         AppPanel panel = new AppPanel(store, Path.of("help"), "");
-        panel.setProgramDir(program);
+        panel.setFolders(golfanalyst.ProgramFolders.project(program));
         FakeTools tools = new FakeTools();
         List<SettingsForm> forms = new ArrayList<>();
         java.util.concurrent.atomic.AtomicReference<java.util.function.Function<SettingsForm, Integer>> script =
@@ -3301,7 +3302,7 @@ public final class GuiSelfTest
         Files.copy(Path.of("sample-data", DataLoader.COURSES_FILE), sample.resolve(DataLoader.COURSES_FILE));
         Files.copy(Path.of("sample-data", DataLoader.ROUNDS_FILE), sample.resolve(DataLoader.ROUNDS_FILE));
         AppPanel samplePanel = new AppPanel(new DataStore(sample), Path.of("help"), "");
-        samplePanel.setProgramDir(program);
+        samplePanel.setFolders(golfanalyst.ProgramFolders.project(program));
         List<SettingsForm> sampleForms = new ArrayList<>();
         samplePanel.setSettingsTools(tools, form ->
         {
@@ -4872,8 +4873,8 @@ public final class GuiSelfTest
         Files.writeString(ownData.resolve(DataLoader.COURSES_FILE), "# mine\n", java.nio.file.StandardOpenOption.APPEND);
         String ownCourses = Files.readString(ownData.resolve(DataLoader.COURSES_FILE));
         page.saveButton.doClick();
-        check("Yes again leaves an existing data folder alone", Files.readString(ownData.resolve(DataLoader.COURSES_FILE)).equals(ownCourses)
-                && panel.footer().status().contains("already a data folder"));
+        check("Yes again asks, and Yes to using it leaves the existing data folder alone", Files.readString(ownData.resolve(DataLoader.COURSES_FILE)).equals(ownCourses)
+                && panel.footer().status().startsWith("Golf Analyst will use " + ownData.toAbsolutePath().normalize()));
 
         answer[0] = javax.swing.JOptionPane.NO_OPTION;
         page.saveButton.doClick();
@@ -5203,5 +5204,143 @@ public final class GuiSelfTest
         panel.browseRoundsOn(whiteId, golfanalyst.StatsBoard.Part.FRONT);
         check("show historical: checked, the footer has no historical sentence", panel.footer().status()
                 .equals("Round 2 of 2  (Sample Links (White), front nine)"));
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | checkInstalledFolders()                                                  |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | The window when installed, with fake program, user and Documents         |
+     | folders: on the sample data, saving asks the installed question (No      |
+     | saves nothing, never into the sample data); Yes makes Documents\Golf     |
+     | Analyst with header rows and writes golfanalyst.location in the user's   |
+     | folder; asked again it asks first whether to use the folder that is      |
+     | there; the Settings window on the sample data offers Create my own data  |
+     | folder; on the own folder Settings' Change... writes the location file   |
+     | in the user's folder; and after all of it nothing at all was written     |
+     | inside the program's folder.                                             |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing (throws IOException if the folders cannot be made)   |
+     +--------------------------------------------------------------------------+
+     */
+    private static void checkInstalledFolders() throws IOException
+    {
+        Path temp = Files.createTempDirectory("golfanalyst-installed");
+        Path program = temp.resolve("Golf Analyst");
+        Path user = temp.resolve("AppData").resolve("Golf Analyst");
+        Path documents = temp.resolve("Documents");
+        Files.createDirectories(documents);
+        copyFolder(Path.of("sample-data"), program.resolve(DataStore.SAMPLE_FOLDER));
+        List<String> programBefore = filesUnder(program);
+        golfanalyst.ProgramFolders installed = golfanalyst.ProgramFolders.installed(program, user, () -> documents);
+        golfanalyst.ProgramFolders before = golfanalyst.ProgramFolders.active();
+        try
+        {
+            golfanalyst.ProgramFolders.setActive(installed);
+            DataStore sampleStore = new DataStore(installed.sampleFolder());
+            AppPanel panel = new AppPanel(sampleStore, Path.of("help"), "");
+            panel.setFolders(installed);
+            List<String> asked = new ArrayList<>();
+            int[] answer = {javax.swing.JOptionPane.NO_OPTION};
+            panel.setAsker(question ->
+            {
+                asked.add(question);
+                return answer[0];
+            });
+            Path own = documents.resolve(golfanalyst.ProgramFolders.FOLDER_NAME);
+            boolean saved = panel.readyToSave();
+            check("installed: saving on the sample data asks the installed question, and No saves nothing", !saved
+                    && asked.equals(List.of(AppPanel.SAMPLE_QUESTION_INSTALLED)) && !Files.exists(own));
+            answer[0] = javax.swing.JOptionPane.YES_OPTION;
+            saved = panel.readyToSave();
+            check("installed: Yes makes Documents\\Golf Analyst with header rows and names it in the user's golfanalyst.location", !saved
+                    && Files.readAllLines(own.resolve(DataLoader.ROUNDS_FILE)).equals(List.of(golfanalyst.RoundWriter.STANDARD_HEADER))
+                    && own.toAbsolutePath().normalize().equals(golfanalyst.DataLocation.read(user))
+                    && panel.footer().status().equals("Your own data folder was made at " + own.toAbsolutePath().normalize()
+                            + ". Close Golf Analyst and open it again to use it."));
+            Files.writeString(own.resolve(DataLoader.ROUNDS_FILE), "# mine\n", java.nio.file.StandardOpenOption.APPEND);
+            String mine = Files.readString(own.resolve(DataLoader.ROUNDS_FILE));
+            answer[0] = javax.swing.JOptionPane.NO_OPTION;
+            asked.clear();
+            panel.clearData();
+            check("installed: Clear on the sample data offers the own folder too", asked.equals(List.of(AppPanel.CLEAR_SAMPLE_QUESTION)));
+            answer[0] = javax.swing.JOptionPane.YES_OPTION;
+            asked.clear();
+            panel.readyToSave();
+            check("installed: when Documents\\Golf Analyst is already there it asks first, saying what it holds, and changes nothing in it",
+                    asked.size() == 2 && asked.get(1).equals(AppPanel.ownFolderQuestion(own.toAbsolutePath().normalize()))
+                            && asked.get(1).contains("This folder has data files") && Files.readString(own.resolve(DataLoader.ROUNDS_FILE)).equals(mine)
+                            && panel.footer().status().startsWith("Golf Analyst will use " + own.toAbsolutePath().normalize()));
+            Files.delete(user.resolve(golfanalyst.DataLocation.FILE));
+            panel.setAsker(question ->
+            {
+                asked.add(question);
+                if (question.startsWith(AppPanel.OWN_FOLDER_THERE))
+                {
+                    return javax.swing.JOptionPane.NO_OPTION;
+                }
+                return javax.swing.JOptionPane.YES_OPTION;
+            });
+            panel.readyToSave();
+            check("installed: No to using the folder that is there changes nothing", !Files.exists(user.resolve(golfanalyst.DataLocation.FILE))
+                    && panel.footer().status().equals("Nothing was changed."));
+
+            FakeTools tools = new FakeTools();
+            List<SettingsForm> forms = new ArrayList<>();
+            panel.setSettingsTools(tools, form ->
+            {
+                forms.add(form);
+                form.nameBox.setText("Pat");
+                form.okButton.doClick();
+                return form.answer();
+            });
+            panel.openSettings();
+            check("installed: Settings on the sample data offers Create my own data folder and keeps the name in the user's folder",
+                    forms.get(0).isSample()
+                            && sampleStore.golferName().equals("Pat")
+                            && Files.isRegularFile(user.resolve(DataStore.SAMPLE_FOLDER).resolve(golfanalyst.Settings.FILE)));
+            sampleStore.setIncludeHistorical(false);
+            sampleStore.setIncludeHistorical(true);
+
+            DataStore ownStore = new DataStore(own);
+            AppPanel ownPanel = new AppPanel(ownStore, Path.of("help"), "");
+            ownPanel.setFolders(installed);
+            Path moved = Files.createTempDirectory("golfanalyst-installed-moved");
+            FakeTools moveTools = new FakeTools();
+            moveTools.nextFolder = moved;
+            moveTools.answer = SettingsForm.CHOICE_COPY;
+            ownPanel.setSettingsTools(moveTools, form ->
+            {
+                form.changeData.doClick();
+                form.okButton.doClick();
+                return form.answer();
+            });
+            ownPanel.openSettings();
+            check("installed: Settings' Change... writes golfanalyst.location in the user's folder",
+                    moved.toAbsolutePath().normalize().equals(golfanalyst.DataLocation.read(user))
+                            && Files.isRegularFile(moved.resolve(DataLoader.ROUNDS_FILE)) && !Files.exists(program.resolve(golfanalyst.DataLocation.FILE)));
+        }
+        finally
+        {
+            golfanalyst.ProgramFolders.setActive(before);
+        }
+        List<String> programAfter = filesUnder(program);
+        check("installed: nothing at all was written inside the program's folder " + programAfter, programAfter.equals(programBefore));
+    }
+
+    /*
+     * filesUnder(folder): every file and folder under a folder, as sorted relative paths.
+     */
+    private static List<String> filesUnder(Path folder) throws IOException
+    {
+        List<String> found = new ArrayList<>();
+        try (Stream<Path> files = Files.walk(folder))
+        {
+            files.forEach(file -> found.add(folder.relativize(file).toString()));
+        }
+        java.util.Collections.sort(found);
+        return found;
     }
 }

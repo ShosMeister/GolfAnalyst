@@ -80,7 +80,7 @@ public final class ZipCodes
     {
         if (standard == null)
         {
-            standard = load(Path.of(FILE));
+            standard = load(ProgramFolders.active().programFile(FILE));
         }
         return standard;
     }

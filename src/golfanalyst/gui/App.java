@@ -15,17 +15,24 @@ import javax.swing.UIManager;
  | Starts the program with its window. In NetBeans set this as the main     |
  | class (golfanalyst.gui.App) and press Run.                               |
  |                                                                          |
+ | Where its folders are (ProgramFolders): from the project, all in the     |
+ | working folder; installed (-Dgolfanalyst.home=the program's folder,      |
+ | set by the installer's launcher and by run.bat/run.sh), the program's    |
+ | own files in that folder, the golfer's data in Documents\Golf Analyst    |
+ | and golfanalyst.location in the user's settings folder.                  |
+ |                                                                          |
  | Which data folder it opens:                                              |
  |   1. the folder given as the first argument, if there is one;            |
- |   2. otherwise the folder named in golfanalyst.location next to the      |
- |      program (set by Settings, Change...), if it is there;               |
- |   3. otherwise the folder named "data" next to the program;              |
- |   4. otherwise, if there is no "data" folder, the "sample-data" folder   |
- |      (the title and footer say so), so the first run has something to    |
- |      show;                                                               |
- |   5. otherwise a new empty "data" folder with just the file headers.     |
+ |   2. otherwise the folder named in golfanalyst.location (set by          |
+ |      Settings, Change..., and by Create my own data folder when          |
+ |      installed), if it is there;                                         |
+ |   3. otherwise the golfer's own data folder ("data" next to the          |
+ |      program, or Documents\Golf Analyst when installed);                 |
+ |   4. otherwise the "sample-data" folder (the title and footer say so),   |
+ |      so the first run has something to show;                             |
+ |   5. otherwise a new empty own data folder with just the file headers.   |
  |                                                                          |
- | Other folders it looks for (next to the program, or set with             |
+ | Other folders it looks for (in the program's folder, or set with         |
  | -Dgolfanalyst.images=... and -Dgolfanalyst.help=...):                    |
  |   images - the wood buttons, textures and background photos              |
  |   help   - the Info and Help text files                                  |
@@ -89,30 +96,23 @@ public final class App
         {
             // the standard Java look is used instead
         }
-        Theme.load(Path.of(System.getProperty("golfanalyst.images", "images")));
-        Path helpDir = Path.of(System.getProperty("golfanalyst.help", "help"));
+        golfanalyst.ProgramFolders folders = golfanalyst.ProgramFolders.fromSystem();
+        golfanalyst.ProgramFolders.setActive(folders);
+        Theme.load(Path.of(System.getProperty("golfanalyst.images", folders.programFile("images").toString())));
+        Path helpDir = Path.of(System.getProperty("golfanalyst.help", folders.programFile("help").toString()));
         String note = "";
         Path dataDir;
-        Path chosen = golfanalyst.DataLocation.read(Path.of(""));
         if (args.length > 0)
         {
             dataDir = Path.of(args[0]);
         }
-        else if (chosen != null)
-        {
-            dataDir = chosen;
-        }
-        else if (Files.isDirectory(Path.of(DATA_FOLDER)))
-        {
-            dataDir = Path.of(DATA_FOLDER);
-        }
-        else if (Files.isDirectory(Path.of(SAMPLE_FOLDER)))
-        {
-            dataDir = Path.of(SAMPLE_FOLDER);
-        }
         else
         {
-            dataDir = Path.of(DATA_FOLDER);
+            dataDir = folders.startFolder();
+        }
+        if (dataDir == null)
+        {
+            dataDir = folders.ownDataFolder();
             createEmptyData(dataDir);
             note = "A new empty data folder was created.";
         }

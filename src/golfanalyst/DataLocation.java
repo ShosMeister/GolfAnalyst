@@ -16,9 +16,11 @@ import java.util.Set;
  +--------------------------------------------------------------------------+
  | Purpose:                                                                 |
  | Where the data folder is. It cannot be kept in settings.txt (that file   |
- | is inside the data folder), so it is kept in a tiny file next to the     |
- | program, golfanalyst.location: one line, the folder's path. Without it   |
- | the program uses its usual folder (data, or the sample data).            |
+ | is inside the data folder), so it is kept in a tiny file,                |
+ | golfanalyst.location: one line, the folder's path. It is next to the     |
+ | program when run from the project and in the user's settings folder      |
+ | when installed (ProgramFolders.locationFolder). Without it the program   |
+ | uses its usual folder (its own data folder, or the sample data).         |
  |                                                                          |
  | Also what the Settings window needs to move to another folder: what is   |
  | in a folder (describe), and copying the data there without ever writing  |
@@ -80,8 +82,8 @@ public final class DataLocation
     }
 
     /*
-     * read(programDir): the data folder named in golfanalyst.location next to the program, or null when the file is missing, empty, unreadable or names a folder that is not there.
-     * Passed in:  programDir - the program's folder
+     * read(programDir): the data folder named in golfanalyst.location in that folder, or null when the file is missing, empty, unreadable or names a folder that is not there.
+     * Passed in:  programDir - the folder holding the location file (ProgramFolders.locationFolder)
      * Passed out: the folder, or null
      */
     public static Path read(Path programDir)
@@ -108,12 +110,13 @@ public final class DataLocation
     }
 
     /*
-     * write(programDir, folder): writes golfanalyst.location next to the program (one line, the folder's full path), through a temporary file.
-     * Passed in:  programDir - the program's folder, folder - the data folder to use from now on
+     * write(programDir, folder): writes golfanalyst.location in that folder (made if needed; one line, the data folder's full path), through a temporary file.
+     * Passed in:  programDir - the folder holding the location file (ProgramFolders.locationFolder), folder - the data folder to use from now on
      * Passed out: nothing (throws IOException if it cannot be written)
      */
     public static void write(Path programDir, Path folder) throws IOException
     {
+        Files.createDirectories(programDir.toAbsolutePath());
         LineReplacer.writeSafely(programDir.resolve(FILE), folder.toAbsolutePath().normalize() + System.lineSeparator());
     }
 

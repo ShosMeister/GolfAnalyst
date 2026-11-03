@@ -59,6 +59,10 @@ public final class AppPanel extends JPanel implements Shell
     public static final String BEST = "best";
     public static final String ANALYZER = "analyzer";
     static final String SAMPLE_QUESTION = "This is the sample data. Create your own data folder first?";
+    static final String SAMPLE_QUESTION_INSTALLED = "This is the sample data that comes with Golf Analyst, and it is kept as it is. "
+            + "Create your own data folder now?";
+    static final String OWN_FOLDER_THERE = "There is already a folder at ";
+    static final String OWN_FOLDER_USE = " Use it as your data folder?";
     static final String CLEAR_SAMPLE_QUESTION = "This is the sample data. There is nothing of yours to clear. Create your own data folder first?";
     static final String CLEAR_TITLE = "Clear data";
     static final String CLEAR_ROUNDS_TEXT = "Clear my rounds only (keep my courses and my name)";
@@ -146,7 +150,7 @@ public final class AppPanel extends JPanel implements Shell
     private transient ExportAsker exportAsker = form -> form.showOn(this);
     private transient PrintForm.Tools printTools = new ScreenPrintTools();
     private transient PrintAsker printAsker = form -> form.showOn(this);
-    private transient Path programDir = Path.of("");
+    private transient golfanalyst.ProgramFolders folders = golfanalyst.ProgramFolders.active();
 
     /*
      +--------------------------------------------------------------------------+
@@ -481,6 +485,9 @@ public final class AppPanel extends JPanel implements Shell
      |            and reopen the program, and saves nothing;                    |
      |   No     - saves into the sample data;                                   |
      |   Cancel - saves nothing.                                                |
+     | Installed, the sample data is part of the program and is never written   |
+     | to, so it asks SAMPLE_QUESTION_INSTALLED instead: Yes makes the own data |
+     | folder, No saves nothing.                                                |
      |                                                                          |
      | Passed in:  nothing                                                      |
      | Passed out: true to go ahead and save                                    |
@@ -492,6 +499,14 @@ public final class AppPanel extends JPanel implements Shell
         if (!store.isSampleData())
         {
             return true;
+        }
+        if (folders.isInstalled())
+        {
+            if (asker.applyAsInt(SAMPLE_QUESTION_INSTALLED) == JOptionPane.YES_OPTION)
+            {
+                makeOwnDataFolder();
+            }
+            return false;
         }
         int answer = asker.applyAsInt(SAMPLE_QUESTION);
         if (answer == JOptionPane.NO_OPTION)
@@ -507,24 +522,64 @@ public final class AppPanel extends JPanel implements Shell
     }
 
     /*
-     * makeOwnDataFolder(): makes an empty data folder next to sample-data (never writing over one that is there) and says in the footer to reopen the program.
+     +--------------------------------------------------------------------------+
+     | makeOwnDataFolder()                                                      |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Makes the golfer's own data folder (data next to sample-data from the    |
+     | project, Documents\Golf Analyst when installed) with header rows only,   |
+     | never writing over anything, and says in the footer to reopen the        |
+     | program. If the folder is already there it first asks whether to use     |
+     | it as it is (saying what it holds); No changes nothing. Installed, the   |
+     | folder is also written to golfanalyst.location, so the next start opens  |
+     | it at once.                                                              |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing                                                      |
+     +--------------------------------------------------------------------------+
      */
     private void makeOwnDataFolder()
     {
-        Path folder = store.dataFolderBeside();
-        if (Files.isDirectory(folder))
-        {
-            setStatus("There is already a data folder at " + folder + ". Close Golf Analyst and open it again to use it.");
-            return;
-        }
+        Path folder = store.ownDataFolder();
         try
         {
+            if (Files.isDirectory(folder))
+            {
+                if (!askYesNo(ownFolderQuestion(folder)))
+                {
+                    setStatus("Nothing was changed.");
+                    return;
+                }
+                remember(folder);
+                setStatus("Golf Analyst will use " + folder + " the next time it is opened. Close Golf Analyst and open it again to use it.");
+                return;
+            }
             DataStore.createEmptyFolder(folder);
+            remember(folder);
             setStatus("Your own data folder was made at " + folder + ". Close Golf Analyst and open it again to use it.");
         }
         catch (IOException failure)
         {
             setStatus("The data folder could not be made: " + failure.getMessage());
+        }
+    }
+
+    /*
+     * ownFolderQuestion(folder): the question when the own data folder is already there: where it is, what it holds, and whether to use it.
+     */
+    static String ownFolderQuestion(Path folder)
+    {
+        return OWN_FOLDER_THERE + folder + ". " + golfanalyst.DataLocation.describe(folder).words() + OWN_FOLDER_USE;
+    }
+
+    /*
+     * remember(folder): installed, writes the folder to golfanalyst.location in the user's settings folder (from the project it is found by its place).
+     */
+    private void remember(Path folder) throws IOException
+    {
+        if (folders.isInstalled())
+        {
+            golfanalyst.DataLocation.write(folders.locationFolder(), folder);
         }
     }
 
@@ -752,7 +807,7 @@ public final class AppPanel extends JPanel implements Shell
                 {
                     golfanalyst.DataLocation.copyData(store.dir(), newFolder);
                 }
-                golfanalyst.DataLocation.write(programDir, newFolder);
+                golfanalyst.DataLocation.write(folders.locationFolder(), newFolder);
                 message = message + " Golf Analyst will use " + newFolder.toAbsolutePath().normalize()
                         + " the next time it is opened.";
             }
@@ -790,8 +845,12 @@ public final class AppPanel extends JPanel implements Shell
     @Override
     public void exportData()
     {
-        Path last = golfanalyst.Settings.load(store.dir()).lastExportFolder();
-        Path start = (last != null && Files.isDirectory(last) ? last : Path.of(System.getProperty("user.home"), "Documents"));
+        Path last = golfanalyst.Settings.load(store.settingsDir()).lastExportFolder();
+        Path start = folders.documentsFolder();
+        if (last != null && Files.isDirectory(last))
+        {
+            start = last;
+        }
         ExportForm form = new ExportForm(store.dataset(), store.includeHistorical(), start, settingsTools);
         if (exportAsker.ask(form) != ConfirmForm.GO || form.plan() == null || form.folder() == null)
         {
@@ -854,8 +913,8 @@ public final class AppPanel extends JPanel implements Shell
     public void printReports()
     {
         golfanalyst.print.ReportData data = golfanalyst.print.ReportData.of(store, java.time.LocalDate.now(), Theme.VERSION);
-        Path last = golfanalyst.Settings.load(store.dir()).lastExportFolder();
-        Path start = Path.of(System.getProperty("user.home"), "Documents");
+        Path last = golfanalyst.Settings.load(store.settingsDir()).lastExportFolder();
+        Path start = folders.documentsFolder();
         if (last != null && Files.isDirectory(last))
         {
             start = last;
@@ -1043,11 +1102,11 @@ public final class AppPanel extends JPanel implements Shell
     }
 
     /*
-     * setProgramDir(folder): where golfanalyst.location is kept (the program's folder; another one for the self-test).
+     * setFolders(newFolders): where the program's files, golfanalyst.location and the own data folder are (fake folders for the self-test).
      */
-    void setProgramDir(Path folder)
+    void setFolders(golfanalyst.ProgramFolders newFolders)
     {
-        programDir = folder;
+        folders = newFolders;
     }
 
     /*
@@ -1103,7 +1162,11 @@ public final class AppPanel extends JPanel implements Shell
         {
             return ConfirmForm.yesNoCancel(question, true).withTitle(SAMPLE_TITLE);
         }
-        return (question.equals(CLEAR_SAMPLE_QUESTION) ? ConfirmForm.yesNoCancel(question, false).withTitle(SAMPLE_TITLE) : null);
+        if (question.equals(CLEAR_SAMPLE_QUESTION) || question.equals(SAMPLE_QUESTION_INSTALLED) || question.startsWith(OWN_FOLDER_THERE))
+        {
+            return ConfirmForm.yesNoCancel(question, false).withTitle(SAMPLE_TITLE);
+        }
+        return null;
     }
 
     /*

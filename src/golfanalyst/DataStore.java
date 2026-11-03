@@ -54,7 +54,8 @@ import java.util.Properties;
  | golferName(), setGolferName(name)                                        |
  | includeHistorical(), setIncludeHistorical(flag) - the Home screen's box  |
  | isSampleData()            - whether this is the sample data folder       |
- | dataFolderBeside()        - where the golfer's own data folder goes      |
+ | ownDataFolder()           - where the golfer's own data folder goes      |
+ | settingsDir()             - where this folder's settings.txt is kept     |
  | createEmptyFolder(dir)    - makes a data folder with header rows only    |
  +--------------------------------------------------------------------------+
  */
@@ -65,6 +66,7 @@ public final class DataStore
     public static final String SAMPLE_FOLDER = "sample-data";
     private static final String SETTINGS_FILE = Settings.FILE;
     private final Path dir;
+    private final Path settingsDir;
     private Dataset dataset;
     private Handicap.Result handicap;
     private Stats.Summary overall;
@@ -79,6 +81,7 @@ public final class DataStore
     public DataStore(Path dir) throws IOException
     {
         this.dir = dir;
+        this.settingsDir = ProgramFolders.active().settingsFolder(dir);
         reload();
     }
 
@@ -100,7 +103,7 @@ public final class DataStore
         dataset = DataLoader.load(dir);
         Map<Integer, Tee> tees = dataset.teeMap();
         handicap = Handicap.compute(dataset.rounds(), tees);
-        includeHistorical = Settings.load(dir).includeHistorical();
+        includeHistorical = Settings.load(settingsDir).includeHistorical();
         overall = Stats.summarize(Stats.counted(dataset.rounds(), includeHistorical), tees);
         List<Round> sorted = new ArrayList<>(dataset.rounds());
         sorted.sort(Comparator.comparing(Round::date).thenComparingInt(Round::id));
@@ -525,7 +528,7 @@ public final class DataStore
      */
     public String golferName()
     {
-        return Settings.load(dir).golfer();
+        return Settings.load(settingsDir).golfer();
     }
 
     /*
@@ -535,7 +538,17 @@ public final class DataStore
      */
     public void setGolferName(String name) throws IOException
     {
-        Settings.load(dir).with(Settings.GOLFER, name).save(dir);
+        Files.createDirectories(settingsDir);
+        Settings.load(settingsDir).with(Settings.GOLFER, name).save(settingsDir);
+    }
+
+    /*
+     * settingsDir(): where this data folder's settings.txt is kept: the folder itself, or for the installed program's sample data a
+     * folder in the user's settings folder (ProgramFolders.settingsFolder), so nothing is written inside the program's folder.
+     */
+    public Path settingsDir()
+    {
+        return settingsDir;
     }
 
     /*
@@ -562,7 +575,8 @@ public final class DataStore
      */
     public void setIncludeHistorical(boolean flag) throws IOException
     {
-        Settings.load(dir).with(Settings.INCLUDE_HISTORICAL, Boolean.toString(flag)).save(dir);
+        Files.createDirectories(settingsDir);
+        Settings.load(settingsDir).with(Settings.INCLUDE_HISTORICAL, Boolean.toString(flag)).save(settingsDir);
         includeHistorical = flag;
         overall = Stats.summarize(Stats.counted(dataset.rounds(), includeHistorical), dataset.teeMap());
     }
@@ -579,12 +593,17 @@ public final class DataStore
     }
 
     /*
-     * dataFolderBeside(): where the golfer's own data folder belongs: a folder named data next to this one.
+     * ownDataFolder(): where the golfer's own data folder belongs: installed, Documents\Golf Analyst (ProgramFolders); from the
+     * project, a folder named data next to this one, as before.
      * Passed in:  nothing
-     * Passed out: the path (it may not exist yet)
+     * Passed out: the full path (it may not exist yet)
      */
-    public Path dataFolderBeside()
+    public Path ownDataFolder()
     {
+        if (ProgramFolders.active().isInstalled())
+        {
+            return ProgramFolders.active().ownDataFolder().toAbsolutePath().normalize();
+        }
         return dir.toAbsolutePath().normalize().resolveSibling(DATA_FOLDER);
     }
 

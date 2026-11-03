@@ -568,6 +568,14 @@ public final class SelfTest
         checkCourseAnalysis();
         try
         {
+            checkProgramFolders();
+        }
+        catch (IOException failure)
+        {
+            check("folders: temporary folders could be made (" + failure.getMessage() + ")", false);
+        }
+        try
+        {
             golfanalyst.print.PrintSelfTest.run(SelfTest::check);
         }
         catch (IOException failure)
@@ -2684,7 +2692,7 @@ public final class SelfTest
         Files.writeString(sample.resolve(DataLoader.ROUNDS_FILE), RoundWriter.STANDARD_HEADER + "\n", StandardCharsets.UTF_8);
         DataStore sampleStore = new DataStore(sample);
         check("a folder named sample-data is the sample data", sampleStore.isSampleData());
-        check("the golfer's own data folder goes beside it", sampleStore.dataFolderBeside().equals(temp.toAbsolutePath().normalize().resolve("data")));
+        check("the golfer's own data folder goes beside it", sampleStore.ownDataFolder().equals(temp.toAbsolutePath().normalize().resolve("data")));
 
         Path empty = temp.resolve("empty");
         DataStore.createEmptyFolder(empty);
@@ -2705,5 +2713,104 @@ public final class SelfTest
         {
             Files.deleteIfExists(paths.get(lp));
         }
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | checkProgramFolders()                                                    |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Where things live, with fake folders. From the project everything is in  |
+     | the program's folder, as before. Installed: the program's files are read |
+     | from its folder, the own data folder is Documents\Golf Analyst (the      |
+     | Documents lookup asked once), golfanalyst.location and the sample data's |
+     | settings are in the user's folder; the start-up order is the location    |
+     | file, the own folder, the sample data; saving the name and Include       |
+     | historical rounds on the sample data writes nothing in the program's     |
+     | folder. Also the Documents lookup's answer and the real lookup.          |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing (throws IOException if the temporary folders cannot  |
+     |             be made)                                                     |
+     +--------------------------------------------------------------------------+
+     */
+    private static void checkProgramFolders() throws IOException
+    {
+        Path temp = Files.createTempDirectory("golfanalyst-folders");
+        Path program = temp.resolve("Program Files").resolve("Golf Analyst");
+        Path user = temp.resolve("AppData").resolve("Golf Analyst");
+        Path documents = temp.resolve("OneDrive").resolve("Documents");
+        Path sample = program.resolve(DataStore.SAMPLE_FOLDER);
+        Files.createDirectories(sample);
+        Files.createDirectories(documents);
+        Files.writeString(sample.resolve(DataLoader.COURSES_FILE), CourseWriter.STANDARD_HEADER + "\n", StandardCharsets.UTF_8);
+        Files.writeString(sample.resolve(DataLoader.ROUNDS_FILE), RoundWriter.STANDARD_HEADER + "\n", StandardCharsets.UTF_8);
+
+        ProgramFolders project = ProgramFolders.project(program);
+        check("folders: from the project everything is in the program's folder", !project.isInstalled()
+                && project.locationFolder().equals(program) && project.ownDataFolder().equals(program.resolve(DataStore.DATA_FOLDER))
+                && project.settingsFolder(sample).equals(sample) && project.programFile("images").equals(program.resolve("images"))
+                && project.startFolder().equals(sample));
+
+        int[] lookups = {0};
+        ProgramFolders installed = ProgramFolders.installed(program, user, () ->
+        {
+            lookups[0] = lookups[0] + 1;
+            return documents;
+        });
+        check("folders: installed, nothing is looked up until it is needed", lookups[0] == 0 && installed.isInstalled());
+        Path own = documents.resolve(ProgramFolders.FOLDER_NAME);
+        check("folders: installed, the own data folder is Documents\\Golf Analyst, looked up once", installed.ownDataFolder().equals(own)
+                && installed.ownDataFolder().equals(own) && lookups[0] == 1);
+        check("folders: installed, the location file and the sample settings are in the user's folder, other settings stay put",
+                installed.locationFolder().equals(user) && installed.settingsFolder(sample).equals(user.resolve(DataStore.SAMPLE_FOLDER))
+                        && installed.settingsFolder(own).equals(own) && installed.sampleFolder().equals(sample)
+                        && installed.programFile(ZipCodes.FILE).equals(program.resolve(ZipCodes.FILE)));
+        check("folders: installed, with nothing of yours the sample data opens", installed.startFolder().equals(sample));
+        DataStore.createEmptyFolder(own);
+        check("folders: installed, Documents\\Golf Analyst opens once it is there", installed.startFolder().equals(own));
+        Path elsewhere = temp.resolve("USB").resolve("golf");
+        DataStore.createEmptyFolder(elsewhere);
+        DataLocation.write(installed.locationFolder(), elsewhere);
+        check("folders: installed, golfanalyst.location is written in the user's folder (made for it) and wins",
+                Files.isRegularFile(user.resolve(DataLocation.FILE)) && installed.startFolder().equals(elsewhere.toAbsolutePath().normalize())
+                        && !Files.exists(program.resolve(DataLocation.FILE)));
+
+        ProgramFolders before = ProgramFolders.active();
+        try
+        {
+            ProgramFolders.setActive(installed);
+            DataStore sampleStore = new DataStore(sample);
+            sampleStore.setGolferName("Pat");
+            sampleStore.setIncludeHistorical(false);
+            DataStore again = new DataStore(sample);
+            check("folders: installed, the sample data's name and Include historical are kept in the user's folder",
+                    again.golferName().equals("Pat") && !again.includeHistorical() && again.settingsDir().equals(user.resolve(DataStore.SAMPLE_FOLDER))
+                            && Files.isRegularFile(user.resolve(DataStore.SAMPLE_FOLDER).resolve(Settings.FILE))
+                            && !Files.exists(sample.resolve(Settings.FILE)) && sampleStore.ownDataFolder().equals(own.toAbsolutePath().normalize()));
+            List<String> programFiles = new ArrayList<>();
+            try (java.util.stream.Stream<Path> files = Files.walk(program))
+            {
+                files.forEach(file -> programFiles.add(program.relativize(file).toString()));
+            }
+            check("folders: installed, nothing was written in the program's folder " + programFiles, programFiles.size() == 4
+                    && programFiles.contains(DataStore.SAMPLE_FOLDER + java.io.File.separator + DataLoader.ROUNDS_FILE));
+        }
+        finally
+        {
+            ProgramFolders.setActive(before);
+        }
+
+        Path guess = temp.resolve("guess");
+        check("folders: the Documents answer is read from its last line, a missing folder gives the guess",
+                ProgramFolders.documentsFrom(LineReplacer.BYTE_ORDER_MARK + "note\r\n" + documents + "\r\n", guess).equals(documents)
+                        && ProgramFolders.documentsFrom("C:\\no such folder here", guess).equals(guess)
+                        && ProgramFolders.documentsFrom("", guess).equals(guess) && ProgramFolders.documentsFrom("relative", guess).equals(guess));
+        Path real = ProgramFolders.systemDocuments();
+        check("folders: the real Documents lookup gives a folder that is there (" + real + ")", Files.isDirectory(real) && real.isAbsolute());
+        check("folders: the user's own settings folder ends in Golf Analyst", ProgramFolders.systemUserFolder().getFileName().toString()
+                .equals(ProgramFolders.FOLDER_NAME));
+        check("folders: without golfanalyst.home the program runs from the project", System.getProperty(ProgramFolders.HOME_PROPERTY) != null
+                || !ProgramFolders.fromSystem().isInstalled());
     }
 }
