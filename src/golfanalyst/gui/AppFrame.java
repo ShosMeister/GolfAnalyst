@@ -23,8 +23,8 @@ import javax.swing.JFrame;
 public final class AppFrame extends JFrame
 {
 
-    private static final int WINDOW_WIDTH = 960;
-    private static final int WINDOW_HEIGHT = 770;
+    static final int WINDOW_WIDTH = 960;
+    static final int WINDOW_HEIGHT = 770;
     private static final int MIN_WIDTH = 940;
     private static final int MIN_HEIGHT = 730;
 

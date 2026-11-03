@@ -1,0 +1,12 @@
+Golf Analyst 4.00
+Golf scores, handicap and statistics.
+
+Welcome to the Golf Analyst - a program written by Angelo Mileto.
+
+The original version of this program was written in 1991 in HyperCard on the Mac, before the USGA came up with the Slope system for handicapping. It has been rewritten several times since, and this version is built in Java, so it is meant to run on Windows, Mac and Linux.
+
+Golf Analyst v2.10: Written by Angelo Mileto, September 1991 in HyperCard. Special thanks go out to Dave Speer and the gang at Computer Solutions in San Antonio, Texas, without whose help this stack would not have been possible.
+
+ZIP code data from GeoNames (www.geonames.org), used under a Creative Commons Attribution license. The data is provided as is.
+
+Your rounds, courses and settings are kept in Documents\Golf Analyst (or the folder you choose in Settings). Uninstalling Golf Analyst removes the program only; it never removes your data.

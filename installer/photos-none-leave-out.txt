@@ -1,0 +1,8 @@
+# Pictures in images\backgrounds that the public build (photos=none) leaves out.
+# One file name per line. tools\make-installer.bat and the screen self-test both read this list.
+# The four course photos carry the Himmelsbach Communications notice; home.gif until its source is confirmed.
+round.jpg
+course.jpg
+stats.jpg
+analyzer.jpg
+home.gif
