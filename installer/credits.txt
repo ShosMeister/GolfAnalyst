@@ -1,4 +1,4 @@
-Golf Analyst 4.00
+Golf Analyst 4.01
 Golf scores, handicap and statistics.
 
 Welcome to the Golf Analyst - a program written by Angelo Mileto.

@@ -21,11 +21,11 @@ rem   Everything it makes is in target\installer, which is not committed.
 rem
 rem   Passed in:  type=exe - a setup program (the default)
 rem               type=msi - a Windows Installer package (handy for a silent
-rem                          install: msiexec /i GolfAnalyst-4.0.0.msi /qn)
+rem                          install: msiexec /i GolfAnalyst_v4.01.msi /qn)
 rem               ("type=msi" and "type msi" both work, because Windows
 rem               splits a word at the = sign)
-rem   Passed out: target\installer\GolfAnalyst-4.0.0.exe (or .msi),
-rem               target\installer\GolfAnalyst-4.0.0.zip and
+rem   Passed out: target\installer\GolfAnalyst_v4.01.exe (or .msi),
+rem               target\installer\GolfAnalyst_v4.01.zip and
 rem               target\installer\README-testers.txt
 rem               Exit code 0 when it was made, 1 if a step failed.
 rem ======================================================================
@@ -33,9 +33,11 @@ setlocal EnableExtensions
 set "PROJECT=%~dp0.."
 for %%p in ("%PROJECT%") do set "PROJECT=%%~fp"
 set "APP_NAME=Golf Analyst"
-set "FILE_NAME=GolfAnalyst"
-set "APP_VERSION=4.0.0"
-set "JAR_BUILT=golfanalyst-4.00.jar"
+rem The program's version (Theme.VERSION and pom.xml) and the same for jpackage, which wants three numbers: 4.01 is 4.0.1
+set "PROGRAM_VERSION=4.01"
+set "APP_VERSION=4.0.1"
+set "FILE_NAME=GolfAnalyst_v%PROGRAM_VERSION%"
+set "JAR_BUILT=golfanalyst-%PROGRAM_VERSION%.jar"
 set "JAR_NAME=golfanalyst.jar"
 set "UPGRADE_UUID=dd680a9f-f467-44e8-a52f-db33fa38a817"
 set "TYPE=exe"
@@ -66,7 +68,7 @@ exit /b 1
 set "OUT=%PROJECT%\target\installer"
 set "WORK=%OUT%\work"
 set "INPUT=%WORK%\input"
-set "RESULT=%OUT%\%FILE_NAME%-%APP_VERSION%.%TYPE%"
+set "RESULT=%OUT%\%FILE_NAME%.%TYPE%"
 
 rem ---------------------------------------------------------------------
 rem   The tools: the JDK (with jpackage), Maven and WiX
@@ -107,7 +109,7 @@ if errorlevel 1 (
 )
 
 echo.
-echo Building %APP_NAME% %APP_VERSION% (%TYPE%)
+echo Building %APP_NAME% v%PROGRAM_VERSION% (installer version %APP_VERSION%, %TYPE%)
 echo.
 
 rem ---------------------------------------------------------------------
@@ -129,6 +131,10 @@ rem ---------------------------------------------------------------------
 echo [2/5] Gathering the program's files
 if exist "%WORK%" rmdir /s /q "%WORK%"
 mkdir "%INPUT%\images\backgrounds" "%INPUT%\help" "%INPUT%\sample-data"
+if not exist "%PROJECT%\target\%JAR_BUILT%" (
+  echo Maven did not make target\%JAR_BUILT%: is the version in pom.xml %PROGRAM_VERSION%?
+  exit /b 1
+)
 copy /y "%PROJECT%\target\%JAR_BUILT%" "%INPUT%\%JAR_NAME%" >nul || goto copyFailed
 copy /y "%PROJECT%\help\*.txt" "%INPUT%\help" >nul || goto copyFailed
 copy /y "%PROJECT%\sample-data\courses.tsv" "%INPUT%\sample-data" >nul || goto copyFailed
@@ -188,7 +194,7 @@ rem ---------------------------------------------------------------------
 rem   5. The "runs anywhere" zip
 rem ---------------------------------------------------------------------
 echo [5/5] Making the runs-anywhere zip
-set "ZIP_NAME=%FILE_NAME%-%APP_VERSION%"
+set "ZIP_NAME=%FILE_NAME%"
 set "ZIP_DIR=%WORK%\zip\%ZIP_NAME%"
 mkdir "%ZIP_DIR%"
 xcopy /e /i /q /y "%INPUT%" "%ZIP_DIR%" >nul || goto copyFailed

@@ -258,8 +258,12 @@ Courses and rounds live in two plain tab-separated text files. Written for one u
   before it) shows the label in bold; "3. First sentence. More" shows the first sentence in bold
   (`HelpFormatter`, shown by `HelpWindow` on parchment under a wood title band). The help window is modal (v4.22):
   the main window cannot be used until it is closed, so the help always matches the screen it was opened from.
-- Version numbers: Until the first published release the version stays at 4.00, whatever is added. Do not bump
-  Theme.VERSION or pom.xml and do not add new version lines to help/home-info.txt. When a feature or fix is added, do
+- Version numbers: 4.00 was the first release (sent to testers, November 2026); 4.01 (2026-11-04, the own-data-folder
+  fix) is the current one and the first GitHub release (tag v4.01). A new version changes Theme.VERSION, pom.xml
+  and tools\make-installer.bat's PROGRAM_VERSION / APP_VERSION (x.yz -> x.y.z for jpackage) together; assets are
+  GolfAnalyst_vX.XX.exe / .zip. The rest of this paragraph is the policy as it stood before the first release:
+  until then the version stayed at 4.00, whatever was added; Theme.VERSION and pom.xml were not bumped and no new
+  version lines were added to help/home-info.txt. When a feature or fix is added, do
   two things: (a) add it to the matching group of the v4.00 entry in help/home-info.txt (the groups are: the opening
   line, Handicap and statistics, Rounds, Courses, Looking at your golf, Looking after your data, Around the program),
   keeping each paragraph short and in the same friendly voice; (b) add one line to CHANGELOG.md. After the first

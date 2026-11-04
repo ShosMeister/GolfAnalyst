@@ -69,3 +69,8 @@ that nothing about how it was built is lost. The wording is the help text's own,
 - v4.00 (before release): Fixed: making your own data folder from the sample data now switches the open window to it at once, so Save no longer keeps asking to make the folder.
 
 - v4.00 (before release): On the sample data, New Round and New Course ask about your own data folder before they open, and New Round offers to copy the sample courses you play into a new folder.
+
+# Releases
+
+- Golf Analyst v4.00 (November 2026): the first copy sent to testers.
+- Golf Analyst v4.01 (2026-11-04): Fixed making your own data folder from the sample data (Save kept asking and nothing was saved). New Round and New Course now ask before you type anything, the program switches to your own folder straight away, and New Round offers to copy sample courses into it. Installing it replaces v4.00 in place.

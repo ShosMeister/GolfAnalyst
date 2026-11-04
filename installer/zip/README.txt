@@ -1,10 +1,10 @@
-Golf Analyst 4.00 - the "runs anywhere" copy
+Golf Analyst 4.01 - the "runs anywhere" copy
 =============================================
 
 Golf scores, handicap and statistics, by Angelo Mileto.
 
 This copy runs on Windows, Mac and Linux with the Java that is already on the
-computer. On Windows the installer (GolfAnalyst-4.0.0...exe) is easier: it
+computer. On Windows the installer (GolfAnalyst_v4.01.exe) is easier: it
 brings its own Java.
 
 What you need

@@ -1,4 +1,4 @@
-# GolfAnalyst v4.00 (Java)
+# GolfAnalyst v4.01 (Java)
 
 Golf Analyst with its window. It has the one-window layout of the earlier versions: a wood header
 with Home, Help and Info buttons that stays the same on every screen, a status footer that stays
@@ -11,8 +11,8 @@ No other libraries.
 
 ## Installing it (Windows)
 
-`tools\make-installer.bat` builds `target\installer\GolfAnalyst-4.0.0.exe` (every picture, exactly as it is), plus a
-"runs anywhere" zip, `GolfAnalyst-4.0.0.zip`, for Mac and Linux (Java 17 or newer). The installer brings its own trimmed Java, installs just for you (no administrator
+`tools\make-installer.bat` builds `target\installer\GolfAnalyst_v4.01.exe` (every picture, exactly as it is), plus a
+"runs anywhere" zip, `GolfAnalyst_v4.01.zip`, for Mac and Linux (Java 17 or newer). The installer brings its own trimmed Java, installs just for you (no administrator
 rights) with a Start menu entry, and never writes inside its own folder: your data lives in `Documents\Golf Analyst`
 and uninstalling never touches it. How to build it, and what it needs (the WiX Toolset), is in
 [docs/BUILDING.md](docs/BUILDING.md). Testers get `README-testers.txt`.

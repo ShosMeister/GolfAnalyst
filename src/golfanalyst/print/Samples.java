@@ -50,7 +50,7 @@ public final class Samples
             folder = Path.of(args[0]);
         }
         Files.createDirectories(folder);
-        ReportData read = ReportData.of(new DataStore(Path.of(DataStore.SAMPLE_FOLDER)), LocalDate.now(), "4.00");
+        ReportData read = ReportData.of(new DataStore(Path.of(DataStore.SAMPLE_FOLDER)), LocalDate.now(), "4.01");
         ReportData data = new ReportData(read.rounds(), read.tees(), read.handicap(), TEST_NAME, read.includeHistorical(), read.sample(),
                 read.today(), read.version());
         write(new HandicapReport(data), 0, folder.resolve("print_actual_handicap_report.png"));

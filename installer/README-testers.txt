@@ -1,4 +1,4 @@
-Golf Analyst 4.00 - for testers
+Golf Analyst 4.01 - for testers
 ===============================
 
 Thank you for trying Golf Analyst!
@@ -15,7 +15,8 @@ Myrtle Beach courses are courtesy of On The Green Magazine
 
 Installing it on Windows
 ------------------------
-1. Double-click GolfAnalyst-4.0.0.exe.
+1. Double-click GolfAnalyst_v4.01.exe. If you have an earlier copy installed,
+   this one replaces it; your data is kept.
 2. Windows may say "Windows protected your PC", because the program is not
    signed yet. Click "More info", then "Run anyway".
 3. Read the credits, click Next, and choose whether you would like a

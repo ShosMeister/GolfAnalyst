@@ -11,7 +11,7 @@ Run from the project, the program reads and writes everything in the project fol
 ## The Windows installer
 
 ```
-tools\make-installer.bat                 GolfAnalyst-4.0.0.exe, GolfAnalyst-4.0.0.zip and README-testers.txt
+tools\make-installer.bat                 GolfAnalyst_v4.01.exe, GolfAnalyst_v4.01.zip and README-testers.txt
 tools\make-installer.bat type=msi        the same with a .msi (for a silent install: msiexec /i <file> /qn)
 ```
 
@@ -33,7 +33,8 @@ The results are in `target\installer\` (never committed). The script lists every
 
 ### What it does
 
-1. `mvn package` makes `target\golfanalyst-4.00.jar`.
+1. `mvn package` makes `target\golfanalyst-4.01.jar` (the version in pom.xml; the script's `PROGRAM_VERSION` must
+   match it, and `APP_VERSION` is the same in three numbers for jpackage).
 2. Gathers the program's files in `target\installer\work\input`: the jar, every picture in `images\` and
    `images\backgrounds\` (each copy compared byte for byte with the original, and listed), `help\`,
    `sample-data\courses.tsv` and `rounds.tsv`, `zipcodes.tsv`.
@@ -41,12 +42,16 @@ The results are in `target\installer\` (never committed). The script lists every
    with only those. Then the built program, run with that runtime on the gathered files
    (`golfanalyst.gui.App --check-pictures`, headless), opens every page and checks each finds its own background
    picture; if one does not, no installer is made.
-4. `jpackage` makes the installer: name "Golf Analyst", version 4.0.0 (jpackage wants three numbers; the program
-   itself says 4.00), vendor Angelo Mileto, per-user install (no administrator rights; it goes in
+4. `jpackage` makes the installer: name "Golf Analyst", version 4.0.1 (jpackage wants three numbers; the program
+   itself says 4.01), vendor Angelo Mileto, per-user install (no administrator rights; it goes in
    `%LOCALAPPDATA%\Golf Analyst`), a Start menu entry, an offered desktop shortcut, the icon
    `installer\GolfAnalyst.ico`, and the license page from `installer\credits.txt` (the About text, the GeoNames
    credit and the photograph credit). The launcher passes
    `-Dgolfanalyst.home=$APPDIR`, which tells the program it is installed.
+
+**A new version:** change `Theme.VERSION`, `pom.xml` and the script's `PROGRAM_VERSION` / `APP_VERSION` together
+(4.01 is 4.0.1, 4.10 is 4.1.0). Because the upgrade UUID stays the same and the number is higher, installing it
+replaces the old version in place.
 
 **Never change the upgrade UUID** in the script (`UPGRADE_UUID`): it is how Windows knows a later version replaces
 this one in place.
@@ -69,7 +74,7 @@ Home.png is only 80 x 80, so the 256 size is enlarged and a little soft; a bigge
 
 ## The "runs anywhere" zip
 
-The same script also makes `target\installer\GolfAnalyst-4.0.0.zip` for Mac and Linux (and Windows with
+The same script also makes `target\installer\GolfAnalyst_v4.01.zip` for Mac and Linux (and Windows with
 its own Java), until native installers can be built there (jpackage only builds for the system it runs on). It
 holds the jar, the program's files, `run.bat`, `run.sh` and `README.txt` (from `installer\zip\`; Java 17 or newer is
 needed) and `README-testers.txt`, which also goes next to the installer. The zip is made with
@@ -79,8 +84,8 @@ plain line ends. `run.bat` and `run.sh` pass `-Dgolfanalyst.home`, so the zip ke
 ## Trying a build
 
 ```
-msiexec /i target\installer\GolfAnalyst-4.0.0.msi /qn      (after type=msi: silent install, no administrator rights)
-msiexec /x target\installer\GolfAnalyst-4.0.0.msi /qn      (silent uninstall)
+msiexec /i target\installer\GolfAnalyst_v4.01.msi /qn      (after type=msi: silent install, no administrator rights)
+msiexec /x target\installer\GolfAnalyst_v4.01.msi /qn      (silent uninstall)
 ```
 
 ## Where the installed program keeps things
