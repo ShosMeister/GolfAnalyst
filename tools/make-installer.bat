@@ -15,8 +15,8 @@ rem        with that runtime that every page finds its background picture;
 rem     4. the installer, with jpackage (it needs the WiX Toolset, see
 rem        docs\BUILDING.md);
 rem     5. the "runs anywhere" zip for Mac and Linux (and Windows with its
-rem        own Java): the program's files, run.bat, run.sh, README.txt and
-rem        README-testers.txt, which also goes next to the installer.
+rem        own Java): the program's files, run.bat, run.sh and its README.txt;
+rem        installer\README.txt, for everyone, goes next to the installer.
 rem   Everything it makes is in target\installer, which is not committed.
 rem
 rem   Passed in:  type=exe - a setup program (the default)
@@ -26,7 +26,7 @@ rem               ("type=msi" and "type msi" both work, because Windows
 rem               splits a word at the = sign)
 rem   Passed out: target\installer\GolfAnalyst_v4.01.exe (or .msi),
 rem               target\installer\GolfAnalyst_v4.01.zip and
-rem               target\installer\README-testers.txt
+rem               target\installer\README.txt
 rem               Exit code 0 when it was made, 1 if a step failed.
 rem ======================================================================
 setlocal EnableExtensions
@@ -201,8 +201,7 @@ xcopy /e /i /q /y "%INPUT%" "%ZIP_DIR%" >nul || goto copyFailed
 copy /y "%PROJECT%\installer\zip\run.bat" "%ZIP_DIR%" >nul || goto copyFailed
 copy /y "%PROJECT%\installer\zip\run.sh" "%ZIP_DIR%" >nul || goto copyFailed
 copy /y "%PROJECT%\installer\zip\README.txt" "%ZIP_DIR%" >nul || goto copyFailed
-copy /y "%PROJECT%\installer\README-testers.txt" "%ZIP_DIR%" >nul || goto copyFailed
-copy /y "%PROJECT%\installer\README-testers.txt" "%OUT%" >nul || goto copyFailed
+copy /y "%PROJECT%\installer\README.txt" "%OUT%" >nul || goto copyFailed
 if exist "%OUT%\%ZIP_NAME%.zip" del /q "%OUT%\%ZIP_NAME%.zip"
 rem tar (in Windows 10 and later) writes zip paths with forward slashes, which Macs and Linux need
 "%SystemRoot%\System32\tar.exe" -a -c -f "%OUT%\%ZIP_NAME%.zip" -C "%WORK%\zip" "%ZIP_NAME%"
@@ -213,7 +212,7 @@ if errorlevel 1 (
 echo.
 echo Made %RESULT%
 echo Made %OUT%\%ZIP_NAME%.zip
-echo Made %OUT%\README-testers.txt
+echo Made %OUT%\README.txt
 exit /b 0
 
 rem ---------------------------------------------------------------------

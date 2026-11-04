@@ -11,7 +11,7 @@ Run from the project, the program reads and writes everything in the project fol
 ## The Windows installer
 
 ```
-tools\make-installer.bat                 GolfAnalyst_v4.01.exe, GolfAnalyst_v4.01.zip and README-testers.txt
+tools\make-installer.bat                 GolfAnalyst_v4.01.exe, GolfAnalyst_v4.01.zip and README.txt
 tools\make-installer.bat type=msi        the same with a .msi (for a silent install: msiexec /i <file> /qn)
 ```
 
@@ -77,7 +77,7 @@ Home.png is only 80 x 80, so the 256 size is enlarged and a little soft; a bigge
 The same script also makes `target\installer\GolfAnalyst_v4.01.zip` for Mac and Linux (and Windows with
 its own Java), until native installers can be built there (jpackage only builds for the system it runs on). It
 holds the jar, the program's files, `run.bat`, `run.sh` and `README.txt` (from `installer\zip\`; Java 17 or newer is
-needed) and `README-testers.txt`, which also goes next to the installer. The zip is made with
+needed); `installerREADME.txt`, the README for everyone, goes next to the installer. The zip is made with
 Windows' own `tar`, so its paths use forward slashes, as Macs and Linux need; `.gitattributes` keeps `run.sh` with
 plain line ends. `run.bat` and `run.sh` pass `-Dgolfanalyst.home`, so the zip keeps your data in Documents too.
 

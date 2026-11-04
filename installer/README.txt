@@ -1,7 +1,7 @@
-Golf Analyst 4.01 - for testers
-===============================
+Golf Analyst 4.01
+=================
 
-Thank you for trying Golf Analyst!
+Welcome to Golf Analyst!
 
 What it is
 ----------
@@ -24,8 +24,8 @@ Installing it on Windows
    just for you.
 4. Start it from the Start menu: Golf Analyst.
 
-On a Mac or Linux, use the zip instead and read its README.txt (you need Java 17
-or newer).
+On a Mac or Linux, use GolfAnalyst_v4.01.zip instead and read its README.txt
+(you need Java 17 or newer).
 
 Your data
 ---------
@@ -46,6 +46,7 @@ If something goes wrong
 - Take a screenshot (on Windows press Windows + Shift + S).
 - Look at the bar along the bottom of the window: it says what the program is
   doing, and it says so when a data file could not be read.
-- Send these to Angelo. Every bit helps.
+- Tell Angelo about it at https://github.com/ShosMeister/GolfAnalyst/issues
+  (press New issue). Every bit helps.
 
 Have fun, and good golfing!

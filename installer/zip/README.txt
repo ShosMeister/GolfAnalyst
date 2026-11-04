@@ -26,7 +26,7 @@ How to start it
 Where your data goes
 --------------------
 The program starts with made-up sample data so there is something to look at.
-When you save something it offers to make your own data folder:
+When you press New Round or New Course it offers to make your own data folder:
 
     Windows:  Documents\Golf Analyst
     Mac:      Documents/Golf Analyst (in your home folder)
@@ -35,6 +35,12 @@ When you save something it offers to make your own data folder:
 Nothing is ever written inside this folder, so you can replace it with a newer
 copy at any time without losing your rounds. Deleting this folder never
 removes your data.
+
+If something goes wrong
+-----------------------
+Write down what you were doing, take a screenshot, and look at the bar along
+the bottom of the window: it says when a data file could not be read. Then
+tell Angelo at https://github.com/ShosMeister/GolfAnalyst/issues (New issue).
 
 Credits
 -------

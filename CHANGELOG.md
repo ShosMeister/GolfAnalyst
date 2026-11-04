@@ -73,4 +73,4 @@ that nothing about how it was built is lost. The wording is the help text's own,
 # Releases
 
 - Golf Analyst v4.00 (November 2026): the first copy sent to testers.
-- Golf Analyst v4.01 (2026-11-04): Fixed making your own data folder from the sample data (Save kept asking and nothing was saved). New Round and New Course now ask before you type anything, the program switches to your own folder straight away, and New Round offers to copy sample courses into it. Installing it replaces v4.00 in place.
+- Golf Analyst v4.01 (2026-11-04): Fixed making your own data folder from the sample data (Save kept asking and nothing was saved). New Round and New Course now ask before you type anything, the program switches to your own folder straight away, and New Round offers to copy sample courses into it. Installing it replaces v4.00 in place. The release is public, with README.txt for everyone (it was README-testers.txt).

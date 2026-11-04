@@ -15,7 +15,7 @@ No other libraries.
 "runs anywhere" zip, `GolfAnalyst_v4.01.zip`, for Mac and Linux (Java 17 or newer). The installer brings its own trimmed Java, installs just for you (no administrator
 rights) with a Start menu entry, and never writes inside its own folder: your data lives in `Documents\Golf Analyst`
 and uninstalling never touches it. How to build it, and what it needs (the WiX Toolset), is in
-[docs/BUILDING.md](docs/BUILDING.md). Testers get `README-testers.txt`.
+[docs/BUILDING.md](docs/BUILDING.md). Next to the installer goes `README.txt`, the README for everyone.
 
 ## Running it
 
