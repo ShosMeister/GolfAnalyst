@@ -10,7 +10,9 @@ import java.awt.Window;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.ToIntFunction;
 import javax.swing.JOptionPane;
@@ -67,6 +69,14 @@ public final class AppPanel extends JPanel implements Shell
     static final String OWN_FOLDER_NOW = ". The sample data is closed, and nothing typed on it was saved.";
     static final String OWN_FOLDER_NO_COURSES = " It has no courses yet: add yours with New Course, then enter your rounds.";
     static final String WINDOW_TITLE = "windowTitle";
+    static final String OWN_FOLDER_OPEN = "Golf Analyst is now using your own data folder, ";
+    static final String OWN_FOLDER_COPIED = ", with these courses copied from the sample data: ";
+    static final String ENTER_ROUND = " Enter your round.";
+    static final String ADD_COURSE_FIRST = ". It has no courses yet: add your course with New Course first, then enter your round.";
+    static final String ENTER_COURSE = ". Add your course: it is saved in your own folder.";
+    static final int NOT_STARTED = 0;
+    static final int STAY_ON_SAMPLE = 1;
+    static final int SWITCHED = 2;
     static final String OWN_FOLDER_USE = " Use it as your data folder?";
     static final String CLEAR_SAMPLE_QUESTION = "This is the sample data. There is nothing of yours to clear. Create your own data folder first?";
     static final String CLEAR_TITLE = "Clear data";
@@ -113,6 +123,17 @@ public final class AppPanel extends JPanel implements Shell
     }
 
     /*
+     * CopyAsker: shows the Copy courses window and gives its answer (on screen normally; the self-test answers by code).
+     */
+    interface CopyAsker
+    {
+        /*
+         * ask(form): ConfirmForm.GO once Copy is pressed, CANCELLED for None.
+         */
+        int ask(CopyCoursesForm form);
+    }
+
+    /*
      * PrintAsker: shows the Print window and gives its answer (on screen normally; the self-test answers by code).
      */
     interface PrintAsker
@@ -153,6 +174,8 @@ public final class AppPanel extends JPanel implements Shell
     private transient SettingsForm.Tools settingsTools = new ScreenTools();
     private transient SettingsAsker settingsAsker = form -> form.showOn(this);
     private transient ExportAsker exportAsker = form -> form.showOn(this);
+    private transient CopyAsker copyAsker = form -> form.showOn(this);
+    private boolean sampleAllowed = false;
     private transient PrintForm.Tools printTools = new ScreenPrintTools();
     private transient PrintAsker printAsker = form -> form.showOn(this);
     private transient golfanalyst.ProgramFolders folders = golfanalyst.ProgramFolders.active();
@@ -383,13 +406,156 @@ public final class AppPanel extends JPanel implements Shell
     }
 
     /*
-     * newRound(): shows the round page ready to enter a new round.
+     +--------------------------------------------------------------------------+
+     | newRound()                                                               |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Shows the round page ready to enter a new round. On the sample data it   |
+     | first asks about the own data folder (startOnSample), before anything    |
+     | is typed: Yes switches the window to the own folder; if that folder has  |
+     | no courses yet the Copy courses window offers the sample data's courses  |
+     | (the ticked ones are copied in with all their tees, exactly as they      |
+     | are), and with none the window stays Home and the footer says to add     |
+     | the course with New Course first.                                        |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing                                                      |
+     +--------------------------------------------------------------------------+
      */
     @Override
     public void newRound()
     {
+        List<golfanalyst.Tee> sampleTees = store.dataset().tees();
+        int start = startOnSample();
+        if (start == NOT_STARTED)
+        {
+            return;
+        }
+        String note = null;
+        if (start == SWITCHED)
+        {
+            Path folder = store.dir().toAbsolutePath().normalize();
+            String copied = "";
+            if (store.dataset().tees().isEmpty())
+            {
+                copied = offerSampleCourses(sampleTees);
+            }
+            if (store.dataset().tees().isEmpty())
+            {
+                setStatus(OWN_FOLDER_OPEN + folder + ADD_COURSE_FIRST);
+                return;
+            }
+            note = OWN_FOLDER_OPEN + folder + ".";
+            if (!copied.isEmpty())
+            {
+                note = OWN_FOLDER_OPEN + folder + OWN_FOLDER_COPIED + copied + ".";
+            }
+            note = note + ENTER_ROUND;
+        }
         roundPage.showNew();
         navigate(ROUND);
+        if (note != null)
+        {
+            setStatus(note);
+        }
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | startOnSample()                                                          |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | What New Round and New Course ask before they open on the sample data.   |
+     | On the golfer's own data, or when the golfer has already chosen to add   |
+     | to the sample data this time, nothing is asked. Otherwise                |
+     | SAMPLE_QUESTION (installed: SAMPLE_QUESTION_INSTALLED, Yes or No): Yes   |
+     | makes or opens the own data folder and switches the window to it         |
+     | (makeOwnDataFolder); No (from the project) goes on with the sample data  |
+     | and Save will not ask again; No when installed, or Cancel, stays.        |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: SWITCHED, STAY_ON_SAMPLE (go on, no switch) or NOT_STARTED   |
+     +--------------------------------------------------------------------------+
+     */
+    private int startOnSample()
+    {
+        if (!store.isSampleData() || sampleAllowed)
+        {
+            return STAY_ON_SAMPLE;
+        }
+        if (folders.isInstalled())
+        {
+            if (asker.applyAsInt(SAMPLE_QUESTION_INSTALLED) != JOptionPane.YES_OPTION)
+            {
+                return NOT_STARTED;
+            }
+            if (makeOwnDataFolder())
+            {
+                return SWITCHED;
+            }
+            return NOT_STARTED;
+        }
+        int answer = asker.applyAsInt(SAMPLE_QUESTION);
+        if (answer == JOptionPane.NO_OPTION)
+        {
+            sampleAllowed = true;
+            return STAY_ON_SAMPLE;
+        }
+        if (answer != JOptionPane.YES_OPTION)
+        {
+            return NOT_STARTED;
+        }
+        if (makeOwnDataFolder())
+        {
+            return SWITCHED;
+        }
+        return NOT_STARTED;
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | offerSampleCourses(sampleTees)                                           |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | The Copy courses window for a new own data folder with no courses: the   |
+     | ticked sample courses are added to its courses.tsv with all their tees,  |
+     | exactly as they are (their own TeeIDs; the folder has none yet). Nothing |
+     | else of the sample data is copied.                                       |
+     |                                                                          |
+     | Passed in:  sampleTees - the sample data's tees                          |
+     | Passed out: the copied courses' names ("Edgewater, Sample Links"), or "" |
+     +--------------------------------------------------------------------------+
+     */
+    private String offerSampleCourses(List<golfanalyst.Tee> sampleTees)
+    {
+        if (sampleTees.isEmpty())
+        {
+            return "";
+        }
+        CopyCoursesForm form = new CopyCoursesForm(sampleTees);
+        if (copyAsker.ask(form) != ConfirmForm.GO || form.chosenTees().isEmpty())
+        {
+            return "";
+        }
+        List<golfanalyst.Tee> chosen = form.chosenTees();
+        try
+        {
+            store.addTees(chosen);
+        }
+        catch (IOException failure)
+        {
+            setStatus("The courses could not be copied: " + failure.getMessage());
+            return "";
+        }
+        List<String> names = new ArrayList<>();
+        for (golfanalyst.Tee tee : chosen)
+        {
+            if (!names.contains(tee.courseName()))
+            {
+                names.add(tee.courseName());
+            }
+        }
+        return String.join(", ", names);
     }
 
     /*
@@ -507,13 +673,22 @@ public final class AppPanel extends JPanel implements Shell
     }
 
     /*
-     * newCourse(): shows the New Course page, empty.
+     * newCourse(): shows the New Course page, empty; on the sample data it first asks about the own data folder (startOnSample), so the course goes into it.
      */
     @Override
     public void newCourse()
     {
+        int start = startOnSample();
+        if (start == NOT_STARTED)
+        {
+            return;
+        }
         coursePage.showNew();
         navigate(COURSE);
+        if (start == SWITCHED)
+        {
+            setStatus(OWN_FOLDER_OPEN + store.dir().toAbsolutePath().normalize() + ENTER_COURSE);
+        }
     }
 
     /*
@@ -539,7 +714,7 @@ public final class AppPanel extends JPanel implements Shell
     @Override
     public boolean readyToSave()
     {
-        if (!store.isSampleData())
+        if (!store.isSampleData() || sampleAllowed)
         {
             return true;
         }
@@ -580,10 +755,10 @@ public final class AppPanel extends JPanel implements Shell
      | footer says so and, when the folder has no courses yet, to add one.      |
      |                                                                          |
      | Passed in:  nothing                                                      |
-     | Passed out: nothing                                                      |
+     | Passed out: true when the window now shows the own data folder           |
      +--------------------------------------------------------------------------+
      */
-    private void makeOwnDataFolder()
+    private boolean makeOwnDataFolder()
     {
         Path folder = store.ownDataFolder();
         String made = OWN_FOLDER_READY;
@@ -594,7 +769,7 @@ public final class AppPanel extends JPanel implements Shell
                 if (!askYesNo(ownFolderQuestion(folder)))
                 {
                     setStatus("Nothing was changed.");
-                    return;
+                    return false;
                 }
                 made = OWN_FOLDER_IN_USE;
             }
@@ -608,7 +783,7 @@ public final class AppPanel extends JPanel implements Shell
         catch (IOException failure)
         {
             setStatus("The data folder could not be made: " + failure.getMessage());
-            return;
+            return false;
         }
         String message = made + folder + OWN_FOLDER_NOW;
         if (store.dataset().tees().isEmpty())
@@ -616,6 +791,7 @@ public final class AppPanel extends JPanel implements Shell
             message = message + OWN_FOLDER_NO_COURSES;
         }
         setStatus(message);
+        return true;
     }
 
     /*
@@ -944,6 +1120,14 @@ public final class AppPanel extends JPanel implements Shell
     void setExportAsker(ExportAsker newAsker)
     {
         exportAsker = newAsker;
+    }
+
+    /*
+     * setCopyAsker(newAsker): replaces the on-screen Copy courses window with answers given by code (for the self-test).
+     */
+    void setCopyAsker(CopyAsker newAsker)
+    {
+        copyAsker = newAsker;
     }
 
     /*

@@ -69,7 +69,11 @@ Courses and rounds live in two plain tab-separated text files. Written for one u
   data. Create your own data folder first?" (Yes makes an empty `data/` beside it, saves nothing and switches the
   open window to it at once with `AppPanel.useDataFolder`, which rebuilds every page from the new store and fires
   `WINDOW_TITLE` for the frame: nothing of the sample data stays on screen and the next Save does not ask again; No
-  saves there; Cancel saves nothing). Dialogs go through `AppPanel`'s asker so tests can answer them.
+  saves there; Cancel saves nothing). New Round and New Course ask it BEFORE opening (`AppPanel.startOnSample`; No
+  from the project sets `sampleAllowed`, so Save does not ask again that session; installed No stays Home); after Yes,
+  New Round on a folder with no courses shows `CopyCoursesForm` (sample courses with tick boxes, none ticked; Copy adds
+  the ticked courses' tees exactly as they are via `addTees`; None stays Home with `ADD_COURSE_FIRST`; `CopyAsker`
+  hook for tests). Dialogs go through `AppPanel`'s asker so tests can answer them.
 - Changing existing lines (an edited round, edited tees) goes through `LineReplacer` (via `RoundWriter.replace`
   and `CourseWriter.update`): it splices in only those lines (same ID; columns the program does not know keep their
   value), leaves every other character of the file as it was, makes a backup copy first, and writes via a

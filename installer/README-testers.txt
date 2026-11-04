@@ -29,10 +29,11 @@ or newer).
 Your data
 ---------
 The program starts with made-up sample data, so there is something to look at
-straight away. The first time you save something it offers to make your own
-data folder, which is Documents\Golf Analyst. Choose Yes and it switches to
-your own folder straight away, empty and ready: add your course with New
-Course, then enter your rounds. Your rounds, courses and settings all live
+straight away. When you press New Round or New Course it first offers to make
+your own data folder, which is Documents\Golf Analyst. Choose Yes and it
+switches to your own folder straight away. New Round then offers to copy any
+of the sample courses you play into it; choose None to add your own course
+with New Course first. Your rounds, courses and settings all live
 there, with the backups the program makes for you.
 
 Uninstalling Golf Analyst (Settings, Apps, Golf Analyst, Uninstall) removes the

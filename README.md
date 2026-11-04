@@ -64,7 +64,9 @@ adds courses to `courses.tsv` and rounds to `rounds.tsv` itself when you press S
 showing the sample data, Save first asks "This is the sample data. Create your own data folder
 first?". Yes makes an empty `data` folder next to `sample-data` (header rows only, nothing copied,
 an existing folder is never written over), saves nothing, and switches the open window to it at once (no restart;
-nothing of the sample data stays on screen). No saves into the sample data; Cancel saves nothing.
+nothing of the sample data stays on screen). No saves into the sample data; Cancel saves nothing. New Round and New
+Course ask the same question before they open, so nothing typed is lost; after Yes, New Round on a folder with no
+courses offers to copy sample courses (with all their tees, exactly as they are) or to add the course first.
 
 ## The window
 

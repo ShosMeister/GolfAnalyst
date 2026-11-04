@@ -3488,7 +3488,8 @@ public final class GuiSelfTest
             sampleAsked.add("confirm");
             return ConfirmForm.CANCELLED;
         });
-        panel.newCourse();
+        panel.coursePage().showNew();
+        panel.navigate(AppPanel.COURSE);
         panel.coursePage().courseField.setText("Edgewater");
         panel.coursePage().zipField.setText("29720");
         panel.coursePage().deleteCourseButton.doClick();
@@ -4819,9 +4820,14 @@ public final class GuiSelfTest
      | Purpose:                                                                 |
      | Runs the real window logic on a copy of the sample data in a folder      |
      | named sample-data: the title and footer say it is the sample data, and   |
-     | saving a course or a round asks first. Cancel saves nothing; Yes makes   |
-     | an empty data folder beside it and saves nothing; Yes again leaves that  |
-     | folder alone; No saves into the sample data.                             |
+     | New Course and New Round ask BEFORE they open (nothing typed is lost).   |
+     | Cancel stays Home; Yes makes an empty data folder beside it, switches    |
+     | the window to it and opens New Course there, so the course is saved in   |
+     | it without another question; with the folder there, Yes asks first       |
+     | whether to use it; New Round on a folder with no courses offers the      |
+     | sample courses (Copy brings Edgewater with all four tees exactly as      |
+     | they are; None stays Home and says to add the course first); No goes on  |
+     | with the sample data and Save does not ask again.                        |
      |                                                                          |
      | Passed in:  nothing                                                      |
      | Passed out: nothing (throws IOException if the copy fails)               |
@@ -4832,6 +4838,7 @@ public final class GuiSelfTest
         Path base = Files.createTempDirectory("golfanalyst-sample-test");
         Path sample = base.resolve(DataStore.SAMPLE_FOLDER);
         Path ownData = base.resolve(DataStore.DATA_FOLDER);
+        Path ownFull = ownData.toAbsolutePath().normalize();
         copyFolder(Path.of("sample-data"), sample);
         String coursesBefore = Files.readString(sample.resolve(DataLoader.COURSES_FILE));
         String roundsBefore = Files.readString(sample.resolve(DataLoader.ROUNDS_FILE));
@@ -4847,87 +4854,145 @@ public final class GuiSelfTest
             asked.add(question);
             return answer[0];
         });
-
-        ((WoodButton) findByText(panel, "New Course")).doClick();
-        CoursePage page = panel.coursePage();
         int[] ninePars = {4, 3, 5, 4, 4, 3, 5, 4, 4};
         int[] nineIndex = {5, 9, 1, 7, 3, 8, 2, 6, 4};
+
+        ((WoodButton) findByText(panel, "New Course")).doClick();
+        check("New Course on the sample data asks the agreed question before the page opens",
+                asked.equals(List.of("This is the sample data. Create your own data folder first?")));
+        check("Cancel stays Home and makes nothing", panel.header().title().equals("Golf Analyst Stats Home") && !Files.exists(ownData));
+
+        answer[0] = javax.swing.JOptionPane.YES_OPTION;
+        ((WoodButton) findByText(panel, "New Course")).doClick();
+        check("Yes makes an empty data folder beside the sample data",
+                Files.readAllLines(ownData.resolve(DataLoader.COURSES_FILE)).equals(List.of(golfanalyst.CourseWriter.STANDARD_HEADER))
+                        && Files.readAllLines(ownData.resolve(DataLoader.ROUNDS_FILE)).equals(List.of(golfanalyst.RoundWriter.STANDARD_HEADER)));
+        check("Yes switches the window to it and opens New Course there", panel.store().dir().equals(ownFull) && !panel.store().isSampleData()
+                && !panel.windowTitle().contains("SAMPLE") && panel.header().title().equals("New Course")
+                && panel.footer().status().equals(AppPanel.OWN_FOLDER_OPEN + ownFull + AppPanel.ENTER_COURSE));
+        CoursePage page = panel.coursePage();
         page.courseField.setText("Test Nine");
         page.zipField.setText("29300");
         page.setNineHoles(true);
         fillTee(page, 0, "Red", "33.0", "110", ninePars, nineIndex);
+        int askedBefore = asked.size();
         page.saveButton.doClick();
-        check("saving on the sample data asks the agreed question",
-                asked.size() == 1 && asked.get(0).equals("This is the sample data. Create your own data folder first?"));
-        check("Cancel saves nothing and stays on the page", Files.readString(sample.resolve(DataLoader.COURSES_FILE)).equals(coursesBefore)
-                && panel.header().title().equals("New Course") && !Files.exists(ownData));
+        List<String> ownCourseLines = Files.readAllLines(ownData.resolve(DataLoader.COURSES_FILE));
+        check("the course is saved in the new folder with no more questions, the sample data untouched", asked.size() == askedBefore
+                && ownCourseLines.size() == 2 && ownCourseLines.get(1).contains("Test Nine")
+                && Files.readString(sample.resolve(DataLoader.COURSES_FILE)).equals(coursesBefore)
+                && panel.footer().status().equals("Added 1 tee for Test Nine."));
 
-        answer[0] = javax.swing.JOptionPane.YES_OPTION;
-        page.saveButton.doClick();
-        check("Yes makes a data folder beside the sample data", Files.isDirectory(ownData));
-        check("the new data folder has header rows only",
-                Files.readAllLines(ownData.resolve(DataLoader.COURSES_FILE)).equals(List.of(golfanalyst.CourseWriter.STANDARD_HEADER))
-                        && Files.readAllLines(ownData.resolve(DataLoader.ROUNDS_FILE)).equals(List.of(golfanalyst.RoundWriter.STANDARD_HEADER)));
-        check("Yes saves nothing into the sample data", Files.readString(sample.resolve(DataLoader.COURSES_FILE)).equals(coursesBefore));
-        Path ownFull = ownData.toAbsolutePath().normalize();
-        check("Yes switches the window to the new folder at once and says so", panel.store().dir().equals(ownFull)
-                && !panel.store().isSampleData() && !panel.windowTitle().contains("SAMPLE") && panel.header().title().equals("Golf Analyst Stats Home")
-                && panel.footer().status().equals(AppPanel.OWN_FOLDER_READY + ownFull + AppPanel.OWN_FOLDER_NOW + AppPanel.OWN_FOLDER_NO_COURSES)
-                && panel.coursePage() != page);
-        int askedAfterYes = asked.size();
-        check("after Yes the next save goes ahead without asking again", panel.readyToSave() && asked.size() == askedAfterYes);
-
-        Files.writeString(ownData.resolve(DataLoader.COURSES_FILE), "# mine\n", java.nio.file.StandardOpenOption.APPEND);
-        String ownCourses = Files.readString(ownData.resolve(DataLoader.COURSES_FILE));
         AppPanel second = new AppPanel(store, Path.of("help"), "");
         second.setAsker(question ->
         {
             asked.add(question);
-            return answer[0];
+            return javax.swing.JOptionPane.YES_OPTION;
         });
+        asked.clear();
         ((WoodButton) findByText(second, "New Course")).doClick();
-        CoursePage secondPage = second.coursePage();
-        secondPage.courseField.setText("Test Nine");
-        secondPage.zipField.setText("29300");
-        secondPage.setNineHoles(true);
-        fillTee(secondPage, 0, "Red", "33.0", "110", ninePars, nineIndex);
-        secondPage.saveButton.doClick();
-        check("Yes again asks, and Yes to using it leaves the existing data folder alone and switches to it",
-                Files.readString(ownData.resolve(DataLoader.COURSES_FILE)).equals(ownCourses) && second.store().dir().equals(ownFull)
-                        && second.footer().status().startsWith(AppPanel.OWN_FOLDER_IN_USE + ownFull));
+        check("with the folder there, Yes asks first whether to use it, then uses it as it is", asked.size() == 2
+                && asked.get(1).equals(AppPanel.ownFolderQuestion(ownFull)) && second.store().dir().equals(ownFull)
+                && Files.readAllLines(ownData.resolve(DataLoader.COURSES_FILE)).equals(ownCourseLines));
+
+        Path freshBase = Files.createTempDirectory("golfanalyst-sample-round");
+        Path freshSample = freshBase.resolve(DataStore.SAMPLE_FOLDER);
+        Path freshOwn = freshBase.resolve(DataStore.DATA_FOLDER).toAbsolutePath().normalize();
+        copyFolder(Path.of("sample-data"), freshSample);
+        DataStore freshStore = new DataStore(freshSample);
+        AppPanel roundPanel = new AppPanel(freshStore, Path.of("help"), "");
+        roundPanel.setAsker(question ->
+        {
+            asked.add(question);
+            return javax.swing.JOptionPane.YES_OPTION;
+        });
+        List<CopyCoursesForm> offered = new ArrayList<>();
+        roundPanel.setCopyAsker(form ->
+        {
+            offered.add(form);
+            form.tick("Edgewater");
+            form.copyButton.doClick();
+            return form.answer();
+        });
+        ((WoodButton) findByText(roundPanel, "New Round")).doClick();
+        List<golfanalyst.Tee> copied = roundPanel.store().dataset().tees();
+        boolean same = copied.size() == 4;
+        for (golfanalyst.Tee tee : copied)
+        {
+            golfanalyst.Tee original = freshStore.teeMap().get(tee.id());
+            same = same && original != null && original.courseName().equals("Edgewater") && original.teeName().equals(tee.teeName())
+                    && original.rating() == tee.rating() && original.slope() == tee.slope() && java.util.Arrays.equals(original.pars(), tee.pars())
+                    && java.util.Arrays.equals(original.strokeIndex(), tee.strokeIndex());
+        }
+        check("New Round on a new folder offers every sample course, none ticked", offered.size() == 1
+                && offered.get(0).courseNames().size() == 4 && offered.get(0).courseNames().get(0).startsWith("Edgewater, Lancaster SC: Senior"));
+        check("Copy brings Edgewater with all four tees exactly as they are, and nothing else", same
+                && roundPanel.store().dataset().rounds().isEmpty() && roundPanel.store().dir().equals(freshOwn));
+        check("then New Round opens on the new folder and says what was copied", roundPanel.header().title().startsWith("New Round")
+                && roundPanel.footer().status().equals(AppPanel.OWN_FOLDER_OPEN + freshOwn + AppPanel.OWN_FOLDER_COPIED + "Edgewater."
+                        + AppPanel.ENTER_ROUND));
+        RoundPage roundPage = roundPanel.roundPage();
+        for (int hole = 0; hole < 18; hole = hole + 1)
+        {
+            type(roundPage.puttFields[hole], "2");
+            type(roundPage.scoreFields[hole], "5");
+        }
+        int askedBeforeRound = asked.size();
+        roundPage.saveButton.doClick();
+        check("the round is saved in the new folder with no more questions", asked.size() == askedBeforeRound
+                && roundPanel.store().dataset().rounds().size() == 1
+                && Files.readString(freshSample.resolve(DataLoader.ROUNDS_FILE)).equals(roundsBefore));
+
+        Path noneBase = Files.createTempDirectory("golfanalyst-sample-none");
+        Path noneSample = noneBase.resolve(DataStore.SAMPLE_FOLDER);
+        copyFolder(Path.of("sample-data"), noneSample);
+        AppPanel nonePanel = new AppPanel(new DataStore(noneSample), Path.of("help"), "");
+        nonePanel.setAsker(question -> javax.swing.JOptionPane.YES_OPTION);
+        nonePanel.setCopyAsker(form ->
+        {
+            form.noneButton.doClick();
+            return form.answer();
+        });
+        ((WoodButton) findByText(nonePanel, "New Round")).doClick();
+        Path noneOwn = noneBase.resolve(DataStore.DATA_FOLDER).toAbsolutePath().normalize();
+        check("None copies nothing, stays Home and says to add the course first", nonePanel.header().title().equals("Golf Analyst Stats Home")
+                && nonePanel.store().dataset().tees().isEmpty()
+                && nonePanel.footer().status().equals(AppPanel.OWN_FOLDER_OPEN + noneOwn + AppPanel.ADD_COURSE_FIRST));
 
         AppPanel third = new AppPanel(store, Path.of("help"), "");
         third.setAsker(question ->
         {
             asked.add(question);
-            return answer[0];
+            return javax.swing.JOptionPane.NO_OPTION;
         });
+        asked.clear();
         ((WoodButton) findByText(third, "New Course")).doClick();
         CoursePage thirdPage = third.coursePage();
         thirdPage.courseField.setText("Test Nine");
         thirdPage.zipField.setText("29300");
         thirdPage.setNineHoles(true);
         fillTee(thirdPage, 0, "Red", "33.0", "110", ninePars, nineIndex);
-        answer[0] = javax.swing.JOptionPane.NO_OPTION;
         thirdPage.saveButton.doClick();
-        check("No saves into the sample data", third.footer().status().equals("Added 1 tee for Test Nine.")
+        check("No goes on with the sample data, and Save does not ask again", asked.size() == 1
+                && third.footer().status().equals("Added 1 tee for Test Nine.")
                 && !Files.readString(sample.resolve(DataLoader.COURSES_FILE)).equals(coursesBefore) && third.store().isSampleData());
-        panel = third;
 
-        // A round asks the same question
-        ((WoodButton) findByText(panel, "New Round")).doClick();
-        RoundPage roundPage = panel.roundPage();
-        for (int hole = 0; hole < 18; hole = hole + 1)
+        AppPanel fourth = new AppPanel(new DataStore(sample), Path.of("help"), "");
+        fourth.setAsker(question ->
         {
-            type(roundPage.puttFields[hole], "2");
-            type(roundPage.scoreFields[hole], "6");
-        }
-        answer[0] = javax.swing.JOptionPane.CANCEL_OPTION;
-        int askedBefore = asked.size();
-        roundPage.saveButton.doClick();
-        check("saving a round on the sample data asks too", roundPage.saveButton.isEnabled() && asked.size() == askedBefore + 1);
-        check("Cancel saves no round", Files.readString(sample.resolve(DataLoader.ROUNDS_FILE)).equals(roundsBefore));
+            asked.add(question);
+            return javax.swing.JOptionPane.CANCEL_OPTION;
+        });
+        asked.clear();
+        ((WoodButton) findByText(fourth, "New Round")).doClick();
+        check("New Round on the sample data asks too, and Cancel stays Home", asked.size() == 1
+                && fourth.header().title().equals("Golf Analyst Stats Home")
+                && Files.readString(sample.resolve(DataLoader.ROUNDS_FILE)).equals(roundsBefore));
+        CopyCoursesForm layoutForm = new CopyCoursesForm(freshStore.dataset().tees());
+        checkPanelLayout("Copy courses", layoutForm, layoutForm.introArea(), layoutForm.buttonRow());
         deleteFolder(base);
+        deleteFolder(freshBase);
+        deleteFolder(noneBase);
     }
 
     /*

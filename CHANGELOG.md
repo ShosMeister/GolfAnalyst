@@ -67,3 +67,5 @@ that nothing about how it was built is lost. The wording is the help text's own,
 - v4.00 (before release): The installer and the runs-anywhere zip are one build for everyone, with every picture exactly as it is, the photograph credit on the license page and in the tester README.
 
 - v4.00 (before release): Fixed: making your own data folder from the sample data now switches the open window to it at once, so Save no longer keeps asking to make the folder.
+
+- v4.00 (before release): On the sample data, New Round and New Course ask about your own data folder before they open, and New Round offers to copy the sample courses you play into a new folder.

@@ -31,7 +31,7 @@ A set of tees for which you leave the rating blank is simply left out, even if t
 
 Watch the bar at the bottom: it always names the next thing to fill in, by tee and hole. If something is actually wrong, such as a handicap number used twice or a tee name the course already has, that cell turns pink immediately. A cell you just have not reached yet stays white. When everything is in order the bar says Ready to save and the Save button is enabled. Press it, and you are back at Home with a message saying what was added. Now you can enter rounds on the new course.
 
-If you are still looking at the sample data, the program asks whether to make your own data folder first. Choose Yes and the program switches to your new data folder straight away (Home Help has the details); then type the course again. Choose No only if you really want to add the course to the sample data.
+If you are still looking at the sample data, New Course asks whether to make your own data folder before the screen opens. Choose Yes and the program switches to your new data folder straight away (Home Help has the details), so the course you type is saved there. Choose No only if you really want to add the course to the sample data.
 
 If you change your mind, press Cancel. Once you have typed anything, the program asks "Discard your changes?" before it throws it away, and it asks the same if you press the Home button or close the window.
 
