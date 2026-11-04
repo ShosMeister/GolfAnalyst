@@ -4869,18 +4869,50 @@ public final class GuiSelfTest
                 Files.readAllLines(ownData.resolve(DataLoader.COURSES_FILE)).equals(List.of(golfanalyst.CourseWriter.STANDARD_HEADER))
                         && Files.readAllLines(ownData.resolve(DataLoader.ROUNDS_FILE)).equals(List.of(golfanalyst.RoundWriter.STANDARD_HEADER)));
         check("Yes saves nothing into the sample data", Files.readString(sample.resolve(DataLoader.COURSES_FILE)).equals(coursesBefore));
-        check("Yes says to close and reopen the program", panel.footer().status().contains("Close Golf Analyst and open it again"));
+        Path ownFull = ownData.toAbsolutePath().normalize();
+        check("Yes switches the window to the new folder at once and says so", panel.store().dir().equals(ownFull)
+                && !panel.store().isSampleData() && !panel.windowTitle().contains("SAMPLE") && panel.header().title().equals("Golf Analyst Stats Home")
+                && panel.footer().status().equals(AppPanel.OWN_FOLDER_READY + ownFull + AppPanel.OWN_FOLDER_NOW + AppPanel.OWN_FOLDER_NO_COURSES)
+                && panel.coursePage() != page);
+        int askedAfterYes = asked.size();
+        check("after Yes the next save goes ahead without asking again", panel.readyToSave() && asked.size() == askedAfterYes);
 
         Files.writeString(ownData.resolve(DataLoader.COURSES_FILE), "# mine\n", java.nio.file.StandardOpenOption.APPEND);
         String ownCourses = Files.readString(ownData.resolve(DataLoader.COURSES_FILE));
-        page.saveButton.doClick();
-        check("Yes again asks, and Yes to using it leaves the existing data folder alone", Files.readString(ownData.resolve(DataLoader.COURSES_FILE)).equals(ownCourses)
-                && panel.footer().status().startsWith("Golf Analyst will use " + ownData.toAbsolutePath().normalize()));
+        AppPanel second = new AppPanel(store, Path.of("help"), "");
+        second.setAsker(question ->
+        {
+            asked.add(question);
+            return answer[0];
+        });
+        ((WoodButton) findByText(second, "New Course")).doClick();
+        CoursePage secondPage = second.coursePage();
+        secondPage.courseField.setText("Test Nine");
+        secondPage.zipField.setText("29300");
+        secondPage.setNineHoles(true);
+        fillTee(secondPage, 0, "Red", "33.0", "110", ninePars, nineIndex);
+        secondPage.saveButton.doClick();
+        check("Yes again asks, and Yes to using it leaves the existing data folder alone and switches to it",
+                Files.readString(ownData.resolve(DataLoader.COURSES_FILE)).equals(ownCourses) && second.store().dir().equals(ownFull)
+                        && second.footer().status().startsWith(AppPanel.OWN_FOLDER_IN_USE + ownFull));
 
+        AppPanel third = new AppPanel(store, Path.of("help"), "");
+        third.setAsker(question ->
+        {
+            asked.add(question);
+            return answer[0];
+        });
+        ((WoodButton) findByText(third, "New Course")).doClick();
+        CoursePage thirdPage = third.coursePage();
+        thirdPage.courseField.setText("Test Nine");
+        thirdPage.zipField.setText("29300");
+        thirdPage.setNineHoles(true);
+        fillTee(thirdPage, 0, "Red", "33.0", "110", ninePars, nineIndex);
         answer[0] = javax.swing.JOptionPane.NO_OPTION;
-        page.saveButton.doClick();
-        check("No saves into the sample data", panel.footer().status().equals("Added 1 tee for Test Nine.")
-                && !Files.readString(sample.resolve(DataLoader.COURSES_FILE)).equals(coursesBefore));
+        thirdPage.saveButton.doClick();
+        check("No saves into the sample data", third.footer().status().equals("Added 1 tee for Test Nine.")
+                && !Files.readString(sample.resolve(DataLoader.COURSES_FILE)).equals(coursesBefore) && third.store().isSampleData());
+        panel = third;
 
         // A round asks the same question
         ((WoodButton) findByText(panel, "New Round")).doClick();
@@ -5255,27 +5287,55 @@ public final class GuiSelfTest
             check("installed: saving on the sample data asks the installed question, and No saves nothing", !saved
                     && asked.equals(List.of(AppPanel.SAMPLE_QUESTION_INSTALLED)) && !Files.exists(own));
             answer[0] = javax.swing.JOptionPane.YES_OPTION;
+            panel.setStatus("");
             saved = panel.readyToSave();
+            Path ownFull = own.toAbsolutePath().normalize();
             check("installed: Yes makes Documents\\Golf Analyst with header rows and names it in the user's golfanalyst.location", !saved
                     && Files.readAllLines(own.resolve(DataLoader.ROUNDS_FILE)).equals(List.of(golfanalyst.RoundWriter.STANDARD_HEADER))
-                    && own.toAbsolutePath().normalize().equals(golfanalyst.DataLocation.read(user))
-                    && panel.footer().status().equals("Your own data folder was made at " + own.toAbsolutePath().normalize()
-                            + ". Close Golf Analyst and open it again to use it."));
+                    && ownFull.equals(golfanalyst.DataLocation.read(user)));
+            check("installed: Yes switches the open window to the new folder at once, with nothing of the sample data left",
+                    !panel.store().isSampleData() && panel.store().dir().equals(ownFull) && panel.store().dataset().rounds().isEmpty()
+                            && panel.store().dataset().tees().isEmpty() && !panel.windowTitle().contains("SAMPLE")
+                            && panel.header().title().equals("Golf Analyst Stats Home")
+                            && panel.footer().status().equals(AppPanel.OWN_FOLDER_READY + ownFull + AppPanel.OWN_FOLDER_NOW
+                                    + AppPanel.OWN_FOLDER_NO_COURSES));
+            asked.clear();
+            check("installed: the next Save goes ahead without asking again (no more loop)", panel.readyToSave() && asked.isEmpty());
+
             Files.writeString(own.resolve(DataLoader.ROUNDS_FILE), "# mine\n", java.nio.file.StandardOpenOption.APPEND);
             String mine = Files.readString(own.resolve(DataLoader.ROUNDS_FILE));
+            AppPanel clearPanel = new AppPanel(sampleStore, Path.of("help"), "");
+            clearPanel.setFolders(installed);
+            asked.clear();
             answer[0] = javax.swing.JOptionPane.NO_OPTION;
+            clearPanel.setAsker(question ->
+            {
+                asked.add(question);
+                return answer[0];
+            });
+            clearPanel.clearData();
+            check("installed: Clear on the sample data offers the own folder too", asked.equals(List.of(AppPanel.CLEAR_SAMPLE_QUESTION))
+                    && clearPanel.store().isSampleData());
+
+            AppPanel againPanel = new AppPanel(sampleStore, Path.of("help"), "");
+            againPanel.setFolders(installed);
             asked.clear();
-            panel.clearData();
-            check("installed: Clear on the sample data offers the own folder too", asked.equals(List.of(AppPanel.CLEAR_SAMPLE_QUESTION)));
-            answer[0] = javax.swing.JOptionPane.YES_OPTION;
-            asked.clear();
-            panel.readyToSave();
-            check("installed: when Documents\\Golf Analyst is already there it asks first, saying what it holds, and changes nothing in it",
-                    asked.size() == 2 && asked.get(1).equals(AppPanel.ownFolderQuestion(own.toAbsolutePath().normalize()))
+            againPanel.setAsker(question ->
+            {
+                asked.add(question);
+                return javax.swing.JOptionPane.YES_OPTION;
+            });
+            againPanel.readyToSave();
+            check("installed: when Documents\\Golf Analyst is already there it asks first, saying what it holds, then uses it as it is",
+                    asked.size() == 2 && asked.get(1).equals(AppPanel.ownFolderQuestion(ownFull))
                             && asked.get(1).contains("This folder has data files") && Files.readString(own.resolve(DataLoader.ROUNDS_FILE)).equals(mine)
-                            && panel.footer().status().startsWith("Golf Analyst will use " + own.toAbsolutePath().normalize()));
+                            && againPanel.store().dir().equals(ownFull)
+                            && againPanel.footer().status().startsWith(AppPanel.OWN_FOLDER_IN_USE + ownFull + AppPanel.OWN_FOLDER_NOW));
+
             Files.delete(user.resolve(golfanalyst.DataLocation.FILE));
-            panel.setAsker(question ->
+            AppPanel noPanel = new AppPanel(sampleStore, Path.of("help"), "");
+            noPanel.setFolders(installed);
+            noPanel.setAsker(question ->
             {
                 asked.add(question);
                 if (question.startsWith(AppPanel.OWN_FOLDER_THERE))
@@ -5284,9 +5344,10 @@ public final class GuiSelfTest
                 }
                 return javax.swing.JOptionPane.YES_OPTION;
             });
-            panel.readyToSave();
+            noPanel.readyToSave();
             check("installed: No to using the folder that is there changes nothing", !Files.exists(user.resolve(golfanalyst.DataLocation.FILE))
-                    && panel.footer().status().equals("Nothing was changed."));
+                    && noPanel.footer().status().equals("Nothing was changed.") && noPanel.store().isSampleData());
+            panel = noPanel;
 
             FakeTools tools = new FakeTools();
             List<SettingsForm> forms = new ArrayList<>();

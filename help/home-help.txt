@@ -26,7 +26,7 @@ You cannot enter a round until its course is in the program. Press New Course, t
 
 # Your own data
 
-When you first open the program it shows sample data, so there is something to look at. The title bar and the bar along the bottom say so. The first time you save a course or round, the program asks whether to make your own data folder. Choose Yes, then close and reopen the program. From then on it uses your own data folder and leaves the sample data alone.
+When you first open the program it shows sample data, so there is something to look at. The title bar and the bar along the bottom say so. The first time you save a course or round, the program asks whether to make your own data folder. Choose Yes and the program switches to your own data folder straight away: the sample data is closed and every screen shows only your own data. What you were typing on the sample data is not saved, so add your course with New Course and then enter your round. From then on it uses your own data folder and leaves the sample data alone.
 
 # Looking course by course
 

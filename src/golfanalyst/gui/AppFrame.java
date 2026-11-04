@@ -49,6 +49,7 @@ public final class AppFrame extends JFrame
         AppPanel panel = new AppPanel(store, helpDir, startNote);
         setContentPane(panel);
         setTitle(panel.windowTitle());
+        panel.addPropertyChangeListener(AppPanel.WINDOW_TITLE, event -> setTitle(panel.windowTitle()));
         Image icon = Theme.image("Home.png");
         if (icon != null)
         {

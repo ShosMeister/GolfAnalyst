@@ -63,8 +63,8 @@ written to: saving on it asks only whether to make your own data folder.
 adds courses to `courses.tsv` and rounds to `rounds.tsv` itself when you press Save. While it is
 showing the sample data, Save first asks "This is the sample data. Create your own data folder
 first?". Yes makes an empty `data` folder next to `sample-data` (header rows only, nothing copied,
-an existing folder is never written over) and saves nothing; close the program and open it again to
-use it. No saves into the sample data; Cancel saves nothing.
+an existing folder is never written over), saves nothing, and switches the open window to it at once (no restart;
+nothing of the sample data stays on screen). No saves into the sample data; Cancel saves nothing.
 
 ## The window
 

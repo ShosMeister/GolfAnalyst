@@ -66,8 +66,10 @@ Courses and rounds live in two plain tab-separated text files. Written for one u
   sand flag. The files hold only what the golfer typed.
 - IDs: every course/tee (`TeeID`) and every round (`RoundID`) is unique.
 - Every page that writes to the files calls `Shell.readyToSave()` first. On `sample-data` it asks "This is the sample
-  data. Create your own data folder first?" (Yes makes an empty `data/` beside it and saves nothing; No saves there;
-  Cancel saves nothing). Dialogs go through `AppPanel`'s asker so tests can answer them.
+  data. Create your own data folder first?" (Yes makes an empty `data/` beside it, saves nothing and switches the
+  open window to it at once with `AppPanel.useDataFolder`, which rebuilds every page from the new store and fires
+  `WINDOW_TITLE` for the frame: nothing of the sample data stays on screen and the next Save does not ask again; No
+  saves there; Cancel saves nothing). Dialogs go through `AppPanel`'s asker so tests can answer them.
 - Changing existing lines (an edited round, edited tees) goes through `LineReplacer` (via `RoundWriter.replace`
   and `CourseWriter.update`): it splices in only those lines (same ID; columns the program does not know keep their
   value), leaves every other character of the file as it was, makes a backup copy first, and writes via a

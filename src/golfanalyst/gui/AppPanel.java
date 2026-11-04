@@ -62,6 +62,11 @@ public final class AppPanel extends JPanel implements Shell
     static final String SAMPLE_QUESTION_INSTALLED = "This is the sample data that comes with Golf Analyst, and it is kept as it is. "
             + "Create your own data folder now?";
     static final String OWN_FOLDER_THERE = "There is already a folder at ";
+    static final String OWN_FOLDER_READY = "Your own data folder is ready at ";
+    static final String OWN_FOLDER_IN_USE = "Golf Analyst is now using ";
+    static final String OWN_FOLDER_NOW = ". The sample data is closed, and nothing typed on it was saved.";
+    static final String OWN_FOLDER_NO_COURSES = " It has no courses yet: add yours with New Course, then enter your rounds.";
+    static final String WINDOW_TITLE = "windowTitle";
     static final String OWN_FOLDER_USE = " Use it as your data folder?";
     static final String CLEAR_SAMPLE_QUESTION = "This is the sample data. There is nothing of yours to clear. Create your own data folder first?";
     static final String CLEAR_TITLE = "Clear data";
@@ -129,18 +134,18 @@ public final class AppPanel extends JPanel implements Shell
         int ask(ImportForm form);
     }
 
-    private final transient DataStore store;
+    private transient DataStore store;
     private final transient Path helpDir;
     private final HeaderBar header = new HeaderBar();
     private final FooterBar footer = new FooterBar();
     private final CardLayout cards = new CardLayout();
     private final JPanel center = new JPanel(cards);
     private final transient Map<String, Page> pages = new LinkedHashMap<>();
-    private final RoundPage roundPage;
-    private final CoursePage coursePage;
-    private final StatsPage statsPage;
-    private final RoundPage bestPage;
-    private final AnalyzerPage analyzerPage;
+    private RoundPage roundPage;
+    private CoursePage coursePage;
+    private StatsPage statsPage;
+    private RoundPage bestPage;
+    private AnalyzerPage analyzerPage;
     private String current = HOME;
     private transient ToIntFunction<String> asker = question -> askOnScreen(question);
     private transient Confirmer confirmer = (form, title) -> form.showOn(this);
@@ -173,6 +178,25 @@ public final class AppPanel extends JPanel implements Shell
         super(new BorderLayout());
         this.store = store;
         this.helpDir = helpDir;
+        buildPages();
+        add(header, BorderLayout.NORTH);
+        add(center, BorderLayout.CENTER);
+        add(footer, BorderLayout.SOUTH);
+
+        header.homeButton().addActionListener(event -> leaveForHome());
+        header.helpButton().addActionListener(event -> showHelp(false));
+        header.infoButton().addActionListener(event -> showHelp(true));
+        navigate(HOME);
+        setStatus(startStatus(startNote));
+    }
+
+    /*
+     * buildPages(): makes every page for the store now open and puts them in the middle of the window (any old ones are removed).
+     */
+    private void buildPages()
+    {
+        center.removeAll();
+        pages.clear();
         HomePage homePage = new HomePage(this);
         roundPage = new RoundPage(this);
         coursePage = new CoursePage(this);
@@ -191,15 +215,34 @@ public final class AppPanel extends JPanel implements Shell
         center.add(statsPage, STATS);
         center.add(bestPage, BEST);
         center.add(analyzerPage, ANALYZER);
-        add(header, BorderLayout.NORTH);
-        add(center, BorderLayout.CENTER);
-        add(footer, BorderLayout.SOUTH);
+    }
 
-        header.homeButton().addActionListener(event -> leaveForHome());
-        header.helpButton().addActionListener(event -> showHelp(false));
-        header.infoButton().addActionListener(event -> showHelp(true));
+    /*
+     +--------------------------------------------------------------------------+
+     | useDataFolder(folder)                                                    |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Switches the open window to another data folder at once: the folder is   |
+     | loaded, every page is made again from it (so nothing of the folder       |
+     | before, such as the sample data or a round being typed, is left on any   |
+     | screen), the window's title is brought up to date (WINDOW_TITLE is       |
+     | fired for the frame) and Home is shown.                                  |
+     |                                                                          |
+     | Passed in:  folder - the data folder to use                              |
+     | Passed out: nothing (throws IOException if the folder cannot be read;    |
+     |             the window is then left as it was)                           |
+     +--------------------------------------------------------------------------+
+     */
+    void useDataFolder(Path folder) throws IOException
+    {
+        DataStore opened = new DataStore(folder);
+        String titleBefore = windowTitle();
+        store = opened;
+        buildPages();
         navigate(HOME);
-        setStatus(startStatus(startNote));
+        center.revalidate();
+        center.repaint();
+        firePropertyChange(WINDOW_TITLE, titleBefore, windowTitle());
     }
 
     /*
@@ -528,11 +571,13 @@ public final class AppPanel extends JPanel implements Shell
      | Purpose:                                                                 |
      | Makes the golfer's own data folder (data next to sample-data from the    |
      | project, Documents\Golf Analyst when installed) with header rows only,   |
-     | never writing over anything, and says in the footer to reopen the        |
-     | program. If the folder is already there it first asks whether to use     |
-     | it as it is (saying what it holds); No changes nothing. Installed, the   |
-     | folder is also written to golfanalyst.location, so the next start opens  |
-     | it at once.                                                              |
+     | never writing over anything. If the folder is already there it first     |
+     | asks whether to use it as it is (saying what it holds); No changes       |
+     | nothing. Installed, the folder is also written to golfanalyst.location,  |
+     | so the next start opens it too. Then the open window switches to it at   |
+     | once (useDataFolder): the sample data is gone from every screen, and     |
+     | what was typed on it is not saved (its course is a sample course); the   |
+     | footer says so and, when the folder has no courses yet, to add one.      |
      |                                                                          |
      | Passed in:  nothing                                                      |
      | Passed out: nothing                                                      |
@@ -541,6 +586,7 @@ public final class AppPanel extends JPanel implements Shell
     private void makeOwnDataFolder()
     {
         Path folder = store.ownDataFolder();
+        String made = OWN_FOLDER_READY;
         try
         {
             if (Files.isDirectory(folder))
@@ -550,18 +596,26 @@ public final class AppPanel extends JPanel implements Shell
                     setStatus("Nothing was changed.");
                     return;
                 }
-                remember(folder);
-                setStatus("Golf Analyst will use " + folder + " the next time it is opened. Close Golf Analyst and open it again to use it.");
-                return;
+                made = OWN_FOLDER_IN_USE;
             }
-            DataStore.createEmptyFolder(folder);
+            else
+            {
+                DataStore.createEmptyFolder(folder);
+            }
             remember(folder);
-            setStatus("Your own data folder was made at " + folder + ". Close Golf Analyst and open it again to use it.");
+            useDataFolder(folder);
         }
         catch (IOException failure)
         {
             setStatus("The data folder could not be made: " + failure.getMessage());
+            return;
         }
+        String message = made + folder + OWN_FOLDER_NOW;
+        if (store.dataset().tees().isEmpty())
+        {
+            message = message + OWN_FOLDER_NO_COURSES;
+        }
+        setStatus(message);
     }
 
     /*
