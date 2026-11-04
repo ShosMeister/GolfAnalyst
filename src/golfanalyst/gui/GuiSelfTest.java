@@ -991,7 +991,6 @@ public final class GuiSelfTest
         checkShowKinds();
         checkShowHistorical();
         checkInstalledFolders();
-        checkWithoutPhotos();
         checkEveryBackground();
         checkBestRoundPage();
         checkSampleSafeguard();
@@ -5344,81 +5343,6 @@ public final class GuiSelfTest
         }
         java.util.Collections.sort(found);
         return found;
-    }
-
-    /*
-     +--------------------------------------------------------------------------+
-     | checkWithoutPhotos()                                                     |
-     +--------------------------------------------------------------------------+
-     | Purpose:                                                                 |
-     | The public build (photos=none) leaves out the pictures named in          |
-     | installer\photos-none-leave-out.txt. With a copy of the images folder    |
-     | that lacks them, the window is built, every page is shown and drawn,     |
-     | with no error; the pages whose photo is gone have no photo (their plain  |
-     | background), and Best Round keeps its own.                               |
-     |                                                                          |
-     | Passed in:  nothing                                                      |
-     | Passed out: nothing (throws IOException if the copy cannot be made)      |
-     +--------------------------------------------------------------------------+
-     */
-    private static void checkWithoutPhotos() throws IOException
-    {
-        Path images = Path.of(System.getProperty("golfanalyst.images", "images"));
-        List<String> leaveOut = new ArrayList<>();
-        for (String line : Files.readAllLines(Path.of("installer", "photos-none-leave-out.txt"), StandardCharsets.UTF_8))
-        {
-            if (!line.isBlank() && !line.trim().startsWith("#"))
-            {
-                leaveOut.add(line.trim());
-            }
-        }
-        Path copy = Files.createTempDirectory("golfanalyst-no-photos").resolve("images");
-        copyFolder(images, copy);
-        Path backgrounds = copy.resolve("backgrounds");
-        Files.createDirectories(backgrounds);
-        try (Stream<Path> files = Files.list(images.resolve("backgrounds")))
-        {
-            for (Path file : (Iterable<Path>) files::iterator)
-            {
-                if (!leaveOut.contains(file.getFileName().toString()))
-                {
-                    Files.copy(file, backgrounds.resolve(file.getFileName()));
-                }
-            }
-        }
-        String fault = "";
-        try
-        {
-            Theme.load(copy);
-            AppPanel panel = new AppPanel(new DataStore(Path.of("sample-data")), Path.of("help"), "");
-            panel.setSize(AppFrame.WINDOW_WIDTH, AppFrame.WINDOW_HEIGHT);
-            for (String page : List.of(AppPanel.HOME, AppPanel.ROUND, AppPanel.COURSE, AppPanel.STATS, AppPanel.BEST, AppPanel.ANALYZER,
-                    AppPanel.HOME))
-            {
-                try
-                {
-                    panel.navigate(page);
-                    layoutAll(panel);
-                    java.awt.image.BufferedImage drawn = new java.awt.image.BufferedImage(panel.getWidth(), panel.getHeight(),
-                            java.awt.image.BufferedImage.TYPE_INT_RGB);
-                    java.awt.Graphics2D pen = drawn.createGraphics();
-                    panel.paint(pen);
-                    pen.dispose();
-                }
-                catch (RuntimeException failure)
-                {
-                    fault = fault + " [" + page + ": " + failure + "]";
-                }
-            }
-            check("without photos: every page starts and is drawn with no error" + fault, fault.isEmpty() && leaveOut.size() == 5);
-            check("without photos: the left-out pages have no photo, Best Round keeps its own", Theme.backdrop("round") == null
-                    && Theme.backdrop("course") == null && Theme.backdrop("stats") == null && Theme.backdrop("analyzer") == null
-                    && Theme.backdrop("home") == null && Theme.backdrop("bestround") != null);
-        }
-        finally
-        {
-            Theme.load(images);
-        }
     }
 
     /*

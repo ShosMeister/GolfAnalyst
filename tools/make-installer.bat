@@ -6,31 +6,27 @@ rem   Purpose:
 rem   Builds the Windows installer for Golf Analyst:
 rem     1. the jar, with Maven (NetBeans' own Maven is found if there is
 rem        no mvn on the PATH);
-rem     2. the program's files: the jar, images, help, sample-data and
-rem        zipcodes.tsv (with or without the background photographs);
+rem     2. the program's files: the jar, images (every picture, exactly as
+rem        it is, each copy checked byte for byte), help, sample-data and
+rem        zipcodes.tsv;
 rem     3. a trimmed Java runtime, with jdeps to find the modules the
-rem        program uses and jlink to make it;
+rem        program uses and jlink to make it; then the built program checks
+rem        with that runtime that every page finds its background picture;
 rem     4. the installer, with jpackage (it needs the WiX Toolset, see
 rem        docs\BUILDING.md);
 rem     5. the "runs anywhere" zip for Mac and Linux (and Windows with its
-rem        own Java): the program's files, run.bat, run.sh and README.txt.
-rem   A test copy also gets README-testers.txt, in the zip and next to the
-rem   installer.
+rem        own Java): the program's files, run.bat, run.sh, README.txt and
+rem        README-testers.txt, which also goes next to the installer.
 rem   Everything it makes is in target\installer, which is not committed.
 rem
-rem   Passed in (in any order; "photos=none" and "photos none" both work,
-rem   because Windows splits a word at the = sign):
-rem     photos=all   - every picture in images\backgrounds, exactly as it
-rem                    is (the default for now: a TEST COPY, named
-rem                    ...-testcopy, with the photographs' notice shown
-rem                    by the installer)
-rem     photos=none  - the public build: leaves out the pictures listed in
-rem                    installer\photos-none-leave-out.txt
-rem     type=exe     - a setup program (the default)
-rem     type=msi     - a Windows Installer package (handy for a silent
-rem                    install: msiexec /i GolfAnalyst-4.0.0.msi /qn)
-rem   Passed out: target\installer\GolfAnalyst-4.0.0[-testcopy].exe/.msi and
-rem               target\installer\GolfAnalyst-4.0.0[-testcopy].zip
+rem   Passed in:  type=exe - a setup program (the default)
+rem               type=msi - a Windows Installer package (handy for a silent
+rem                          install: msiexec /i GolfAnalyst-4.0.0.msi /qn)
+rem               ("type=msi" and "type msi" both work, because Windows
+rem               splits a word at the = sign)
+rem   Passed out: target\installer\GolfAnalyst-4.0.0.exe (or .msi),
+rem               target\installer\GolfAnalyst-4.0.0.zip and
+rem               target\installer\README-testers.txt
 rem               Exit code 0 when it was made, 1 if a step failed.
 rem ======================================================================
 setlocal EnableExtensions
@@ -42,11 +38,10 @@ set "APP_VERSION=4.0.0"
 set "JAR_BUILT=golfanalyst-4.00.jar"
 set "JAR_NAME=golfanalyst.jar"
 set "UPGRADE_UUID=dd680a9f-f467-44e8-a52f-db33fa38a817"
-set "PHOTOS=all"
 set "TYPE=exe"
 
 rem ---------------------------------------------------------------------
-rem   The choices
+rem   The choice
 rem ---------------------------------------------------------------------
 :nextChoice
 if "%~1"=="" goto choicesDone
@@ -56,32 +51,22 @@ for /f "tokens=1,2 delims==" %%a in ("%~1") do (
   set "WORD=%%a"
   if not "%%b"=="" set "VALUE=%%b"
 )
-if /i "%WORD%"=="photos" goto choosePhotos
-if /i "%WORD%"=="type" goto chooseType
-goto badChoice
-:choosePhotos
-if /i "%VALUE%"=="all" (set "PHOTOS=all") else if /i "%VALUE%"=="none" (set "PHOTOS=none") else goto badChoice
-goto shiftChoice
-:chooseType
+if /i not "%WORD%"=="type" goto badChoice
 if /i "%VALUE%"=="exe" (set "TYPE=exe") else if /i "%VALUE%"=="msi" (set "TYPE=msi") else goto badChoice
-goto shiftChoice
-:shiftChoice
 echo %~1| "%SystemRoot%\System32\find.exe" "=" >nul
 if errorlevel 1 shift
 shift
 goto nextChoice
 :badChoice
 echo Not understood: %*
-echo Use: make-installer.bat [photos=all ^| photos=none] [type=exe ^| type=msi]
+echo Use: make-installer.bat [type=exe ^| type=msi]
 exit /b 1
 :choicesDone
 
-set "SUFFIX="
-if "%PHOTOS%"=="all" set "SUFFIX=-testcopy"
 set "OUT=%PROJECT%\target\installer"
 set "WORK=%OUT%\work"
 set "INPUT=%WORK%\input"
-set "RESULT=%OUT%\%FILE_NAME%-%APP_VERSION%%SUFFIX%.%TYPE%"
+set "RESULT=%OUT%\%FILE_NAME%-%APP_VERSION%.%TYPE%"
 
 rem ---------------------------------------------------------------------
 rem   The tools: the JDK (with jpackage), Maven and WiX
@@ -122,8 +107,7 @@ if errorlevel 1 (
 )
 
 echo.
-echo Building %APP_NAME% %APP_VERSION% (%TYPE%, photos=%PHOTOS%)
-if "%PHOTOS%"=="all" echo This is a TEST COPY build: it holds the background photographs.
+echo Building %APP_NAME% %APP_VERSION% (%TYPE%)
 echo.
 
 rem ---------------------------------------------------------------------
@@ -146,20 +130,18 @@ echo [2/5] Gathering the program's files
 if exist "%WORK%" rmdir /s /q "%WORK%"
 mkdir "%INPUT%\images\backgrounds" "%INPUT%\help" "%INPUT%\sample-data"
 copy /y "%PROJECT%\target\%JAR_BUILT%" "%INPUT%\%JAR_NAME%" >nul || goto copyFailed
-copy /y "%PROJECT%\images\*.*" "%INPUT%\images" >nul || goto copyFailed
 copy /y "%PROJECT%\help\*.txt" "%INPUT%\help" >nul || goto copyFailed
 copy /y "%PROJECT%\sample-data\courses.tsv" "%INPUT%\sample-data" >nul || goto copyFailed
 copy /y "%PROJECT%\sample-data\rounds.tsv" "%INPUT%\sample-data" >nul || goto copyFailed
 copy /y "%PROJECT%\zipcodes.tsv" "%INPUT%" >nul || goto copyFailed
-echo       Background pictures put in:
-for %%f in ("%PROJECT%\images\backgrounds\*.*") do call :placePicture "%%~f"
-if "%PHOTOS%"=="none" (
-  echo       Left out ^(photos=none^):
-  for /f "usebackq eol=# delims=" %%n in ("%PROJECT%\installer\photos-none-leave-out.txt") do echo         %%n
-)
+echo       Pictures put in (each copy checked byte for byte):
+set "PICTURES=0"
+for %%f in ("%PROJECT%\images\*.*") do call :placePicture "%%~f" "%INPUT%\images" "images" || goto copyFailed
+for %%f in ("%PROJECT%\images\backgrounds\*.*") do call :placePicture "%%~f" "%INPUT%\images\backgrounds" "images\backgrounds" || goto copyFailed
+echo       %PICTURES% pictures in all.
 
 rem ---------------------------------------------------------------------
-rem   3. The trimmed Java runtime
+rem   3. The trimmed Java runtime, and the built program's picture check
 rem ---------------------------------------------------------------------
 echo [3/5] Making a trimmed Java runtime
 set "MODULES="
@@ -174,21 +156,22 @@ if errorlevel 1 (
   echo jlink could not make the runtime.
   exit /b 1
 )
+echo       Checking the built program: every page and its background picture
+"%WORK%\runtime\bin\java.exe" -Djava.awt.headless=true "-Dgolfanalyst.home=%INPUT%" -cp "%INPUT%\%JAR_NAME%" golfanalyst.gui.App --check-pictures
+if errorlevel 1 (
+  echo The built program is missing a background picture, so no installer was made.
+  exit /b 1
+)
 
 rem ---------------------------------------------------------------------
 rem   4. The installer
 rem ---------------------------------------------------------------------
 echo [4/5] Making the installer with jpackage
-if "%PHOTOS%"=="all" (
-  copy /b "%PROJECT%\installer\testcopy-notice.txt" + "%PROJECT%\installer\credits.txt" "%WORK%\license.txt" >nul
-) else (
-  copy /y "%PROJECT%\installer\credits.txt" "%WORK%\license.txt" >nul
-)
 "%JDK_BIN%jpackage.exe" --type %TYPE% --name "%APP_NAME%" --app-version %APP_VERSION% --vendor "Angelo Mileto" ^
   --description "Golf scores, handicap and statistics" --copyright "Angelo Mileto" ^
   --input "%INPUT%" --main-jar %JAR_NAME% --main-class golfanalyst.gui.App --runtime-image "%WORK%\runtime" ^
   --java-options "-Dgolfanalyst.home=$APPDIR" --icon "%PROJECT%\installer\GolfAnalyst.ico" ^
-  --license-file "%WORK%\license.txt" --win-per-user-install --win-menu --win-menu-group "%APP_NAME%" ^
+  --license-file "%PROJECT%\installer\credits.txt" --win-per-user-install --win-menu --win-menu-group "%APP_NAME%" ^
   --win-shortcut --win-shortcut-prompt --win-upgrade-uuid %UPGRADE_UUID% --dest "%WORK%\package"
 if errorlevel 1 (
   echo jpackage could not make the installer.
@@ -200,21 +183,20 @@ if errorlevel 1 (
   echo The installer was made but could not be moved to %RESULT%.
   exit /b 1
 )
+
 rem ---------------------------------------------------------------------
 rem   5. The "runs anywhere" zip
 rem ---------------------------------------------------------------------
 echo [5/5] Making the runs-anywhere zip
-set "ZIP_NAME=%FILE_NAME%-%APP_VERSION%%SUFFIX%"
+set "ZIP_NAME=%FILE_NAME%-%APP_VERSION%"
 set "ZIP_DIR=%WORK%\zip\%ZIP_NAME%"
 mkdir "%ZIP_DIR%"
 xcopy /e /i /q /y "%INPUT%" "%ZIP_DIR%" >nul || goto copyFailed
 copy /y "%PROJECT%\installer\zip\run.bat" "%ZIP_DIR%" >nul || goto copyFailed
 copy /y "%PROJECT%\installer\zip\run.sh" "%ZIP_DIR%" >nul || goto copyFailed
 copy /y "%PROJECT%\installer\zip\README.txt" "%ZIP_DIR%" >nul || goto copyFailed
-if "%PHOTOS%"=="all" (
-  copy /y "%PROJECT%\installer\README-testers.txt" "%ZIP_DIR%" >nul || goto copyFailed
-  copy /y "%PROJECT%\installer\README-testers.txt" "%OUT%" >nul || goto copyFailed
-)
+copy /y "%PROJECT%\installer\README-testers.txt" "%ZIP_DIR%" >nul || goto copyFailed
+copy /y "%PROJECT%\installer\README-testers.txt" "%OUT%" >nul || goto copyFailed
 if exist "%OUT%\%ZIP_NAME%.zip" del /q "%OUT%\%ZIP_NAME%.zip"
 rem tar (in Windows 10 and later) writes zip paths with forward slashes, which Macs and Linux need
 "%SystemRoot%\System32\tar.exe" -a -c -f "%OUT%\%ZIP_NAME%.zip" -C "%WORK%\zip" "%ZIP_NAME%"
@@ -225,22 +207,21 @@ if errorlevel 1 (
 echo.
 echo Made %RESULT%
 echo Made %OUT%\%ZIP_NAME%.zip
-if "%PHOTOS%"=="all" (echo Build type: TEST COPY ^(photos=all^) - not for sharing.) else (echo Build type: public ^(photos=none^).)
+echo Made %OUT%\README-testers.txt
 exit /b 0
 
 rem ---------------------------------------------------------------------
-rem   placePicture(file): copies one background picture into the program's
-rem   files, unless photos=none and it is on the leave-out list.
+rem   placePicture(file, folder, shown): copies one picture into the
+rem   program's files, checks the copy is byte for byte the original, and
+rem   lists it. Exit code 1 if the copy failed or differs.
 rem ---------------------------------------------------------------------
 :placePicture
-if "%PHOTOS%"=="none" (
-  findstr /i /x /c:"%~nx1" "%PROJECT%\installer\photos-none-leave-out.txt" >nul
-  if not errorlevel 1 exit /b 0
-)
-copy /y "%~1" "%INPUT%\images\backgrounds" >nul
-echo         %~nx1
+copy /y "%~1" "%~2" >nul || exit /b 1
+"%SystemRoot%\System32\fc.exe" /b "%~1" "%~2\%~nx1" >nul || exit /b 1
+set /a PICTURES=PICTURES+1
+echo         %~3\%~nx1
 exit /b 0
 
 :copyFailed
-echo A program file could not be copied.
+echo A program file could not be copied, or a copied picture differs from the original.
 exit /b 1

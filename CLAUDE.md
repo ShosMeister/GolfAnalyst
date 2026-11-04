@@ -7,9 +7,10 @@ Courses and rounds live in two plain tab-separated text files. Written for one u
 - Windows scripts in the project folder: `build.bat`, `app.bat` (opens the window), `run.bat` (text reports), `test.bat`.
   `jdk.bat` finds a JDK (PATH, JAVA_HOME, common folders, NetBeans' bundled JDK). The scripts call each other by
   full path (`call "%~dp0jdk.bat"`) so they work when `NoDefaultCurrentDirectoryInExePath` is set; keep it that way.
-  `test.bat` exits 1 if either test run fails. `tools\make-installer.bat [photos=all|none] [type=exe|msi]` builds the
-  installer and the "runs anywhere" zip into `target\installer\` (never committed; see docs\BUILDING.md: Maven, jdeps,
-  jlink, jpackage, WiX 5 as a dotnet tool). Default photos=all: a TEST COPY, `-testcopy` in the file names.
+  `test.bat` exits 1 if either test run fails. `tools\make-installer.bat [type=exe|msi]` builds GolfAnalyst-4.0.0.exe
+  (or .msi), GolfAnalyst-4.0.0.zip and README-testers.txt into `target\installer\` (never committed; see
+  docs\BUILDING.md: Maven, jdeps, jlink, jpackage, WiX 5 as a dotnet tool). It copies every picture byte for byte and
+  runs `App --check-pictures` with the built runtime and jar before jpackage.
 - NetBeans opens it as a Maven project (`pom.xml`, source folder is `src`, main class `golfanalyst.gui.App`).
   The program must run with the project folder as its working folder: it reads `images/`, `help/` and `data/`
   (or `sample-data/` if there is no `data/`).
@@ -43,8 +44,8 @@ Courses and rounds live in two plain tab-separated text files. Written for one u
   (`WoodButton`, `IconButton`, `ValueBox`, `WoodPanel`, `WoodFrame`, `WoodTag`, `ImageCheckBox`, `BackdropPanel`,
   `WoodScrollBarUI`), dialogs (`ConfirmForm`, `ImportForm`, `ExportForm`, `SettingsForm`, `PrintForm` + `PagePreview`),
   `GuiSelfTest`.
-- `installer/` (GolfAnalyst.ico from images\Home.png via `tools\MakeIcon.java`, credits.txt, testcopy-notice.txt,
-  photos-none-leave-out.txt, README-testers.txt, zip\run.bat, run.sh, README.txt), `tools/` (make-installer.bat,
+- `installer/` (GolfAnalyst.ico from images\Home.png via `tools\MakeIcon.java`, credits.txt (the license page),
+  README-testers.txt, zip\run.bat, run.sh, README.txt), `tools/` (make-installer.bat,
   MakeIcon.java), `docs/BUILDING.md`.
 - Photographs: the four course photos (round, course, stats, analyzer in `images/backgrounds`) are used with the
   written permission of On The Green Magazine's editor, Alan Blondin (`docs/HimmelsbachPermission.pdf`); credited in

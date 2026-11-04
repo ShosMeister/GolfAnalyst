@@ -11,9 +11,8 @@ No other libraries.
 
 ## Installing it (Windows)
 
-`tools\make-installer.bat` builds `target\installer\GolfAnalyst-4.0.0-testcopy.exe` (every photograph; a test copy
-not to be shared) or, with `photos=none`, the public `GolfAnalyst-4.0.0.exe`, plus a "runs anywhere" zip for Mac and
-Linux (Java 17 or newer). The installer brings its own trimmed Java, installs just for you (no administrator
+`tools\make-installer.bat` builds `target\installer\GolfAnalyst-4.0.0.exe` (every picture, exactly as it is), plus a
+"runs anywhere" zip, `GolfAnalyst-4.0.0.zip`, for Mac and Linux (Java 17 or newer). The installer brings its own trimmed Java, installs just for you (no administrator
 rights) with a Start menu entry, and never writes inside its own folder: your data lives in `Documents\Golf Analyst`
 and uninstalling never touches it. How to build it, and what it needs (the WiX Toolset), is in
 [docs/BUILDING.md](docs/BUILDING.md). Testers get `README-testers.txt`.

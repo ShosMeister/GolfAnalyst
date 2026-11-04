@@ -9,4 +9,6 @@ Golf Analyst v2.10: Written by Angelo Mileto, September 1991 in HyperCard. Speci
 
 ZIP code data from GeoNames (www.geonames.org), used under a Creative Commons Attribution license. The data is provided as is.
 
+Background photographs courtesy of On The Green Magazine (www.onthegreenmagazine.com), used with permission.
+
 Your rounds, courses and settings are kept in Documents\Golf Analyst (or the folder you choose in Settings). Uninstalling Golf Analyst removes the program only; it never removes your data.

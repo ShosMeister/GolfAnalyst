@@ -11,13 +11,11 @@ Run from the project, the program reads and writes everything in the project fol
 ## The Windows installer
 
 ```
-tools\make-installer.bat                 the TEST COPY (every photograph), GolfAnalyst-4.0.0-testcopy.exe
-tools\make-installer.bat photos=none     the public build, GolfAnalyst-4.0.0.exe
-tools\make-installer.bat type=msi        the same as a .msi (for a silent install: msiexec /i <file> /qn)
+tools\make-installer.bat                 GolfAnalyst-4.0.0.exe, GolfAnalyst-4.0.0.zip and README-testers.txt
+tools\make-installer.bat type=msi        the same with a .msi (for a silent install: msiexec /i <file> /qn)
 ```
 
-The results are in `target\installer\` (never committed). The script prints which background pictures went in and
-which kind of build it was.
+The results are in `target\installer\` (never committed). The script lists every picture that went in.
 
 ### What it needs
 
@@ -36,15 +34,18 @@ which kind of build it was.
 ### What it does
 
 1. `mvn package` makes `target\golfanalyst-4.00.jar`.
-2. Gathers the program's files in `target\installer\work\input`: the jar, `images\` (backgrounds as chosen),
-   `help\`, `sample-data\courses.tsv` and `rounds.tsv`, `zipcodes.tsv`.
+2. Gathers the program's files in `target\installer\work\input`: the jar, every picture in `images\` and
+   `images\backgrounds\` (each copy compared byte for byte with the original, and listed), `help\`,
+   `sample-data\courses.tsv` and `rounds.tsv`, `zipcodes.tsv`.
 3. `jdeps` lists the Java modules the program uses (`java.base,java.desktop`) and `jlink` makes a trimmed runtime
-   with only those.
+   with only those. Then the built program, run with that runtime on the gathered files
+   (`golfanalyst.gui.App --check-pictures`, headless), opens every page and checks each finds its own background
+   picture; if one does not, no installer is made.
 4. `jpackage` makes the installer: name "Golf Analyst", version 4.0.0 (jpackage wants three numbers; the program
    itself says 4.00), vendor Angelo Mileto, per-user install (no administrator rights; it goes in
    `%LOCALAPPDATA%\Golf Analyst`), a Start menu entry, an offered desktop shortcut, the icon
-   `installer\GolfAnalyst.ico`, and the license page from `installer\credits.txt` (with
-   `installer\testcopy-notice.txt` in front for a test copy). The launcher passes
+   `installer\GolfAnalyst.ico`, and the license page from `installer\credits.txt` (the About text, the GeoNames
+   credit and the photograph credit). The launcher passes
    `-Dgolfanalyst.home=$APPDIR`, which tells the program it is installed.
 
 **Never change the upgrade UUID** in the script (`UPGRADE_UUID`): it is how Windows knows a later version replaces
@@ -52,11 +53,9 @@ this one in place.
 
 ### Photographs
 
-- `photos=all` (the default for now): every picture in `images\backgrounds`, exactly as it is. The file name says
-  `-testcopy` and the license page starts with the test-copy notice.
-- `photos=none`: leaves out the pictures listed in `installer\photos-none-leave-out.txt` (the four course photos with
-  the Himmelsbach Communications notice, and the Home picture until its source is confirmed). Those pages show their
-  plain background; the screen self-test checks that every page still starts.
+The four course photographs (round, course, stats, analyzer) are used with the written permission of On The Green
+Magazine's editor, Alan Blondin (`docs\HimmelsbachPermission.pdf`). Every build includes every picture exactly as it
+is; never move, resize, re-save or alter one, and never remove or change the www.onthegreenmagazine.com line on them.
 
 ### The icon
 
@@ -70,18 +69,18 @@ Home.png is only 80 x 80, so the 256 size is enlarged and a little soft; a bigge
 
 ## The "runs anywhere" zip
 
-The same script also makes `target\installer\GolfAnalyst-4.0.0[-testcopy].zip` for Mac and Linux (and Windows with
+The same script also makes `target\installer\GolfAnalyst-4.0.0.zip` for Mac and Linux (and Windows with
 its own Java), until native installers can be built there (jpackage only builds for the system it runs on). It
 holds the jar, the program's files, `run.bat`, `run.sh` and `README.txt` (from `installer\zip\`; Java 17 or newer is
-needed), and for a test copy `README-testers.txt`, which also goes next to the installer. The zip is made with
+needed) and `README-testers.txt`, which also goes next to the installer. The zip is made with
 Windows' own `tar`, so its paths use forward slashes, as Macs and Linux need; `.gitattributes` keeps `run.sh` with
 plain line ends. `run.bat` and `run.sh` pass `-Dgolfanalyst.home`, so the zip keeps your data in Documents too.
 
 ## Trying a build
 
 ```
-msiexec /i target\installer\GolfAnalyst-4.0.0-testcopy.msi /qn      (silent install, no administrator rights)
-msiexec /x target\installer\GolfAnalyst-4.0.0-testcopy.msi /qn      (silent uninstall)
+msiexec /i target\installer\GolfAnalyst-4.0.0.msi /qn      (after type=msi: silent install, no administrator rights)
+msiexec /x target\installer\GolfAnalyst-4.0.0.msi /qn      (silent uninstall)
 ```
 
 ## Where the installed program keeps things
