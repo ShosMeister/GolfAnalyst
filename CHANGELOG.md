@@ -63,3 +63,5 @@ that nothing about how it was built is lost. The wording is the help text's own,
 - v4.00 (before release): A Windows installer (tools\make-installer.bat: its own trimmed Java, per-user, Start menu entry, photos=all test copy or photos=none public build) and a "runs anywhere" zip; installed, the program never writes in its own folder and keeps your data in Documents\Golf Analyst.
 
 - v4.00 (before release): The course photographs are used with the permission of On The Green Magazine and credited in About; a check that every page finds its own background picture.
+
+- v4.00 (before release): The installer and the runs-anywhere zip are one build for everyone, with every picture exactly as it is, the photograph credit on the license page and in the tester README.

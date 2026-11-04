@@ -40,3 +40,6 @@ Credits
 -------
 ZIP code data from GeoNames (www.geonames.org), used under a Creative Commons
 Attribution license. The data is provided as is.
+
+Background photographs courtesy of On The Green Magazine
+(www.onthegreenmagazine.com), used with permission.

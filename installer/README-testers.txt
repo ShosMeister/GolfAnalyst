@@ -9,21 +9,16 @@ Golf Analyst keeps your golf scores and works out your Handicap Index the way
 the World Handicap System does. It shows your statistics course by course, your
 best rounds, how you play every hole, and it prints a handicap report, a log of
 your rounds and a scorecard to take with you. Angelo Mileto first wrote it in
-1991 on the Mac; this is the new Java version.
-
-Please keep this copy to yourself
----------------------------------
-This is a TEST COPY. The background photographs are (c) Himmelsbach
-Communications. They are shown, with their notice left on each picture, for
-private testing only while permission to use them is being requested. Please do
-not share this copy or post it anywhere.
+1991 on the Mac; this is the new Java version. The background photographs of
+Myrtle Beach courses are courtesy of On The Green Magazine
+(www.onthegreenmagazine.com), used with permission.
 
 Installing it on Windows
 ------------------------
-1. Double-click GolfAnalyst-4.0.0-testcopy.exe.
+1. Double-click GolfAnalyst-4.0.0.exe.
 2. Windows may say "Windows protected your PC", because the program is not
    signed yet. Click "More info", then "Run anyway".
-3. Read the notice and credits, click Next, and choose whether you would like a
+3. Read the credits, click Next, and choose whether you would like a
    shortcut on your desktop. No administrator password is needed: it installs
    just for you.
 4. Start it from the Start menu: Golf Analyst.
