@@ -80,6 +80,8 @@ The original version of this program was written in 1991 in HyperCard on the Mac
 
 ZIP code data from GeoNames (www.geonames.org), used under a Creative Commons Attribution license. The data is provided as is.
 
+Background photographs courtesy of On The Green Magazine (www.onthegreenmagazine.com), used with permission.
+
 # History: Mac HyperCard Version
 Golf Analyst v2.10: Written by Angelo Mileto, September 1991 in HyperCard. Special thanks go out to Dave Speer and the gang at Computer Solutions in San Antonio, Texas, without whose help this stack would not have been possible.
 

@@ -164,9 +164,10 @@ the footer; the rest work.
   check boxes. Each page's background photo is in `images/backgrounds`, named for the page
   (`home.gif`, `round.jpg`, and so on). Drop in another picture with the same name to change a page's
   photo. If a picture is missing the program still runs, using plain colours.
-- **The photos of the Myrtle Beach courses** carry their copyright and credit lines in the picture, which
-  are left intact. They are fine for your own copy; if you give the program to others, replace them or get
-  permission.
+- **The photos of the Myrtle Beach courses** (round, course, stats and analyzer) are courtesy of On The Green
+  Magazine ([www.onthegreenmagazine.com](https://www.onthegreenmagazine.com)), used with the written permission of
+  its editor, Alan Blondin (`docs/HimmelsbachPermission.pdf`). The www.onthegreenmagazine.com line on each picture
+  must stay exactly as it is.
 - **Status messages and problems:** the footer says what is wrong with something you typed. If the data
   files have problems (a bad row, a missing rating), it says how many, and clicking it lists them with
   file names and line numbers.

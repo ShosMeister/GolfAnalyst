@@ -131,6 +131,14 @@ public class BackdropPanel extends JPanel
     }
 
     /*
+     * hasBackdrop(): whether the panel has a photo (false means the plain colour is shown).
+     */
+    public boolean hasBackdrop()
+    {
+        return backdrop != null;
+    }
+
+    /*
      * isPeeking(): whether the left button is being held on the version text, so the page's controls are hidden.
      */
     public boolean isPeeking()

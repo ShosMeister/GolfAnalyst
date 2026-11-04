@@ -46,6 +46,11 @@ Courses and rounds live in two plain tab-separated text files. Written for one u
 - `installer/` (GolfAnalyst.ico from images\Home.png via `tools\MakeIcon.java`, credits.txt, testcopy-notice.txt,
   photos-none-leave-out.txt, README-testers.txt, zip\run.bat, run.sh, README.txt), `tools/` (make-installer.bat,
   MakeIcon.java), `docs/BUILDING.md`.
+- Photographs: the four course photos (round, course, stats, analyzer in `images/backgrounds`) are used with the
+  written permission of On The Green Magazine's editor, Alan Blondin (`docs/HimmelsbachPermission.pdf`); credited in
+  help/home-info.txt's About and in installer\credits.txt. Never move, resize, re-save or alter any picture, and never
+  remove or change the www.onthegreenmagazine.com line on them. Every build includes every picture, exactly as it is
+  (`PictureCheck` / `App --check-pictures` checks each page finds its own).
 - `images/` (wood buttons, textures, `backgrounds/<page>.jpg|gif`), `help/` (plain text Info and Help files),
   `sample-data/` (made up, plus the Edgewater course the user added, TeeIDs 5-8; its round 37 is the latest round, so
   New Round opens on Edgewater Senior and the screen tests expect its pars), `data/` (the user's real data, never overwrite it).

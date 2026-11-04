@@ -992,6 +992,7 @@ public final class GuiSelfTest
         checkShowHistorical();
         checkInstalledFolders();
         checkWithoutPhotos();
+        checkEveryBackground();
         checkBestRoundPage();
         checkSampleSafeguard();
 
@@ -5418,5 +5419,33 @@ public final class GuiSelfTest
         {
             Theme.load(images);
         }
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | checkEveryBackground()                                                   |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | Every page starts and finds its own background picture in the images     |
+     | folder (PictureCheck, the same check the installer build runs on the     |
+     | built program), and the check notices a missing picture.                 |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: nothing (throws IOException if the test copy cannot be made) |
+     +--------------------------------------------------------------------------+
+     */
+    private static void checkEveryBackground() throws IOException
+    {
+        Path images = Path.of(System.getProperty("golfanalyst.images", "images"));
+        List<String> problems = PictureCheck.problems(images, Path.of("sample-data"), Path.of("help"));
+        check("backgrounds: every page starts and finds its own picture " + problems, problems.isEmpty()
+                && PictureCheck.PAGE_PICTURES.size() == 6 && Theme.imagesFolder().equals(images));
+        Path copy = Files.createTempDirectory("golfanalyst-one-missing").resolve("images");
+        copyFolder(images, copy);
+        copyFolder(images.resolve("backgrounds"), copy.resolve("backgrounds"));
+        Files.delete(copy.resolve("backgrounds").resolve("stats.jpg"));
+        List<String> missing = PictureCheck.problems(copy, Path.of("sample-data"), Path.of("help"));
+        check("backgrounds: the check notices a missing picture " + missing, missing.size() == 1 && missing.get(0).contains("stats page")
+                && Theme.imagesFolder().equals(images));
     }
 }

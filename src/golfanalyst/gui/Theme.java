@@ -98,6 +98,14 @@ public final class Theme
     }
 
     /*
+     * imagesFolder(): the folder pictures are read from now.
+     */
+    public static Path imagesFolder()
+    {
+        return imagesDir;
+    }
+
+    /*
      +--------------------------------------------------------------------------+
      | image(fileName)                                                          |
      +--------------------------------------------------------------------------+

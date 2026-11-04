@@ -37,6 +37,9 @@ import javax.swing.UIManager;
  |   images - the wood buttons, textures and background photos              |
  |   help   - the Info and Help text files                                  |
  |                                                                          |
+ | Run with the argument --check-pictures to check, without opening a       |
+ | window, that every page finds its background picture in the program's    |
+ | images folder (tools\make-installer.bat runs it on the built program).   |
  | Run with the argument --selftest to check the screens without opening    |
  | a window.                                                                |
  |                                                                          |
@@ -61,8 +64,9 @@ public final class App
      | Purpose:                                                                 |
      | Opens the window, or runs the screen self-test if asked.                 |
      |                                                                          |
-     | Passed in:  args - optional: a data folder, or --selftest                |
-     | Passed out: nothing (the exit code is 1 if --selftest fails)             |
+     | Passed in:  args - optional: a data folder, --selftest or                |
+     |                    --check-pictures                                      |
+     | Passed out: nothing (the exit code is 1 if a check fails)                |
      +--------------------------------------------------------------------------+
      */
     public static void main(String[] args)
@@ -70,6 +74,10 @@ public final class App
         if (args.length > 0 && args[0].equals("--selftest"))
         {
             System.exit(GuiSelfTest.run() ? 0 : 1);
+        }
+        if (args.length > 0 && args[0].equals("--check-pictures"))
+        {
+            System.exit(checkPictures());
         }
         SwingUtilities.invokeLater(() -> start(args));
     }
@@ -127,6 +135,38 @@ public final class App
                     .withTitle(AppPanel.PROBLEMS_TITLE).showOn(null);
             System.exit(1);
         }
+    }
+
+    /*
+     +--------------------------------------------------------------------------+
+     | checkPictures()                                                          |
+     +--------------------------------------------------------------------------+
+     | Purpose:                                                                 |
+     | The --check-pictures run: with the program's own folders (installed      |
+     | when -Dgolfanalyst.home is given), builds the window on the sample data  |
+     | without opening it and checks every page finds its background picture    |
+     | (PictureCheck). Prints each picture page and what is wrong, if anything. |
+     |                                                                          |
+     | Passed in:  nothing                                                      |
+     | Passed out: 0 when every page has its picture, otherwise 1               |
+     +--------------------------------------------------------------------------+
+     */
+    private static int checkPictures()
+    {
+        golfanalyst.ProgramFolders folders = golfanalyst.ProgramFolders.fromSystem();
+        golfanalyst.ProgramFolders.setActive(folders);
+        Path images = folders.programFile("images");
+        java.util.List<String> problems = PictureCheck.problems(images, folders.sampleFolder(), folders.programFile("help"));
+        for (String problem : problems)
+        {
+            System.out.println("  " + problem);
+        }
+        if (problems.isEmpty())
+        {
+            System.out.println("  Every page starts and finds its background picture in " + images.toAbsolutePath().normalize() + ".");
+            return 0;
+        }
+        return 1;
     }
 
     /*

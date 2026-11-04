@@ -1170,6 +1170,14 @@ public final class AppPanel extends JPanel implements Shell
     }
 
     /*
+     * page(card): the page shown for a card name such as HOME or STATS (for the picture check and the self-test).
+     */
+    Page page(String card)
+    {
+        return pages.get(card);
+    }
+
+    /*
      * clearCounts(rounds, tees, name): the first line of the Clear data window, e.g. "You have 37 rounds and 12 courses and tees, and your name is Pat."
      * Passed in:  rounds, tees - how many there are, name - the golfer's name or ""
      * Passed out: the words
