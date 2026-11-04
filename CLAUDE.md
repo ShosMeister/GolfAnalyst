@@ -7,8 +7,8 @@ Courses and rounds live in two plain tab-separated text files. Written for one u
 - Windows scripts in the project folder: `build.bat`, `app.bat` (opens the window), `run.bat` (text reports), `test.bat`.
   `jdk.bat` finds a JDK (PATH, JAVA_HOME, common folders, NetBeans' bundled JDK). The scripts call each other by
   full path (`call "%~dp0jdk.bat"`) so they work when `NoDefaultCurrentDirectoryInExePath` is set; keep it that way.
-  `test.bat` exits 1 if either test run fails. `tools\make-installer.bat [type=exe|msi]` builds GolfAnalyst-4.0.0.exe
-  (or .msi), GolfAnalyst-4.0.0.zip and README-testers.txt into `target\installer\` (never committed; see
+  `test.bat` exits 1 if either test run fails. `tools\make-installer.bat [type=exe|msi]` builds GolfAnalyst_vX.XX.exe
+  (or .msi), GolfAnalyst_vX.XX.zip and README-testers.txt into `target\installer\` (never committed; see
   docs\BUILDING.md: Maven, jdeps, jlink, jpackage, WiX 5 as a dotnet tool). It copies every picture byte for byte and
   runs `App --check-pictures` with the built runtime and jar before jpackage.
 - NetBeans opens it as a Maven project (`pom.xml`, source folder is `src`, main class `golfanalyst.gui.App`).
