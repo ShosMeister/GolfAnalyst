@@ -16,6 +16,8 @@ Courses and rounds live in two plain tab-separated text files. Written for one u
   (or `sample-data/` if there is no `data/`).
 - Tests: `test.bat` runs the engine tests (`golfanalyst.Main --selftest`) and the screen tests
   (`golfanalyst.gui.App --selftest`, headless). No JUnit. **All tests must pass before a change is finished.**
+  A test that needs a temporary folder makes it with `TestFolders.make(prefix)`, never `Files.createTempDirectory`:
+  both runners call `TestFolders.deleteAll()` at the end, so a test run leaves nothing in %TEMP%.
 - Java language level 17 (the pom sets release 17). The user's NetBeans bundles a newer JDK; keep to Java 17 features.
 - The JDK in some environments is headless: a real window cannot be opened there. Screens are tested without a
   JFrame (see Architecture).

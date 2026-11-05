@@ -836,7 +836,7 @@ final class ReportSelfTest
         check("spreadsheet, round log: the course name is quoted in the file", text.contains(",\"Bud's \"\"Best\"\", Links\",White,")
                 && text.contains("\r\n") && !text.replace("\r\n", "").contains("\n") && log.spreadsheetWords().equals("4 rounds"));
 
-        java.nio.file.Path folder = java.nio.file.Files.createTempDirectory("golfanalyst-csv");
+        java.nio.file.Path folder = golfanalyst.TestFolders.make("golfanalyst-csv");
         java.nio.file.Path file = folder.resolve("log.csv");
         Csv.write(file, logRows);
         byte[] bytes = java.nio.file.Files.readAllBytes(file);

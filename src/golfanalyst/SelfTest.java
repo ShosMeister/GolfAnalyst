@@ -240,13 +240,33 @@ public final class SelfTest
      | run()                                                                    |
      +--------------------------------------------------------------------------+
      | Purpose:                                                                 |
-     | Runs every check and prints the totals.                                  |
+     | Runs every check (runChecks) and prints the totals, then removes every   |
+     | temporary folder the checks made (TestFolders), passed or failed.        |
      |                                                                          |
      | Passed in:  nothing                                                      |
      | Passed out: true if every check passed                                   |
      +--------------------------------------------------------------------------+
      */
     public static boolean run()
+    {
+        try
+        {
+            return runChecks();
+        }
+        finally
+        {
+            int left = TestFolders.deleteAll();
+            if (left > 0)
+            {
+                System.out.println("  " + left + " temporary test folder(s) could not be removed.");
+            }
+        }
+    }
+
+    /*
+     * runChecks(): every check, in order, and the totals; true if every check passed.
+     */
+    private static boolean runChecks()
     {
         // Rule 5.1a differential
         checkEquals("differential 90 vs 70.0/120", Handicap.differential(90, 70.0, 120, 0), 18.8);
@@ -1114,7 +1134,7 @@ public final class SelfTest
         check("include historical: the latest choice is still the newest round's", BestRound.latestChoice(rounds, tees, true).key()
                 .equals(BestRound.latestChoice(rounds, tees, false).key()));
 
-        Path temp = Files.createTempDirectory("golfanalyst-include-test");
+        Path temp = TestFolders.make("golfanalyst-include-test");
         Files.copy(Path.of("sample-data", DataLoader.COURSES_FILE), temp.resolve(DataLoader.COURSES_FILE));
         String fives = "5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5";
         String fours = "4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4";
@@ -1218,7 +1238,7 @@ public final class SelfTest
                 Objects.equals(withHistory.currentIndex(), without.currentIndex())
                         && withHistory.currentDifferentials().equals(without.currentDifferentials()));
 
-        Path temp = Files.createTempDirectory("golfanalyst-historical-test");
+        Path temp = TestFolders.make("golfanalyst-historical-test");
         Path roundsFile = temp.resolve(DataLoader.ROUNDS_FILE);
         String original = header + "\r\n" + lines.get(1) + "\r\n" + lines.get(3) + "\r\n";
         Files.writeString(roundsFile, original, StandardCharsets.UTF_8);
@@ -1271,7 +1291,7 @@ public final class SelfTest
      */
     private static void checkRoundReplace() throws IOException
     {
-        Path temp = Files.createTempDirectory("golfanalyst-replace-test");
+        Path temp = TestFolders.make("golfanalyst-replace-test");
         Path rounds = temp.resolve(DataLoader.ROUNDS_FILE);
         String nine = "5,5,5,5,5,5,5,5,5";
         String twos = "2,2,2,2,2,2,2,2,2";
@@ -1359,7 +1379,7 @@ public final class SelfTest
      */
     private static void checkBackups() throws IOException
     {
-        Path temp = Files.createTempDirectory("golfanalyst-backups-test");
+        Path temp = TestFolders.make("golfanalyst-backups-test");
         Files.copy(Path.of("sample-data", DataLoader.COURSES_FILE), temp.resolve(DataLoader.COURSES_FILE));
         Files.copy(Path.of("sample-data", DataLoader.ROUNDS_FILE), temp.resolve(DataLoader.ROUNDS_FILE));
         Path roundsFile = temp.resolve(DataLoader.ROUNDS_FILE);
@@ -1454,7 +1474,7 @@ public final class SelfTest
         check("backups: Backups to keep 10, All, 50, 100 and 20 each prune as they should", everyChoice
                 && Settings.load(temp).get("backupstokeep").equals("20"));
 
-        Path extraFolder = Files.createTempDirectory("golfanalyst-backups-extra");
+        Path extraFolder = TestFolders.make("golfanalyst-backups-extra");
         Settings.load(temp).with(Settings.BACKUP_COPY_FOLDER, extraFolder.toString()).save(temp);
         Path withCopy = Backups.backupFolder(temp, Backups.EDIT_ROUND, List.of(DataLoader.ROUNDS_FILE));
         String extraWarning = Backups.takeWarning();
@@ -1473,7 +1493,7 @@ public final class SelfTest
                 && store.backupWarningNote().isEmpty());
         deleteTree(extraFolder);
 
-        Path blocked = Files.createTempDirectory("golfanalyst-backups-blocked");
+        Path blocked = TestFolders.make("golfanalyst-backups-blocked");
         Files.copy(Path.of("sample-data", DataLoader.COURSES_FILE), blocked.resolve(DataLoader.COURSES_FILE));
         Files.copy(Path.of("sample-data", DataLoader.ROUNDS_FILE), blocked.resolve(DataLoader.ROUNDS_FILE));
         Files.writeString(blocked.resolve(Backups.FOLDER), "a file where the folder should be", StandardCharsets.UTF_8);
@@ -1527,7 +1547,7 @@ public final class SelfTest
      */
     private static void checkDeleteAndClear() throws IOException
     {
-        Path temp = Files.createTempDirectory("golfanalyst-delete-test");
+        Path temp = TestFolders.make("golfanalyst-delete-test");
         Files.copy(Path.of("sample-data", DataLoader.COURSES_FILE), temp.resolve(DataLoader.COURSES_FILE));
         String fives = "5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5";
         String twos = "2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2";
@@ -1570,7 +1590,7 @@ public final class SelfTest
         check("delete: a round that is not there is refused, with no change and no copy", refused
                 && Files.readString(roundsFile, StandardCharsets.UTF_8).equals(afterDelete) && backupCopies(roundsFile).size() == 1);
 
-        Path blocked = Files.createTempDirectory("golfanalyst-delete-blocked");
+        Path blocked = TestFolders.make("golfanalyst-delete-blocked");
         Files.copy(temp.resolve(DataLoader.COURSES_FILE), blocked.resolve(DataLoader.COURSES_FILE));
         Files.writeString(blocked.resolve(DataLoader.ROUNDS_FILE), original, StandardCharsets.UTF_8);
         Files.writeString(blocked.resolve(Backups.FOLDER), "a file where the folder should be", StandardCharsets.UTF_8);
@@ -1644,7 +1664,7 @@ public final class SelfTest
                 && Files.isDirectory(everything) && Backups.backupsOf(temp, Backups.EDIT_ROUND).size() == Settings.DEFAULT_KEEP);
         deleteTree(temp);
 
-        Path parent = Files.createTempDirectory("golfanalyst-sample-test");
+        Path parent = TestFolders.make("golfanalyst-sample-test");
         Path sample = parent.resolve(DataStore.SAMPLE_FOLDER);
         Files.createDirectories(sample);
         Files.copy(Path.of("sample-data", DataLoader.COURSES_FILE), sample.resolve(DataLoader.COURSES_FILE));
@@ -1693,7 +1713,7 @@ public final class SelfTest
      */
     private static void checkImport() throws IOException
     {
-        Path temp = Files.createTempDirectory("golfanalyst-import-test");
+        Path temp = TestFolders.make("golfanalyst-import-test");
         Path data = temp.resolve("data");
         Files.createDirectories(data);
         String myCourses = "# my courses\r\n" + Files.readString(Path.of("sample-data", DataLoader.COURSES_FILE), StandardCharsets.UTF_8)
@@ -1862,7 +1882,7 @@ public final class SelfTest
      */
     private static void checkCorrectCourse() throws IOException
     {
-        Path temp = Files.createTempDirectory("golfanalyst-correct-test");
+        Path temp = TestFolders.make("golfanalyst-correct-test");
         Files.copy(Path.of("sample-data", DataLoader.COURSES_FILE), temp.resolve(DataLoader.COURSES_FILE));
         Files.copy(Path.of("sample-data", DataLoader.ROUNDS_FILE), temp.resolve(DataLoader.ROUNDS_FILE));
         DataStore store = new DataStore(temp);
@@ -1935,7 +1955,7 @@ public final class SelfTest
      */
     private static void checkZipCodes() throws IOException
     {
-        Path temp = Files.createTempDirectory("golfanalyst-zip-test");
+        Path temp = TestFolders.make("golfanalyst-zip-test");
         Path file = temp.resolve(ZipCodes.FILE);
         Files.writeString(file, "Zip\tCity\tState\n29708\tFort Mill\tSC\n28202\tCharlotte\tNC\nnot\ta\tzip\n", StandardCharsets.UTF_8);
         ZipCodes zips = ZipCodes.load(file);
@@ -2040,7 +2060,7 @@ public final class SelfTest
      */
     private static void checkDeleteCourse() throws IOException
     {
-        Path temp = Files.createTempDirectory("golfanalyst-delete-course");
+        Path temp = TestFolders.make("golfanalyst-delete-course");
         deleteCourseFolder(temp);
         DataStore store = new DataStore(temp);
         List<Tee> edgewater = store.teesForCourse("Edgewater", "29720");
@@ -2150,7 +2170,7 @@ public final class SelfTest
                 && store.roundsByDate().size() == roundCount && store.teeMap().get(5) == null
                 && store.roundsByDate().stream().filter(Round::historical).count() >= 1 && store.dataset().errorCount() == 0);
 
-        Path blocked = Files.createTempDirectory("golfanalyst-delete-course-blocked");
+        Path blocked = TestFolders.make("golfanalyst-delete-course-blocked");
         deleteCourseFolder(blocked);
         String blockedCourses = Files.readString(blocked.resolve(DataLoader.COURSES_FILE), StandardCharsets.UTF_8);
         Files.writeString(blocked.resolve(Backups.FOLDER), "a file where the folder should be", StandardCharsets.UTF_8);
@@ -2197,7 +2217,7 @@ public final class SelfTest
      */
     private static void checkExport() throws IOException
     {
-        Path temp = Files.createTempDirectory("golfanalyst-export-test");
+        Path temp = TestFolders.make("golfanalyst-export-test");
         Path data = temp.resolve("data");
         Path into = temp.resolve("exports");
         Files.createDirectories(data);
@@ -2432,7 +2452,7 @@ public final class SelfTest
      */
     private static void checkSettings() throws IOException
     {
-        Path temp = Files.createTempDirectory("golfanalyst-settings-test");
+        Path temp = TestFolders.make("golfanalyst-settings-test");
         Files.writeString(temp.resolve(Settings.FILE), "#old\ngolfer=Pat Golfer\nincludehistorical=false\nbackupstokeep=50\nmyNote=keep me\n",
                 StandardCharsets.UTF_8);
         Settings read = Settings.load(temp);
@@ -2465,7 +2485,7 @@ public final class SelfTest
         check("settings: saving the name and the box writes PascalCase and keeps both", rewritten.contains("\nGolfer=New Name\n")
                 && rewritten.contains("\nIncludeHistorical=false\n") && !rewritten.contains("golfer=") && new DataStore(temp).golferName().equals("New Name"));
 
-        Path program = Files.createTempDirectory("golfanalyst-location-test");
+        Path program = TestFolders.make("golfanalyst-location-test");
         check("location: no file means the usual folder", DataLocation.read(program) == null);
         DataLocation.write(program, temp);
         check("location: the folder written is read back", temp.toAbsolutePath().normalize().equals(DataLocation.read(program))
@@ -2476,7 +2496,7 @@ public final class SelfTest
         Files.writeString(program.resolve(DataLocation.FILE), "   \n", StandardCharsets.UTF_8);
         check("location: an empty file means the usual folder", DataLocation.read(program) == null);
 
-        Path emptyFolder = Files.createTempDirectory("golfanalyst-empty-folder");
+        Path emptyFolder = TestFolders.make("golfanalyst-empty-folder");
         check("location: an empty folder is described as empty", DataLocation.describe(emptyFolder).words().equals("This folder is empty.")
                 && !DataLocation.describe(emptyFolder).hasFiles());
         DataLocation.Contents full = DataLocation.describe(temp);
@@ -2486,7 +2506,7 @@ public final class SelfTest
         check("location: the data is copied into an empty folder", DataLocation.describe(emptyFolder).filesThere().size() == 3
                 && Files.readString(emptyFolder.resolve(DataLoader.ROUNDS_FILE), StandardCharsets.UTF_8)
                         .equals(Files.readString(temp.resolve(DataLoader.ROUNDS_FILE), StandardCharsets.UTF_8)));
-        Path oneFile = Files.createTempDirectory("golfanalyst-one-file");
+        Path oneFile = TestFolders.make("golfanalyst-one-file");
         Files.writeString(oneFile.resolve(DataLoader.ROUNDS_FILE), "mine", StandardCharsets.UTF_8);
         boolean refused = false;
         try
@@ -2582,7 +2602,7 @@ public final class SelfTest
      */
     private static void checkCourseFiles() throws IOException
     {
-        Path temp = Files.createTempDirectory("golfanalyst-course-test");
+        Path temp = TestFolders.make("golfanalyst-course-test");
         Path courses = temp.resolve(DataLoader.COURSES_FILE);
         String parsText = "4,3,5,4,4,3,5,4,4,4,3,5,4,4,3,5,4,4";
         String indexText = "1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18";
@@ -2736,7 +2756,7 @@ public final class SelfTest
      */
     private static void checkProgramFolders() throws IOException
     {
-        Path temp = Files.createTempDirectory("golfanalyst-folders");
+        Path temp = TestFolders.make("golfanalyst-folders");
         Path program = temp.resolve("Program Files").resolve("Golf Analyst");
         Path user = temp.resolve("AppData").resolve("Golf Analyst");
         Path documents = temp.resolve("OneDrive").resolve("Documents");

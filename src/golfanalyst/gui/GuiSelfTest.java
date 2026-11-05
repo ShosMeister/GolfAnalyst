@@ -468,7 +468,8 @@ public final class GuiSelfTest
      | run()                                                                    |
      +--------------------------------------------------------------------------+
      | Purpose:                                                                 |
-     | Runs every check and prints the totals.                                  |
+     | Runs every check and prints the totals, then removes every temporary     |
+     | folder the checks made (TestFolders), passed or failed.                  |
      |                                                                          |
      | Passed in:  nothing                                                      |
      | Passed out: true if every check passed                                   |
@@ -488,6 +489,11 @@ public final class GuiSelfTest
             failure.printStackTrace(System.out);
         }
         System.out.println(passedCount + " passed, " + failedCount + " failed (screens)");
+        int left = golfanalyst.TestFolders.deleteAll();
+        if (left > 0)
+        {
+            System.out.println("  " + left + " temporary test folder(s) could not be removed.");
+        }
         return failedCount == 0;
     }
 
@@ -508,7 +514,7 @@ public final class GuiSelfTest
     {
         Path images = Path.of(System.getProperty("golfanalyst.images", "images"));
         Theme.load(images);
-        Path temp = Files.createTempDirectory("golfanalyst-gui-test");
+        Path temp = golfanalyst.TestFolders.make("golfanalyst-gui-test");
         copyFolder(Path.of("sample-data"), temp);
         DataStore store = new DataStore(temp);
         TestShell shell = new TestShell(store);
@@ -833,7 +839,7 @@ public final class GuiSelfTest
 
         // The real window logic (AppPanel is everything in the window except the JFrame itself):
         // build it exactly as the program does, then click through it
-        Path windowTemp = Files.createTempDirectory("golfanalyst-window-test");
+        Path windowTemp = golfanalyst.TestFolders.make("golfanalyst-window-test");
         copyFolder(Path.of("sample-data"), windowTemp);
         DataStore windowStore = new DataStore(windowTemp);
         AppPanel panel = new AppPanel(windowStore, Path.of("help"), "");
@@ -1900,7 +1906,7 @@ public final class GuiSelfTest
      */
     private static void checkImportScreen() throws IOException
     {
-        Path temp = Files.createTempDirectory("golfanalyst-import-screen");
+        Path temp = golfanalyst.TestFolders.make("golfanalyst-import-screen");
         Path data = temp.resolve(DataStore.DATA_FOLDER);
         Files.createDirectories(data);
         Files.copy(Path.of("sample-data", DataLoader.COURSES_FILE), data.resolve(DataLoader.COURSES_FILE));
@@ -1977,7 +1983,7 @@ public final class GuiSelfTest
                 && panel.footer().status().equals("Imported 1 tee and 1 round. 0 skipped, 0 rejected. A copy of your files as they were is in backups"
                         + java.io.File.separator + folders.get(0).getFileName() + "."));
 
-        Path parent = Files.createTempDirectory("golfanalyst-import-sample");
+        Path parent = golfanalyst.TestFolders.make("golfanalyst-import-sample");
         Path sample = parent.resolve(DataStore.SAMPLE_FOLDER);
         Files.createDirectories(sample);
         Files.copy(Path.of("sample-data", DataLoader.COURSES_FILE), sample.resolve(DataLoader.COURSES_FILE));
@@ -2032,7 +2038,7 @@ public final class GuiSelfTest
      */
     private static void checkCorrectCourseScreen() throws IOException
     {
-        Path temp = Files.createTempDirectory("golfanalyst-correct-screen");
+        Path temp = golfanalyst.TestFolders.make("golfanalyst-correct-screen");
         Files.copy(Path.of("sample-data", DataLoader.COURSES_FILE), temp.resolve(DataLoader.COURSES_FILE));
         Files.copy(Path.of("sample-data", DataLoader.ROUNDS_FILE), temp.resolve(DataLoader.ROUNDS_FILE));
         DataStore store = new DataStore(temp);
@@ -2092,7 +2098,7 @@ public final class GuiSelfTest
      */
     private static void checkZipScreen() throws IOException
     {
-        Path temp = Files.createTempDirectory("golfanalyst-zip-screen");
+        Path temp = golfanalyst.TestFolders.make("golfanalyst-zip-screen");
         Files.copy(Path.of("sample-data", DataLoader.COURSES_FILE), temp.resolve(DataLoader.COURSES_FILE));
         Files.copy(Path.of("sample-data", DataLoader.ROUNDS_FILE), temp.resolve(DataLoader.ROUNDS_FILE));
         Path list = temp.resolve(golfanalyst.ZipCodes.FILE);
@@ -2257,7 +2263,7 @@ public final class GuiSelfTest
      */
     private static void checkExportScreen() throws IOException
     {
-        Path temp = Files.createTempDirectory("golfanalyst-export-screen");
+        Path temp = golfanalyst.TestFolders.make("golfanalyst-export-screen");
         Path data = temp.resolve(DataStore.DATA_FOLDER);
         Path into = temp.resolve("exports");
         Files.createDirectories(data);
@@ -2464,7 +2470,7 @@ public final class GuiSelfTest
         new AnalyzerPage(buildShell);
         check("analyzer: the page is built without calling the window", buildShell.windowCalls == 0);
 
-        Path data = Files.createTempDirectory("golfanalyst-analyzer-screen").resolve(DataStore.DATA_FOLDER);
+        Path data = golfanalyst.TestFolders.make("golfanalyst-analyzer-screen").resolve(DataStore.DATA_FOLDER);
         Files.createDirectories(data);
         int[] pars = {4, 5, 4, 3, 4, 5, 4, 3, 4, 4, 4, 3, 5, 4, 3, 4, 5, 4};
         int[] ranks = new int[golfanalyst.Tee.HOLES];
@@ -2661,7 +2667,7 @@ public final class GuiSelfTest
                 && panel.footer().status().equals("2 rounds on Analysis Links:White." + AnalyzerPage.TINT_NOTE + StatsPage.HISTORICAL_LEFT_OUT)
                 && page.hardestValue.getText().equals("3, 5, 6") && page.easiestValue.getText().equals("1, 2, 4"));
 
-        Path empty = Files.createTempDirectory("golfanalyst-analyzer-empty").resolve(DataStore.DATA_FOLDER);
+        Path empty = golfanalyst.TestFolders.make("golfanalyst-analyzer-empty").resolve(DataStore.DATA_FOLDER);
         Files.createDirectories(empty);
         Files.copy(data.resolve(DataLoader.COURSES_FILE), empty.resolve(DataLoader.COURSES_FILE));
         Files.writeString(empty.resolve(DataLoader.ROUNDS_FILE), header + "\n", StandardCharsets.UTF_8);
@@ -2788,7 +2794,7 @@ public final class GuiSelfTest
         golfanalyst.print.ReportData data = golfanalyst.print.ReportData.of(sampleStore, LocalDate.of(2026, 11, 1), Theme.VERSION);
         FakePrinter printer = new FakePrinter();
         TestShell shell = new TestShell(sampleStore);
-        Path saveFolder = Files.createTempDirectory("golfanalyst-print-save");
+        Path saveFolder = golfanalyst.TestFolders.make("golfanalyst-print-save");
         PrintForm form = new PrintForm(data, saveFolder, printer);
         check("print: the window is built with no display and asks nothing of the program window", shell.windowCalls == 0
                 && printer.said.isEmpty() && printer.printed == 0 && form.choices.get(PrintForm.Kind.HANDICAP).isSelected()
@@ -2975,7 +2981,7 @@ public final class GuiSelfTest
         check("print: after saving the footer says how many rows went where", windowPanel.footer().status().startsWith("Saved 20 rows to ")
                 && windowPanel.footer().status().endsWith("handicap.csv.") && Files.exists(saveFolder.resolve("handicap.csv")));
 
-        Path empty = Files.createTempDirectory("golfanalyst-print-empty").resolve(DataStore.DATA_FOLDER);
+        Path empty = golfanalyst.TestFolders.make("golfanalyst-print-empty").resolve(DataStore.DATA_FOLDER);
         Files.createDirectories(empty);
         Files.writeString(empty.resolve(DataLoader.COURSES_FILE), golfanalyst.CourseWriter.STANDARD_HEADER + "\n", StandardCharsets.UTF_8);
         Files.writeString(empty.resolve(DataLoader.ROUNDS_FILE), golfanalyst.RoundWriter.STANDARD_HEADER + "\n", StandardCharsets.UTF_8);
@@ -3152,7 +3158,7 @@ public final class GuiSelfTest
      */
     private static void checkSettingsScreen() throws IOException
     {
-        Path temp = Files.createTempDirectory("golfanalyst-settings-screen");
+        Path temp = golfanalyst.TestFolders.make("golfanalyst-settings-screen");
         Path data = temp.resolve(DataStore.DATA_FOLDER);
         Path program = temp.resolve("program");
         Files.createDirectories(data);
@@ -3204,7 +3210,7 @@ public final class GuiSelfTest
                 && SettingsForm.NOT_SET.equals(first.copyFolderBox.getText()) && first.okButton.hasDefaultRing()
                 && first.dataFolderBox.getText().equals(data.toAbsolutePath().normalize().toString()) && !first.isSample());
 
-        Path usb = Files.createTempDirectory("golfanalyst-settings-usb");
+        Path usb = golfanalyst.TestFolders.make("golfanalyst-settings-usb");
         script.set(form ->
         {
             form.nameBox.setText("  Pat Golfer ");
@@ -3229,7 +3235,7 @@ public final class GuiSelfTest
         check("settings: Clear empties the extra folder", golfanalyst.Settings.load(data).backupCopyFolder() == null
                 && forms.get(forms.size() - 1).copyFolderBox.getText().equals(SettingsForm.NOT_SET));
 
-        Path emptyFolder = Files.createTempDirectory("golfanalyst-settings-empty");
+        Path emptyFolder = golfanalyst.TestFolders.make("golfanalyst-settings-empty");
         tools.nextFolder = emptyFolder;
         tools.answer = SettingsForm.CHOICE_COPY;
         script.set(form ->
@@ -3261,7 +3267,7 @@ public final class GuiSelfTest
                         && panel.footer().status().contains("the next time it is opened")
                         && forms.get(forms.size() - 1).noteArea.getText().contains("the next time it is opened"));
 
-        Path withData = Files.createTempDirectory("golfanalyst-settings-data");
+        Path withData = golfanalyst.TestFolders.make("golfanalyst-settings-data");
         Files.copy(Path.of("sample-data", DataLoader.COURSES_FILE), withData.resolve(DataLoader.COURSES_FILE));
         Files.copy(Path.of("sample-data", DataLoader.ROUNDS_FILE), withData.resolve(DataLoader.ROUNDS_FILE));
         String theirs = Files.readString(withData.resolve(DataLoader.ROUNDS_FILE), StandardCharsets.UTF_8);
@@ -3273,7 +3279,7 @@ public final class GuiSelfTest
                 && question.message().contains(" rounds and 4 courses.") && question.noButton == null
                 && withData.toAbsolutePath().normalize().equals(golfanalyst.DataLocation.read(program))
                 && Files.readString(withData.resolve(DataLoader.ROUNDS_FILE), StandardCharsets.UTF_8).equals(theirs));
-        Path oneFile = Files.createTempDirectory("golfanalyst-settings-one");
+        Path oneFile = golfanalyst.TestFolders.make("golfanalyst-settings-one");
         Files.writeString(oneFile.resolve(golfanalyst.Settings.FILE), "Golfer=Someone\n", StandardCharsets.UTF_8);
         tools.nextFolder = oneFile;
         panel.openSettings();
@@ -3297,7 +3303,7 @@ public final class GuiSelfTest
                 && (tools.said.get(tools.said.size() - 1).equals("There are no backups yet.")
                         || tools.said.get(tools.said.size() - 1).contains("The backups folder is ")));
 
-        Path parent = Files.createTempDirectory("golfanalyst-settings-sample");
+        Path parent = golfanalyst.TestFolders.make("golfanalyst-settings-sample");
         Path sample = parent.resolve(DataStore.SAMPLE_FOLDER);
         Files.createDirectories(sample);
         Files.copy(Path.of("sample-data", DataLoader.COURSES_FILE), sample.resolve(DataLoader.COURSES_FILE));
@@ -3351,7 +3357,7 @@ public final class GuiSelfTest
      */
     private static void checkCourseBarFits() throws IOException
     {
-        Path temp = Files.createTempDirectory("golfanalyst-course-bar");
+        Path temp = golfanalyst.TestFolders.make("golfanalyst-course-bar");
         Files.copy(Path.of("sample-data", DataLoader.COURSES_FILE), temp.resolve(DataLoader.COURSES_FILE));
         Files.copy(Path.of("sample-data", DataLoader.ROUNDS_FILE), temp.resolve(DataLoader.ROUNDS_FILE));
         AppPanel panel = new AppPanel(new DataStore(temp), Path.of("help"), "");
@@ -3414,7 +3420,7 @@ public final class GuiSelfTest
      */
     private static void checkDeleteCourseScreen() throws IOException
     {
-        Path temp = Files.createTempDirectory("golfanalyst-delete-course-screen");
+        Path temp = golfanalyst.TestFolders.make("golfanalyst-delete-course-screen");
         golfanalyst.SelfTest.deleteCourseFolder(temp);
         DataStore store = new DataStore(temp);
         TestShell shell = new TestShell(store);
@@ -3469,7 +3475,7 @@ public final class GuiSelfTest
         check("delete course: Best Round and the round viewer show what is left", bestWasEdgewater && viewerWasEdgewater
                 && !best.title().contains("Edgewater:") && !viewer.title().contains("Edgewater:"));
 
-        Path parent = Files.createTempDirectory("golfanalyst-delete-course-sample");
+        Path parent = golfanalyst.TestFolders.make("golfanalyst-delete-course-sample");
         Path sample = parent.resolve(DataStore.SAMPLE_FOLDER);
         Files.createDirectories(sample);
         Files.copy(Path.of("sample-data", DataLoader.COURSES_FILE), sample.resolve(DataLoader.COURSES_FILE));
@@ -3561,7 +3567,7 @@ public final class GuiSelfTest
      */
     private static void checkDeleteRound() throws IOException
     {
-        Path temp = Files.createTempDirectory("golfanalyst-delete-round");
+        Path temp = golfanalyst.TestFolders.make("golfanalyst-delete-round");
         Files.copy(Path.of("sample-data", DataLoader.COURSES_FILE), temp.resolve(DataLoader.COURSES_FILE));
         Files.copy(Path.of("sample-data", DataLoader.ROUNDS_FILE), temp.resolve(DataLoader.ROUNDS_FILE));
         Path roundsFile = temp.resolve(DataLoader.ROUNDS_FILE);
@@ -3619,7 +3625,7 @@ public final class GuiSelfTest
         check("delete: deleting the first round shows the next one", page.title().startsWith(String.format("%05d:", second.id()))
                 && store.roundsByDate().stream().noneMatch(round -> round.id() == first.id()));
 
-        Path single = Files.createTempDirectory("golfanalyst-delete-single");
+        Path single = golfanalyst.TestFolders.make("golfanalyst-delete-single");
         Files.copy(Path.of("sample-data", DataLoader.COURSES_FILE), single.resolve(DataLoader.COURSES_FILE));
         List<String> sampleLines = Files.readAllLines(Path.of("sample-data", DataLoader.ROUNDS_FILE), StandardCharsets.UTF_8);
         String headerLine = sampleLines.stream().filter(line -> line.startsWith("RoundID")).findFirst().orElse("");
@@ -3688,7 +3694,7 @@ public final class GuiSelfTest
      */
     private static void checkClearData() throws IOException
     {
-        Path temp = Files.createTempDirectory("golfanalyst-clear");
+        Path temp = golfanalyst.TestFolders.make("golfanalyst-clear");
         Path data = temp.resolve(DataStore.DATA_FOLDER);
         Files.createDirectories(data);
         Files.copy(Path.of("sample-data", DataLoader.COURSES_FILE), data.resolve(DataLoader.COURSES_FILE));
@@ -3770,7 +3776,7 @@ public final class GuiSelfTest
                         && store.dataset().tees().isEmpty() && store.golferName().isEmpty() && store.includeHistorical()
                         && panel.homePage().golferName.getText().equals("(click to enter)"));
 
-        Path parent = Files.createTempDirectory("golfanalyst-clear-sample");
+        Path parent = golfanalyst.TestFolders.make("golfanalyst-clear-sample");
         Path sample = parent.resolve(DataStore.SAMPLE_FOLDER);
         Files.createDirectories(sample);
         Files.copy(Path.of("sample-data", DataLoader.COURSES_FILE), sample.resolve(DataLoader.COURSES_FILE));
@@ -3809,7 +3815,7 @@ public final class GuiSelfTest
      */
     private static void checkExtraCopyWarning() throws IOException
     {
-        Path temp = Files.createTempDirectory("golfanalyst-extra-copy");
+        Path temp = golfanalyst.TestFolders.make("golfanalyst-extra-copy");
         Files.copy(Path.of("sample-data", DataLoader.COURSES_FILE), temp.resolve(DataLoader.COURSES_FILE));
         Files.copy(Path.of("sample-data", DataLoader.ROUNDS_FILE), temp.resolve(DataLoader.ROUNDS_FILE));
         golfanalyst.Settings.load(temp).with(golfanalyst.Settings.BACKUP_COPY_FOLDER, temp.resolve("no-usb-stick").toString()).save(temp);
@@ -3835,7 +3841,7 @@ public final class GuiSelfTest
      */
     private static void checkBackupFailure() throws IOException
     {
-        Path temp = Files.createTempDirectory("golfanalyst-backup-failure");
+        Path temp = golfanalyst.TestFolders.make("golfanalyst-backup-failure");
         Files.copy(Path.of("sample-data", DataLoader.COURSES_FILE), temp.resolve(DataLoader.COURSES_FILE));
         Files.copy(Path.of("sample-data", DataLoader.ROUNDS_FILE), temp.resolve(DataLoader.ROUNDS_FILE));
         Files.writeString(temp.resolve(golfanalyst.Backups.FOLDER), "a file where the folder should be", StandardCharsets.UTF_8);
@@ -3876,7 +3882,7 @@ public final class GuiSelfTest
         clean.setStatus("Something else.");
         check("footer: it stays the arrow after another message", clean.footer().statusCursor().getType() == java.awt.Cursor.DEFAULT_CURSOR);
 
-        Path temp = Files.createTempDirectory("golfanalyst-footer-test");
+        Path temp = golfanalyst.TestFolders.make("golfanalyst-footer-test");
         Files.copy(Path.of("sample-data", DataLoader.COURSES_FILE), temp.resolve(DataLoader.COURSES_FILE));
         Files.writeString(temp.resolve(DataLoader.ROUNDS_FILE), golfanalyst.RoundWriter.STANDARD_HEADER + "\n1\t1\tnot a date\t\t\t5\t2\t0\t0\n",
                 StandardCharsets.UTF_8);
@@ -3905,7 +3911,7 @@ public final class GuiSelfTest
      */
     private static void checkHistoricalScreens() throws IOException
     {
-        Path temp = Files.createTempDirectory("golfanalyst-historical-screens");
+        Path temp = golfanalyst.TestFolders.make("golfanalyst-historical-screens");
         Files.copy(Path.of("sample-data", DataLoader.COURSES_FILE), temp.resolve(DataLoader.COURSES_FILE));
         String fives = "5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5";
         String twos = "2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2";
@@ -3981,7 +3987,7 @@ public final class GuiSelfTest
      */
     private static void checkHistoricalBox() throws IOException
     {
-        Path temp = Files.createTempDirectory("golfanalyst-historical-box");
+        Path temp = golfanalyst.TestFolders.make("golfanalyst-historical-box");
         Files.copy(Path.of("sample-data", DataLoader.COURSES_FILE), temp.resolve(DataLoader.COURSES_FILE));
         String fives = "5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5";
         String twos = "2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2";
@@ -4094,7 +4100,7 @@ public final class GuiSelfTest
      */
     private static void checkIncludeHistoricalScreens() throws IOException
     {
-        Path temp = Files.createTempDirectory("golfanalyst-include-screens");
+        Path temp = golfanalyst.TestFolders.make("golfanalyst-include-screens");
         Files.copy(Path.of("sample-data", DataLoader.COURSES_FILE), temp.resolve(DataLoader.COURSES_FILE));
         String fives = "5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5";
         String fours = "4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4";
@@ -4235,7 +4241,7 @@ public final class GuiSelfTest
      */
     private static void checkBestRoundPage() throws IOException
     {
-        Path temp = Files.createTempDirectory("golfanalyst-best-test");
+        Path temp = golfanalyst.TestFolders.make("golfanalyst-best-test");
         Files.copy(Path.of("sample-data", DataLoader.COURSES_FILE), temp.resolve(DataLoader.COURSES_FILE));
         String twos = "2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2";
         String zeros = "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0";
@@ -4282,7 +4288,7 @@ public final class GuiSelfTest
         check("Single again shows the real round", page.title().equals("Best Single: 00002:Sample Links:White")
                 && page.dateField.getText().equals("2026-04-01"));
 
-        Path empty = Files.createTempDirectory("golfanalyst-best-empty");
+        Path empty = golfanalyst.TestFolders.make("golfanalyst-best-empty");
         Files.copy(temp.resolve(DataLoader.COURSES_FILE), empty.resolve(DataLoader.COURSES_FILE));
         Files.writeString(empty.resolve(DataLoader.ROUNDS_FILE), golfanalyst.RoundWriter.STANDARD_HEADER + "\n", StandardCharsets.UTF_8);
         TestShell emptyShell = new TestShell(new DataStore(empty));
@@ -4319,7 +4325,7 @@ public final class GuiSelfTest
      */
     private static void checkStatsPage() throws IOException
     {
-        Path temp = Files.createTempDirectory("golfanalyst-stats-test");
+        Path temp = golfanalyst.TestFolders.make("golfanalyst-stats-test");
         copyFolder(Path.of("sample-data"), temp);
         DataStore store = new DataStore(temp);
         TestShell shell = new TestShell(store);
@@ -4457,7 +4463,7 @@ public final class GuiSelfTest
         check("the sample data has nine-hole rows, so there is no nine-hole watermark", page.watermarks.isEmpty());
 
         // A copy with no rounds, then with one course
-        Path emptyFolder = Files.createTempDirectory("golfanalyst-stats-empty");
+        Path emptyFolder = golfanalyst.TestFolders.make("golfanalyst-stats-empty");
         Files.copy(temp.resolve(DataLoader.COURSES_FILE), emptyFolder.resolve(DataLoader.COURSES_FILE));
         Path emptyRounds = emptyFolder.resolve(DataLoader.ROUNDS_FILE);
         Files.writeString(emptyRounds, golfanalyst.RoundWriter.STANDARD_HEADER + "\n", StandardCharsets.UTF_8);
@@ -4835,7 +4841,7 @@ public final class GuiSelfTest
      */
     private static void checkSampleSafeguard() throws IOException
     {
-        Path base = Files.createTempDirectory("golfanalyst-sample-test");
+        Path base = golfanalyst.TestFolders.make("golfanalyst-sample-test");
         Path sample = base.resolve(DataStore.SAMPLE_FOLDER);
         Path ownData = base.resolve(DataStore.DATA_FOLDER);
         Path ownFull = ownData.toAbsolutePath().normalize();
@@ -4895,7 +4901,7 @@ public final class GuiSelfTest
                 && asked.get(1).equals(AppPanel.ownFolderQuestion(ownFull)) && second.store().dir().equals(ownFull)
                 && Files.readAllLines(ownData.resolve(DataLoader.COURSES_FILE)).equals(ownCourseLines));
 
-        Path freshBase = Files.createTempDirectory("golfanalyst-sample-round");
+        Path freshBase = golfanalyst.TestFolders.make("golfanalyst-sample-round");
         Path freshSample = freshBase.resolve(DataStore.SAMPLE_FOLDER);
         Path freshOwn = freshBase.resolve(DataStore.DATA_FOLDER).toAbsolutePath().normalize();
         copyFolder(Path.of("sample-data"), freshSample);
@@ -4943,7 +4949,7 @@ public final class GuiSelfTest
                 && roundPanel.store().dataset().rounds().size() == 1
                 && Files.readString(freshSample.resolve(DataLoader.ROUNDS_FILE)).equals(roundsBefore));
 
-        Path noneBase = Files.createTempDirectory("golfanalyst-sample-none");
+        Path noneBase = golfanalyst.TestFolders.make("golfanalyst-sample-none");
         Path noneSample = noneBase.resolve(DataStore.SAMPLE_FOLDER);
         copyFolder(Path.of("sample-data"), noneSample);
         AppPanel nonePanel = new AppPanel(new DataStore(noneSample), Path.of("help"), "");
@@ -5209,7 +5215,7 @@ public final class GuiSelfTest
      */
     private static void checkShowHistorical() throws IOException
     {
-        Path data = Files.createTempDirectory("golfanalyst-show-historical").resolve(DataStore.DATA_FOLDER);
+        Path data = golfanalyst.TestFolders.make("golfanalyst-show-historical").resolve(DataStore.DATA_FOLDER);
         copyFolder(Path.of("sample-data"), data);
         DataStore sample = new DataStore(Path.of("sample-data"));
         java.util.Set<Integer> marked = new java.util.HashSet<>();
@@ -5325,7 +5331,7 @@ public final class GuiSelfTest
      */
     private static void checkInstalledFolders() throws IOException
     {
-        Path temp = Files.createTempDirectory("golfanalyst-installed");
+        Path temp = golfanalyst.TestFolders.make("golfanalyst-installed");
         Path program = temp.resolve("Golf Analyst");
         Path user = temp.resolve("AppData").resolve("Golf Analyst");
         Path documents = temp.resolve("Documents");
@@ -5434,7 +5440,7 @@ public final class GuiSelfTest
             DataStore ownStore = new DataStore(own);
             AppPanel ownPanel = new AppPanel(ownStore, Path.of("help"), "");
             ownPanel.setFolders(installed);
-            Path moved = Files.createTempDirectory("golfanalyst-installed-moved");
+            Path moved = golfanalyst.TestFolders.make("golfanalyst-installed-moved");
             FakeTools moveTools = new FakeTools();
             moveTools.nextFolder = moved;
             moveTools.answer = SettingsForm.CHOICE_COPY;
@@ -5490,7 +5496,7 @@ public final class GuiSelfTest
         List<String> problems = PictureCheck.problems(images, Path.of("sample-data"), Path.of("help"));
         check("backgrounds: every page starts and finds its own picture " + problems, problems.isEmpty()
                 && PictureCheck.PAGE_PICTURES.size() == 6 && Theme.imagesFolder().equals(images));
-        Path copy = Files.createTempDirectory("golfanalyst-one-missing").resolve("images");
+        Path copy = golfanalyst.TestFolders.make("golfanalyst-one-missing").resolve("images");
         copyFolder(images, copy);
         copyFolder(images.resolve("backgrounds"), copy.resolve("backgrounds"));
         Files.delete(copy.resolve("backgrounds").resolve("stats.jpg"));
